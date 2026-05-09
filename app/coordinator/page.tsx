@@ -8,8 +8,7 @@ import {
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canHoldPost } from '@/lib/permissions';
-
-const POST_PREVIEW_LENGTH = 60;
+import { truncatePostBody } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,7 +117,7 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
                 </div>
 
                 <p className="text-sm font-medium">
-                  {post.title ?? post.body.slice(0, POST_PREVIEW_LENGTH)}
+                  {post.title ?? truncatePostBody(post.body)}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
                   작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}

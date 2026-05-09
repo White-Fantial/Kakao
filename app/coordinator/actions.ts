@@ -201,6 +201,8 @@ export async function requestUserReviewAction(formData: FormData) {
     redirect('/coordinator?error=사용자 ID가 없습니다.');
   }
 
+  // Server-side validation mirrors the client `required` attribute to prevent
+  // bypassed requests (e.g. direct form submission without browser enforcement).
   if (!reason) {
     redirect('/coordinator?error=검토 사유를 입력해 주세요.');
   }
