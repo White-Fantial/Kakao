@@ -193,8 +193,12 @@ export async function adminRestorePostAction(formData: FormData) {
     select: { id: true, status: true },
   });
 
-  if (!post || post.status === 'DELETED') {
-    redirect('/admin/posts?error=게시글을 찾을 수 없거나 이미 삭제된 상태입니다.');
+  if (!post) {
+    redirect('/admin/posts?error=게시글을 찾을 수 없습니다.');
+  }
+
+  if (post.status === 'DELETED') {
+    redirect('/admin/posts?error=이미 삭제된 게시글입니다.');
   }
 
   await prisma.$transaction(async (tx) => {

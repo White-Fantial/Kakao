@@ -95,7 +95,8 @@ export default async function PostDetailPage({
 
       {post.status === 'HELD' ? (
         <div className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
-          이 게시글은 현재 보류 상태입니다.{post.heldReason ? ` 사유: ${post.heldReason}` : ''}
+          <span>이 게시글은 현재 보류 상태입니다.</span>
+          {post.heldReason ? <span> 사유: {post.heldReason}</span> : null}
         </div>
       ) : null}
 

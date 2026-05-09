@@ -6,6 +6,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
 
+const POST_PREVIEW_LENGTH = 80;
+
 export const dynamic = 'force-dynamic';
 
 type AdminPostsPageProps = {
@@ -123,7 +125,7 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                 </div>
 
                 <p className="text-sm font-medium">
-                  {post.title ?? post.body.slice(0, 80)}
+                  {post.title ?? post.body.slice(0, POST_PREVIEW_LENGTH)}
                 </p>
                 <p className="text-xs text-zinc-500">
                   작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}
