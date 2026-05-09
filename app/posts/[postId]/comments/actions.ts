@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 import { canCreateComment, canDeleteComment } from '@/lib/permissions';
 
 const MAX_COMMENT_BODY_LENGTH = 500;
+const COMMENT_STATUS_DELETED = 'DELETED' as const;
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -83,7 +84,7 @@ export async function deleteCommentAction(formData: FormData) {
 
   await prisma.comment.update({
     where: { id: commentId },
-    data: { status: 'DELETED' },
+    data: { status: COMMENT_STATUS_DELETED },
   });
 
   revalidatePath('/posts');

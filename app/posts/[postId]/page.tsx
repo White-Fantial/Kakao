@@ -93,11 +93,11 @@ export default async function PostDetailPage({
 
       {post.images.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {post.images.map((image) => (
+          {post.images.map((image, index) => (
             <div key={image.id} className="relative h-36 overflow-hidden rounded-md border">
               <Image
                 src={image.url}
-                alt="게시글 이미지"
+                alt={`게시글 이미지 ${index + 1}`}
                 fill
                 className="object-cover"
               />

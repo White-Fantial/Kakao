@@ -160,11 +160,11 @@ export function PostForm({
         <div className="space-y-2">
           <p className="text-sm font-medium">기존 사진</p>
           <div className="grid grid-cols-3 gap-2">
-            {defaultValues.images.map((image) => (
+            {defaultValues.images.map((image, index) => (
               <div key={image.id} className="relative h-24 overflow-hidden rounded-md border">
                 <Image
                   src={image.url}
-                  alt="게시글 이미지"
+                  alt={`기존 게시글 이미지 ${index + 1}`}
                   fill
                   className="object-cover"
                 />
