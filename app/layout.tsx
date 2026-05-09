@@ -19,13 +19,17 @@ function getMetadataBaseUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000'
-    : 'https://localhost:3000';
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+
+  return undefined;
 }
 
+const metadataBaseUrl = getMetadataBaseUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL(getMetadataBaseUrl()),
+  metadataBase: metadataBaseUrl ? new URL(metadataBaseUrl) : undefined,
   title: {
     default: 'NZ 한인 커뮤니티 보드',
     template: '%s | NZ 한인 커뮤니티 보드',

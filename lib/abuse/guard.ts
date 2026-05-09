@@ -51,7 +51,8 @@ export function enforceRateLimit({
 }
 
 const URL_REGEX = /https?:\/\/(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?/gi;
-const REPEATED_CHAR_REGEX = /(.)\1{8,}/;
+const MAX_REPEATED_CHAR_COUNT = 8;
+const REPEATED_CHAR_REGEX = new RegExp(`(.)\\1{${MAX_REPEATED_CHAR_COUNT},}`);
 
 export function assertNoSpamText(text: string, message: string) {
   const normalized = text.trim().toLowerCase();
