@@ -61,6 +61,7 @@
 - `KAKAO_REDIRECT_URI`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
+- `SESSION_MAX_AGE_SECONDS` (기본값 604800초 = 7일)
 
 ## Important Notes
 - 로그인은 현재 placeholder로 구현되어 있으며, `app/login/actions.ts`의 TODO 지점에서 Kakao OAuth로 교체하도록 설계했습니다.

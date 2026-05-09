@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import type { SessionUser } from '@/lib/auth/types';
 
-const SESSION_COOKIE = 'kakao_user_id';
+const SESSION_COOKIE = 'session_token';
 
 export function getSessionCookieName() {
   return SESSION_COOKIE;
@@ -12,24 +12,33 @@ export function getSessionCookieName() {
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
-  const userId = cookieStore.get(SESSION_COOKIE)?.value;
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
 
-  if (!userId) {
+  if (!token) {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const session = await prisma.session.findUnique({
+    where: { token },
     select: {
-      id: true,
-      kakaoId: true,
-      displayName: true,
-      role: true,
-      status: true,
+      expiresAt: true,
+      user: {
+        select: {
+          id: true,
+          kakaoId: true,
+          displayName: true,
+          role: true,
+          status: true,
+        },
+      },
     },
   });
 
-  return user;
+  if (!session || session.expiresAt <= new Date()) {
+    return null;
+  }
+
+  return session.user;
 }
 
 export async function requireUser() {

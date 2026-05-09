@@ -7,6 +7,7 @@ import {
 } from '@/app/posts/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { SALE_CATEGORY_SLUG } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   }
 
   const isOwner = currentUser?.id === post.authorId;
-  const canMarkSold = isOwner && post.category.slug === 'sale' && post.saleStatus !== 'SOLD';
+  const canMarkSold =
+    isOwner &&
+    post.category.slug === SALE_CATEGORY_SLUG &&
+    post.saleStatus !== 'SOLD';
 
   return (
     <article className="space-y-4 rounded-lg border bg-white p-4">

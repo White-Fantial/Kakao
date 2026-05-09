@@ -6,6 +6,7 @@ import {
 } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { SALE_CATEGORY_SLUG } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,8 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                 <Link href={`/posts/${post.id}/edit`} className="rounded-md border px-3 py-2 text-sm">
                   수정
                 </Link>
-                {post.category.slug === 'sale' && post.saleStatus !== 'SOLD' ? (
+                {post.category.slug === SALE_CATEGORY_SLUG &&
+                post.saleStatus !== 'SOLD' ? (
                   <form action={markPostAsSoldAction}>
                     <input type="hidden" name="postId" value={post.id} />
                     <button type="submit" className="rounded-md border px-3 py-2 text-sm">

@@ -20,15 +20,15 @@ function normalizeText(value: FormDataEntryValue | null) {
 
 function parsePrice(rawPrice: string) {
   if (!rawPrice) {
-    return null;
+    return { value: null as Decimal | null, invalid: false };
   }
 
   const parsed = Number(rawPrice);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return null;
+  if (Number.isNaN(parsed) || parsed < 0.01) {
+    return { value: null as Decimal | null, invalid: true };
   }
 
-  return new Decimal(parsed.toFixed(2));
+  return { value: new Decimal(rawPrice), invalid: false };
 }
 
 async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
@@ -41,8 +41,12 @@ async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
     return { ok: false as const, message: '카테고리를 선택해 주세요.' };
   }
 
-  const price = parsePrice(rawPrice);
+  const { value: price, invalid } = parsePrice(rawPrice);
   const isSaleCategory = category.slug === SALE_CATEGORY_SLUG;
+
+  if (invalid) {
+    return { ok: false as const, message: '가격을 올바르게 입력해 주세요.' };
+  }
 
   if (isSaleCategory && !price) {
     return { ok: false as const, message: '판매글은 가격을 입력해 주세요.' };

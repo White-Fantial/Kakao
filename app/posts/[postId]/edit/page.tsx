@@ -63,7 +63,7 @@ export default async function EditPostPage({
           slug: category.slug,
         }))}
         cities={cities.map((city) => ({ id: city.id, label: city.name }))}
-        submitLabel="올리기"
+        submitLabel="수정하기"
         errorMessage={query.error}
         defaultValues={{
           postId: post.id,

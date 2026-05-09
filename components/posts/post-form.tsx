@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { SALE_CATEGORY_SLUG } from '@/lib/posts/constants';
 
 type Option = {
   id: string;
@@ -26,8 +27,6 @@ type PostFormProps = {
   };
   errorMessage?: string;
 };
-
-const SALE_CATEGORY_SLUG = 'sale';
 
 export function PostForm({
   action,
@@ -136,7 +135,7 @@ export function PostForm({
             id="price"
             name="price"
             type="number"
-            min="1"
+            min="0.01"
             step="0.01"
             defaultValue={defaultValues?.price ?? ''}
             required
