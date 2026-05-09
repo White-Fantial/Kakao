@@ -21,12 +21,6 @@ export function PostMarkdown({ body }: PostMarkdownProps) {
               {children}
             </blockquote>
           ),
-          code: ({ children, className }) =>
-            className ? (
-              <code className={className}>{children}</code>
-            ) : (
-              <code className="rounded bg-zinc-100 px-1 py-0.5 text-sm">{children}</code>
-            ),
           pre: ({ children }) => (
             <pre className="overflow-x-auto rounded-md bg-zinc-900 p-3 text-sm text-zinc-100">
               {children}
