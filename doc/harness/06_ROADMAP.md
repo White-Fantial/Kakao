@@ -1,5 +1,7 @@
 # Implementation Roadmap
 
+현재 구현 상태: **Phase 0 ~ Phase 10 (기본 폴리시 포함)**
+
 ## Phase 0 — Project Setup
 - Next.js App Router setup
 - TypeScript setup
@@ -78,10 +80,10 @@
 - Category/city management
 
 ## Phase 10 — Polish
-- Mobile UI polish
-- Loading states
-- Empty states
-- Error states
-- SEO metadata
-- Basic analytics
-- Abuse prevention: rate limits, spam checks
+- [x] Mobile UI polish (모바일 네비게이션/카드 UI 개선)
+- [x] Loading states (전역/게시글 로딩 스켈레톤)
+- [x] Empty states (목록/내 글/댓글 empty 메시지 반영)
+- [x] Error states (route/global error boundary 추가)
+- [x] SEO metadata (레이아웃/목록/상세 메타데이터 보강)
+- [x] Basic analytics (클라이언트 전환 이벤트 + 서버 이벤트 로깅)
+- [x] Abuse prevention: rate limits, spam checks (게시글/댓글 작성 보호)

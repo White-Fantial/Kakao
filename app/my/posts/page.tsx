@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 import {
   deletePostAction,
@@ -9,6 +10,10 @@ import { prisma } from '@/lib/db/prisma';
 import { SALE_CATEGORY_SLUG } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: '내 글',
+  description: '내가 작성한 게시글을 관리할 수 있어요.',
+};
 
 type MyPostsPageProps = {
   searchParams: Promise<{ error?: string }>;

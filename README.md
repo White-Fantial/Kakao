@@ -1,13 +1,13 @@
 # NZ 한인 커뮤니티 보드 (Kakao)
 
-뉴질랜드 거주 한인을 위한 한국어 커뮤니티 마켓 보드입니다. 카카오 오픈채팅 스타일의 빠른 글쓰기 경험을 목표로 하며, 현재 Phase 0~5 MVP가 구현되어 있습니다.
+뉴질랜드 거주 한인을 위한 한국어 커뮤니티 마켓 보드입니다. 카카오 오픈채팅 스타일의 빠른 글쓰기 경험을 목표로 하며, 현재 Phase 0~10 범위의 기본 기능이 구현되어 있습니다.
 
 ## Tech Stack
 - Next.js App Router + TypeScript
 - Tailwind CSS
 - Prisma + PostgreSQL
 
-## Implemented (Phase 0~5)
+## Implemented (Phase 0~10)
 - Next.js App Router 프로젝트 기본 구조
 - Prisma 스키마 (User, City, Category, Post, PostImage, Comment, ModerationAction, UserRestriction)
 - 도시/카테고리 seed 데이터
@@ -26,10 +26,27 @@
 - 댓글 기능
   - 게시글 상세에서 댓글 작성/조회
   - 본인 댓글 삭제 (코디네이터/관리자 삭제 가능)
+- 카카오 연락 흐름
+  - 프로필 오픈채팅 링크 등록
+  - 게시글별 연락 링크 override
+  - 게시글 상세 연락 버튼/미등록 fallback
+- 코디네이터 운영 기능
+  - 보류/재게시
+  - 사용자 관리자 검토 요청
+- 관리자 기능
+  - 사용자 역할/상태 관리
+  - 게시글/댓글 관리
+  - 카테고리/도시 관리
+- Phase 10 폴리시
+  - 모바일 네비게이션/카드 UI 개선
+  - 라우트 로딩 스켈레톤
+  - 에러 경계 UI (route/global)
+  - SEO 메타데이터 보강 (layout + 목록/상세)
+  - 기본 분석 이벤트 로깅 (클라이언트 전환 + 서버 액션)
+  - 게시글/댓글 작성 rate limit + spam 체크
 - 한국어 UI 라벨/메시지 반영
 
-## Not Yet Implemented (Phase 6+)
-- 코디네이터/관리자 대시보드
+## Not Yet Implemented
 - 실제 Kakao OAuth/NextAuth 연동
 
 ## Local Setup
@@ -65,6 +82,7 @@
 - `KAKAO_REDIRECT_URI`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
+- `NEXT_PUBLIC_SITE_URL` (기본 SEO 메타데이터 base URL)
 - `SESSION_MAX_AGE_SECONDS` (기본값 604800초 = 7일)
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
@@ -74,8 +92,7 @@
 - 로그인은 현재 placeholder로 구현되어 있으며, `app/login/actions.ts`의 TODO 지점에서 Kakao OAuth로 교체하도록 설계했습니다.
 - 이미지 업로드는 현재 Cloudinary API 환경 변수 설정이 필요합니다.
 
-## Next Phases
-- **Phase 6**: 검색/고급 필터 확장
-- **Phase 7**: 카카오 연락 링크 고도화
-- **Phase 8~9**: 코디네이터/관리자 운영 기능
-- **Phase 10**: 모바일 UX 폴리시 및 운영 안정화
+## Next Focus
+- 실제 Kakao OAuth/NextAuth 연동
+- 분석 이벤트 외부 대시보드 연동
+- 검색 고도화 및 운영 자동화
