@@ -54,6 +54,7 @@ export function PostForm({
     <form
       action={action}
       encType="multipart/form-data"
+      aria-label="게시글 작성 양식"
       className="space-y-4 rounded-lg border bg-white p-4"
     >
       {defaultValues?.postId ? (

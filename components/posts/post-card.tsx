@@ -47,8 +47,10 @@ export function PostCard({ post }: PostCardProps) {
       <div className="flex items-center justify-between text-sm text-zinc-500">
         {post.price ? <span>NZD {post.price}</span> : <span />}
         <div className="flex items-center gap-2">
-          <span>댓글 {post.commentCount}</span>
-          <span>{new Date(post.createdAt).toLocaleString('ko-KR')}</span>
+          <span aria-label="댓글 수">댓글 {post.commentCount}</span>
+          <time dateTime={post.createdAt.toISOString()}>
+            {new Date(post.createdAt).toLocaleString('ko-KR')}
+          </time>
         </div>
       </div>
     </Link>

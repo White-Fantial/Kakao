@@ -156,7 +156,11 @@ export default async function PostDetailPage({
         {currentUser ? (
           <form action={createCommentAction} className="space-y-2">
             <input type="hidden" name="postId" value={post.id} />
+            <label htmlFor="comment-body" className="sr-only">
+              댓글 입력
+            </label>
             <textarea
+              id="comment-body"
               name="body"
               required
               rows={3}
