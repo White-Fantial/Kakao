@@ -7,6 +7,8 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canCreateComment, canDeleteComment } from '@/lib/permissions';
 
+const MAX_COMMENT_BODY_LENGTH = 500;
+
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -30,6 +32,13 @@ export async function createCommentAction(formData: FormData) {
 
   if (!body) {
     redirectWithPostError(postId, '댓글 내용을 입력해 주세요.');
+  }
+
+  if (body.length > MAX_COMMENT_BODY_LENGTH) {
+    redirectWithPostError(
+      postId,
+      `댓글은 ${MAX_COMMENT_BODY_LENGTH}자 이하로 작성해 주세요.`,
+    );
   }
 
   const post = await prisma.post.findUnique({

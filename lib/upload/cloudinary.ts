@@ -26,9 +26,14 @@ function getCloudinaryConfig() {
   return { cloudName, apiKey, apiSecret };
 }
 
-function createSignature(timestamp: string, apiSecret: string) {
+function createSignature(params: Record<string, string>, apiSecret: string) {
+  const payload = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+
   return createHash('sha1')
-    .update(`timestamp=${timestamp}${apiSecret}`)
+    .update(`${payload}${apiSecret}`)
     .digest('hex');
 }
 
@@ -63,11 +68,13 @@ export async function uploadImageToCloudinary(file: File): Promise<UploadedImage
   const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signature = createSignature(timestamp, apiSecret);
+  const folder = 'kakao-posts';
+  const signature = createSignature({ folder, timestamp }, apiSecret);
 
   const payload = new FormData();
   payload.append('file', file);
   payload.append('api_key', apiKey);
+  payload.append('folder', folder);
   payload.append('timestamp', timestamp);
   payload.append('signature', signature);
 

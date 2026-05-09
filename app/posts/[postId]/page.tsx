@@ -100,7 +100,6 @@ export default async function PostDetailPage({
                 alt="게시글 이미지"
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
           ))}

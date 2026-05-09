@@ -38,7 +38,6 @@ export function PostCard({ post }: PostCardProps) {
             alt="게시글 썸네일"
             fill
             className="object-cover"
-            unoptimized
           />
         </div>
       ) : null}
