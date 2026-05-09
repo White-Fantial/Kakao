@@ -50,7 +50,7 @@ export function enforceRateLimit({
   buckets.set(key, current);
 }
 
-const URL_REGEX = /https?:\/\/[^\s]+/gi;
+const URL_REGEX = /https?:\/\/(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?/gi;
 const REPEATED_CHAR_REGEX = /(.)\1{8,}/;
 
 export function assertNoSpamText(text: string, message: string) {

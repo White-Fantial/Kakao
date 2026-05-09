@@ -160,9 +160,7 @@ export async function createPostAction(formData: FormData) {
     }
   }
 
-  let postIdForAnalytics: string | null = null;
-
-  await prisma.$transaction(async (tx) => {
+  const postId = await prisma.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {
         authorId: user.id,
@@ -176,7 +174,6 @@ export async function createPostAction(formData: FormData) {
         contactUrl,
       },
     });
-    postIdForAnalytics = post.id;
 
     if (uploadedImages.length > 0) {
       await tx.postImage.createMany({
@@ -191,11 +188,13 @@ export async function createPostAction(formData: FormData) {
         })),
       });
     }
+
+    return post.id;
   });
 
   trackServerEvent('post_created', {
     userId: user.id,
-    postId: postIdForAnalytics,
+    postId,
     categoryId,
     cityId,
     imageCount: uploadedImages.length,
