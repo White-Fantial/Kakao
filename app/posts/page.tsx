@@ -1,9 +1,14 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 import { PostCard } from '@/components/posts/post-card';
 import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: '홈',
+  description: '뉴질랜드 한인 커뮤니티의 최신 게시글을 확인해 보세요.',
+};
 
 type PostsPageProps = {
   searchParams: Promise<{ category?: string; city?: string }>;

@@ -22,7 +22,7 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <Link
       href={`/posts/${post.id}`}
-      className="block space-y-2 rounded-lg border bg-white p-4"
+      className="block space-y-2 rounded-lg border bg-white p-4 shadow-sm transition active:scale-[0.995]"
     >
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-zinc-100 px-2 py-1">{post.category.name}</span>
@@ -41,7 +41,7 @@ export function PostCard({ post }: PostCardProps) {
           />
         </div>
       ) : null}
-      <p className="text-base font-semibold">{preview}</p>
+      <p className="text-base font-semibold leading-6">{preview}</p>
       <p className="line-clamp-2 text-sm text-zinc-700">{post.body}</p>
       <div className="flex items-center justify-between text-sm text-zinc-500">
         {post.price ? <span>NZD {post.price}</span> : <span />}

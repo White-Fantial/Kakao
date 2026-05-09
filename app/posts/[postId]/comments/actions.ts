@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { trackServerEvent } from '@/lib/analytics/server';
+import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canCreateComment, canDeleteComment } from '@/lib/permissions';
@@ -12,6 +14,10 @@ const COMMENT_STATUS = {
   PUBLISHED: 'PUBLISHED',
   DELETED: 'DELETED',
 } as const;
+const CREATE_COMMENT_RATE_LIMIT = {
+  limit: 8,
+  windowMs: 60_000,
+};
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -45,6 +51,23 @@ export async function createCommentAction(formData: FormData) {
     );
   }
 
+  try {
+    enforceRateLimit({
+      key: `create-comment:${user.id}`,
+      limit: CREATE_COMMENT_RATE_LIMIT.limit,
+      windowMs: CREATE_COMMENT_RATE_LIMIT.windowMs,
+      message: '댓글 작성이 너무 빨라요. 잠시 후 다시 시도해 주세요.',
+    });
+
+    assertNoSpamText(body, '광고/도배로 보이는 댓글은 등록할 수 없어요.');
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : '댓글을 등록할 수 없어요. 잠시 후 다시 시도해 주세요.';
+    redirectWithPostError(postId, message);
+  }
+
   const post = await prisma.post.findUnique({
     where: { id: postId },
     select: { id: true, status: true },
@@ -61,6 +84,11 @@ export async function createCommentAction(formData: FormData) {
       body,
       status: COMMENT_STATUS.PUBLISHED,
     },
+  });
+
+  trackServerEvent('comment_created', {
+    userId: user.id,
+    postId,
   });
 
   revalidatePath('/posts');

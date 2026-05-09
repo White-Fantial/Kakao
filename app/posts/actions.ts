@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
+import { trackServerEvent } from '@/lib/analytics/server';
+import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { prisma } from '@/lib/db/prisma';
 import {
   canCreatePost,
@@ -18,6 +20,11 @@ import {
   uploadImageToCloudinary,
   validateImageFiles,
 } from '@/lib/upload/cloudinary';
+
+const CREATE_POST_RATE_LIMIT = {
+  limit: 5,
+  windowMs: 60_000,
+};
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -84,6 +91,26 @@ export async function createPostAction(formData: FormData) {
   const contactUrl = normalizeText(formData.get('contactUrl')) || null;
   const imageFiles = getImageFiles(formData);
 
+  try {
+    enforceRateLimit({
+      key: `create-post:${user.id}`,
+      limit: CREATE_POST_RATE_LIMIT.limit,
+      windowMs: CREATE_POST_RATE_LIMIT.windowMs,
+      message: '요청이 너무 빨라요. 잠시 후 다시 시도해 주세요.',
+    });
+
+    assertNoSpamText(
+      [title, body, contactUrl].filter(Boolean).join(' '),
+      '광고/도배로 보이는 내용은 등록할 수 없어요.',
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : '게시글을 등록할 수 없어요. 잠시 후 다시 시도해 주세요.';
+    redirect(`/posts/new?error=${encodeURIComponent(message)}`);
+  }
+
   if (!body) {
     redirect('/posts/new?error=글 내용을 입력해 주세요.');
   }
@@ -133,7 +160,7 @@ export async function createPostAction(formData: FormData) {
     }
   }
 
-  await prisma.$transaction(async (tx) => {
+  const postId = await prisma.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {
         authorId: user.id,
@@ -161,6 +188,17 @@ export async function createPostAction(formData: FormData) {
         })),
       });
     }
+
+    return post.id;
+  });
+
+  trackServerEvent('post_created', {
+    userId: user.id,
+    postId,
+    categoryId,
+    cityId,
+    imageCount: uploadedImages.length,
+    isSaleCategory,
   });
 
   revalidatePath('/posts');

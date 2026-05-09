@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import {
@@ -20,11 +21,50 @@ import { canDeleteComment, canHoldPost, canRestorePost } from '@/lib/permissions
 import { SALE_CATEGORY_SLUG } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
+const TITLE_PREVIEW_LENGTH = 40;
+const DESCRIPTION_PREVIEW_LENGTH = 80;
 
 type PostDetailPageProps = {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ error?: string }>;
 };
+
+export async function generateMetadata({
+  params,
+}: Pick<PostDetailPageProps, 'params'>): Promise<Metadata> {
+  const { postId } = await params;
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      title: true,
+      body: true,
+      status: true,
+      category: { select: { name: true } },
+      city: { select: { name: true } },
+    },
+  });
+
+  if (!post || post.status === 'DELETED') {
+    return {
+      title: '게시글을 찾을 수 없어요',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const title = post.title ?? post.body.slice(0, TITLE_PREVIEW_LENGTH);
+  const description = `${post.category.name} · ${post.city.name} · ${post.body.slice(0, DESCRIPTION_PREVIEW_LENGTH)}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+    },
+  };
+}
 
 export default async function PostDetailPage({
   params,

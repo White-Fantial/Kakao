@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
+
 import { PostForm } from '@/components/posts/post-form';
 import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: '글쓰기',
+  description: '새로운 글을 빠르게 작성해 공유해 보세요.',
+};
 
 type NewPostPageProps = {
   searchParams: Promise<{ error?: string }>;
