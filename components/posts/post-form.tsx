@@ -92,7 +92,7 @@ export function PostForm({
           defaultValue={defaultValues?.body ?? ''}
           required
           rows={8}
-          placeholder="마크다운 문법으로 작성할 수 있어요. 예) ## 제목, **굵게**, - 목록"
+          placeholder="마크다운으로 작성할 수 있어요."
           className="w-full rounded-md border px-3 py-2"
         />
         <p className="text-xs text-zinc-500">
