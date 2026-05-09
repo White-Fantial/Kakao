@@ -231,7 +231,7 @@ export async function updatePostAction(formData: FormData) {
 
   if (existingImageCount + imageFiles.length > MAX_UPLOAD_IMAGE_COUNT) {
     redirect(
-      `/posts/${postId}/edit?error=${encodeURIComponent(`이미지는 최대 ${MAX_UPLOAD_IMAGE_COUNT}장까지 유지할 수 있어요.`)}`,
+      `/posts/${postId}/edit?error=${encodeURIComponent(`기존 이미지 포함 최대 ${MAX_UPLOAD_IMAGE_COUNT}장까지 업로드할 수 있어요.`)}`,
     );
   }
 

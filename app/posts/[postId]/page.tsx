@@ -170,7 +170,11 @@ export default async function PostDetailPage({
           </form>
         ) : (
           <p className="text-sm text-zinc-500">
-            댓글을 작성하려면 <Link href="/login" className="underline">로그인</Link>이 필요해요.
+            댓글을 작성하려면{' '}
+            <Link href="/login" className="underline">
+              로그인
+            </Link>{' '}
+            이 필요해요.
           </p>
         )}
 

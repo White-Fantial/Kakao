@@ -62,13 +62,14 @@ export function validateImageFiles(imageFiles: File[]) {
 export async function uploadImageToCloudinary(file: File): Promise<UploadedImage> {
   const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
 
-  const timestamp = `${Math.floor(Date.now() / 1000)}`;
-  const signature = createSignature(timestamp, apiSecret);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const timestampText = `${timestamp}`;
+  const signature = createSignature(timestampText, apiSecret);
 
   const payload = new FormData();
   payload.append('file', file);
   payload.append('api_key', apiKey);
-  payload.append('timestamp', timestamp);
+  payload.append('timestamp', timestampText);
   payload.append('signature', signature);
 
   const response = await fetch(
