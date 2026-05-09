@@ -92,8 +92,12 @@ export function PostForm({
           defaultValue={defaultValues?.body ?? ''}
           required
           rows={8}
+          placeholder="마크다운 문법으로 작성할 수 있어요. 예) ## 제목, **굵게**, - 목록"
           className="w-full rounded-md border px-3 py-2"
         />
+        <p className="text-xs text-zinc-500">
+          본문은 마크다운으로 저장되며, 게시글 보기 화면에서 서식이 적용됩니다.
+        </p>
       </div>
 
       <div className="space-y-1">

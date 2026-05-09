@@ -15,6 +15,7 @@ import {
   holdPostAction,
   restorePostAction,
 } from '@/app/coordinator/actions';
+import { PostMarkdown } from '@/components/posts/post-markdown';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canDeleteComment, canHoldPost, canRestorePost } from '@/lib/permissions';
@@ -149,7 +150,7 @@ export default async function PostDetailPage({
       </div>
 
       {post.title ? <h1 className="text-xl font-semibold">{post.title}</h1> : null}
-      <p className="whitespace-pre-wrap text-base leading-7">{post.body}</p>
+      <PostMarkdown body={post.body} />
 
       {post.images.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
