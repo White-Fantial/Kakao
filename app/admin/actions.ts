@@ -10,6 +10,8 @@ import { canMakeFinalUserDecision } from '@/lib/permissions';
 import type { SessionUser } from '@/lib/auth/types';
 import type { UserRole, UserStatus } from '@prisma/client';
 
+const VALID_CATEGORY_TYPES = Object.values(CategoryType) as CategoryType[];
+
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -236,15 +238,7 @@ export async function createCategoryAction(formData: FormData) {
     redirect('/admin/categories?error=이름, 슬러그, 타입을 입력해 주세요.');
   }
 
-  const validTypes: CategoryType[] = [
-    'GENERAL',
-    'SALE',
-    'RECRUIT',
-    'GIVEAWAY',
-    'HELP',
-    'QUESTION',
-  ];
-  if (!validTypes.includes(type)) {
+  if (!VALID_CATEGORY_TYPES.includes(type)) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
@@ -308,15 +302,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
     redirect('/admin/categories?error=유효하지 않은 역할입니다.');
   }
 
-  const validTypes: CategoryType[] = [
-    'GENERAL',
-    'SALE',
-    'RECRUIT',
-    'GIVEAWAY',
-    'HELP',
-    'QUESTION',
-  ];
-  if (!validTypes.includes(type)) {
+  if (!VALID_CATEGORY_TYPES.includes(type)) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
