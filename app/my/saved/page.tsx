@@ -8,6 +8,7 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
+const BODY_PREVIEW_LENGTH = 40;
 export const metadata: Metadata = {
   title: '저장한 글',
   description: '저장해 둔 게시글을 모아볼 수 있어요.',
@@ -65,7 +66,7 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
         <ul className="space-y-3">
           {savedPosts.map(({ postId, post }) => {
             const titleText = post.title?.trim() ?? '';
-            const bodyPreview = post.body.slice(0, 40);
+            const bodyPreview = post.body.slice(0, BODY_PREVIEW_LENGTH);
             const postHeading = titleText || bodyPreview;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
