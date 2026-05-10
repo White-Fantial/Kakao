@@ -15,12 +15,13 @@ function getInitial(displayName: string) {
 
 export function UserAvatar({ displayName, profileImageUrl, className, sizes }: UserAvatarProps) {
   const avatarClassName = className ?? 'h-8 w-8';
+  const resolvedProfileImageUrl = profileImageUrl?.replace(/^http:\/\/k\.kakaocdn\.net/i, 'https://k.kakaocdn.net');
 
-  if (profileImageUrl) {
+  if (resolvedProfileImageUrl) {
     return (
       <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${avatarClassName}`}>
         <Image
-          src={profileImageUrl}
+          src={resolvedProfileImageUrl}
           alt={displayName}
           fill
           sizes={sizes ?? '32px'}
