@@ -28,17 +28,17 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <Link
       href={`/posts/${post.id}`}
-      className="block space-y-2 rounded-lg border bg-white p-4 shadow-sm transition active:scale-[0.995]"
+      className="block space-y-2 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm transition hover:border-[#fee500] hover:shadow-md active:scale-[0.995]"
     >
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full bg-zinc-100 px-2 py-1">{post.category.name}</span>
-        <span className="rounded-full bg-zinc-100 px-2 py-1">{post.city?.name ?? '전 지역'}</span>
+        <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
+        <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
         {post.saleStatus === 'SOLD' ? (
-          <span className="rounded-full bg-zinc-900 px-2 py-1 text-white">판매완료</span>
+          <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
         ) : null}
       </div>
       {post.thumbnailUrl ? (
-        <div className="relative h-40 overflow-hidden rounded-md">
+        <div className="relative h-40 overflow-hidden rounded-lg">
           <Image
             src={post.thumbnailUrl}
             alt=""
@@ -48,15 +48,15 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       ) : null}
       {hasTitle ? <p className="text-base font-semibold leading-6">{preview}</p> : null}
-      <p className="line-clamp-2 text-sm text-zinc-700">{post.body}</p>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+      <p className="line-clamp-2 text-sm text-[#555]">{post.body}</p>
+      <div className="flex flex-wrap items-center gap-2 text-sm text-[#888]">
         <UserAvatar
           displayName={post.author.displayName}
           profileImageUrl={post.author.profileImageUrl}
           className="h-6 w-6"
           sizes="24px"
         />
-        <span className="text-zinc-600">{post.author.displayName}</span>
+        <span className="text-[#666]">{post.author.displayName}</span>
         <span aria-hidden="true">·</span>
         <span>댓글 {post.commentCount}</span>
         <time dateTime={post.createdAt.toISOString()}>
@@ -65,7 +65,7 @@ export function PostCard({ post }: PostCardProps) {
         {post.price ? (
           <>
             <span aria-hidden="true">·</span>
-            <span>NZD {post.price}</span>
+            <span className="font-semibold text-[#3c1e1e]">NZD {post.price}</span>
           </>
         ) : null}
       </div>

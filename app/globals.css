@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f4f5;
-  --foreground: #111827;
+  --background: #f9f8f4;
+  --foreground: #1a1a1a;
+  --kakao-yellow: #fee500;
+  --kakao-brown: #3c1e1e;
+  --kakao-yellow-hover: #f5db00;
+  --kakao-surface: #ffffff;
+  --kakao-border: #e8e8e8;
 }
 
 body {
@@ -10,4 +15,10 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Segoe UI', sans-serif;
+}
+
+/* KakaoTalk yellow focus ring for interactive elements */
+*:focus-visible {
+  outline: 2px solid var(--kakao-yellow);
+  outline-offset: 2px;
 }
