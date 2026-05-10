@@ -63,9 +63,9 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-[#e8e8e8]">
                     <Image
                       src={post.images[0].url}
-                      alt={post.title?.trim() || post.body.slice(0, 40)}
+                      alt={`게시글 썸네일: ${post.title?.trim() || post.body.slice(0, 40)}`}
                       fill
-                      sizes="80px"
+                      sizes="(max-width: 640px) 80px, 80px"
                       className="object-cover"
                     />
                   </div>
