@@ -13,14 +13,31 @@ function getInitial(displayName: string) {
   return firstChar ? firstChar.toUpperCase() : '?';
 }
 
+function normalizeAvatarUrl(profileImageUrl?: string | null) {
+  if (!profileImageUrl) return null;
+  try {
+    const parsedUrl = new URL(profileImageUrl);
+    const isKakaoCdnHost =
+      parsedUrl.hostname === 'kakaocdn.net' || parsedUrl.hostname.endsWith('.kakaocdn.net');
+    if (parsedUrl.protocol === 'http:' && isKakaoCdnHost) {
+      parsedUrl.protocol = 'https:';
+      return parsedUrl.toString();
+    }
+    return profileImageUrl;
+  } catch {
+    return profileImageUrl;
+  }
+}
+
 export function UserAvatar({ displayName, profileImageUrl, className, sizes }: UserAvatarProps) {
   const avatarClassName = className ?? 'h-8 w-8';
+  const resolvedProfileImageUrl = normalizeAvatarUrl(profileImageUrl);
 
-  if (profileImageUrl) {
+  if (resolvedProfileImageUrl) {
     return (
       <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${avatarClassName}`}>
         <Image
-          src={profileImageUrl}
+          src={resolvedProfileImageUrl}
           alt={displayName}
           fill
           sizes={sizes ?? '32px'}
