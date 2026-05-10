@@ -50,7 +50,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       : Promise.resolve(null),
   ]);
 
-  const alwaysIncludedCategorySlugSet = new Set(ALWAYS_INCLUDED_CATEGORY_SLUGS);
+  const alwaysIncludedCategorySlugSet = new Set<string>(ALWAYS_INCLUDED_CATEGORY_SLUGS);
   const alwaysIncludedCategories = categories.filter((category) =>
     alwaysIncludedCategorySlugSet.has(category.slug),
   );
