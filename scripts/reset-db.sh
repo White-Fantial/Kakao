@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # reset-db.sh
-# Fully resets the database: drops every table/object in the DB schema,
+# Fully resets the database: drops every table in the DB schema,
 # initializes migration metadata again, re-applies every migration,
 # and runs the seed script.
 #
@@ -26,10 +26,20 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-echo "🗑️  Dropping all tables and schema objects..."
+echo "🗑️  Dropping all tables..."
 cat <<'SQL' | npx prisma db execute --schema prisma/schema.prisma --stdin
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
+DO $$
+DECLARE
+  table_record RECORD;
+BEGIN
+  FOR table_record IN
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format('DROP TABLE IF EXISTS %I.%I CASCADE', 'public', table_record.tablename);
+  END LOOP;
+END $$;
 SQL
 
 echo ""
