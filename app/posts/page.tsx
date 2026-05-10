@@ -301,7 +301,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <ul className="space-y-2 border-t border-[#f0f0f0] pt-3">
               {searchAlerts.map((alert) => (
                 <li key={alert.id} className="rounded-lg border border-[#efefef] p-3">
-                  <p className="mb-2 text-sm font-medium">"{alert.query}"</p>
+                  <p className="mb-2 text-sm font-medium">&quot;{alert.query}&quot;</p>
                   <div className="flex flex-wrap gap-2">
                     <form action={updateSearchAlertAction} className="flex items-center gap-2">
                       <input type="hidden" name="alertId" value={alert.id} />
