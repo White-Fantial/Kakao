@@ -74,14 +74,16 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     ]),
   );
   const selectedCityIdsFromParams = toArray(params.city).filter((id) => cityIds.has(id));
-  const selectedCityIds =
+  const selectedCityIdsBase =
     selectedCityIdsFromParams.length > 0
       ? selectedCityIdsFromParams
       : cities.map((city) => city.id);
-
-  if (profileCityId && cityIds.has(profileCityId) && !selectedCityIds.includes(profileCityId)) {
-    selectedCityIds.push(profileCityId);
-  }
+  const selectedCityIds =
+    profileCityId &&
+    cityIds.has(profileCityId) &&
+    !selectedCityIdsBase.includes(profileCityId)
+      ? [...selectedCityIdsBase, profileCityId]
+      : selectedCityIdsBase;
 
   const shouldFilterByCategory = selectedCategoryIds.length !== categories.length;
   const shouldFilterByCity = selectedCityIds.length !== cities.length;
@@ -135,7 +137,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           className="flex cursor-pointer items-center justify-between text-sm font-medium sm:hidden"
         >
           <span>필터</span>
-          <span>펼치기</span>
+          <span className="peer-checked:hidden">펼치기</span>
+          <span className="hidden peer-checked:inline">접기</span>
         </label>
 
         <div className="mt-3 hidden grid-cols-1 gap-4 peer-checked:grid sm:mt-0 sm:grid sm:grid-cols-2">
@@ -177,7 +180,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                       defaultChecked={selectedCityIds.includes(city.id)}
                       disabled={isProfileCity}
                     />
-                    {isProfileCity ? <input type="hidden" name="city" value={city.id} /> : null}
                     <span>{city.name}</span>
                   </label>
                 );
