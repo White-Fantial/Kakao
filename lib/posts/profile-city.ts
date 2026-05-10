@@ -1,7 +1,13 @@
 export const PROFILE_CITY_REQUIRED_MESSAGE = '글을 쓰기 전에 지역을 먼저 설정해 주세요.';
 
 export function getProfileCityRequiredHref(returnTo: string) {
-  return `/my/profile?returnTo=${encodeURIComponent(returnTo)}&error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`;
+  const safeReturnTo = normalizeInternalPath(returnTo);
+
+  if (!safeReturnTo) {
+    return `/my/profile?error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`;
+  }
+
+  return `/my/profile?returnTo=${encodeURIComponent(safeReturnTo)}&error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`;
 }
 
 export function normalizeInternalPath(value: string) {

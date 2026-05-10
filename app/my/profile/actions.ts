@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import {
-  PROFILE_CITY_REQUIRED_MESSAGE,
+  getProfileCityRequiredHref,
   normalizeInternalPath,
 } from '@/lib/posts/profile-city';
 
@@ -40,9 +40,7 @@ export async function updateProfileAction(formData: FormData) {
   }
 
   if (returnTo && !cityId) {
-    redirect(
-      `/my/profile?returnTo=${encodeURIComponent(returnTo)}&error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`,
-    );
+    redirect(getProfileCityRequiredHref(returnTo));
   }
 
   await prisma.user.update({
