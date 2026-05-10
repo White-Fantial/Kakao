@@ -21,7 +21,13 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
   const [dbUser, cities, searchAlerts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { openChatUrl: true, cityId: true, profileImageUrl: true },
+      select: {
+        openChatUrl: true,
+        cityId: true,
+        profileImageUrl: true,
+        notifyOnKakaoForSearchAlert: true,
+        notifyOnKakaoForComment: true,
+      },
     }),
     prisma.city.findMany({
       where: { isActive: true },
@@ -34,7 +40,6 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
       select: {
         id: true,
         query: true,
-        notifyOnKakao: true,
         isActive: true,
       },
     }),
@@ -104,6 +109,29 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
             등록하면 게시글 상세 페이지에서 연락 버튼이 표시됩니다.
           </p>
         </div>
+        <div className="space-y-2 border-t border-[#e8e8e8] pt-3">
+          <p className="text-sm font-medium">카카오톡 알림 설정</p>
+          <label htmlFor="notifyOnKakaoForSearchAlert" className="flex items-center gap-2 text-sm">
+            <input
+              id="notifyOnKakaoForSearchAlert"
+              type="checkbox"
+              name="notifyOnKakaoForSearchAlert"
+              defaultChecked={dbUser?.notifyOnKakaoForSearchAlert ?? false}
+              className="accent-[#fee500]"
+            />
+            저장된 검색 조건에 맞는 글이 올라오면 카카오톡 메시지 받기
+          </label>
+          <label htmlFor="notifyOnKakaoForComment" className="flex items-center gap-2 text-sm">
+            <input
+              id="notifyOnKakaoForComment"
+              type="checkbox"
+              name="notifyOnKakaoForComment"
+              defaultChecked={dbUser?.notifyOnKakaoForComment ?? false}
+              className="accent-[#fee500]"
+            />
+            내 게시글에 댓글이 달리면 카카오톡 메시지 받기
+          </label>
+        </div>
         <FormSubmitButton
           idleLabel="저장하기"
           pendingLabel="저장 중..."
@@ -133,16 +161,6 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
                         className="accent-[#fee500]"
                       />
                       사용
-                    </label>
-                    <label htmlFor={`alert-notify-${alert.id}`} className="flex items-center gap-1 text-xs text-[#555]">
-                      <input
-                        id={`alert-notify-${alert.id}`}
-                        type="checkbox"
-                        name="notifyOnKakao"
-                        defaultChecked={alert.notifyOnKakao}
-                        className="accent-[#fee500]"
-                      />
-                      카카오 알림
                     </label>
                     <button type="submit" className="rounded-md border border-[#e8e8e8] px-2 py-1 text-xs hover:bg-[#f9f9f9]">
                       저장

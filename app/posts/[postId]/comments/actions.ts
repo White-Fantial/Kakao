@@ -7,6 +7,7 @@ import { trackServerEvent } from '@/lib/analytics/server';
 import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { notifyCommentForPost } from '@/lib/kakao/message';
 import { canCreateComment, canDeleteComment } from '@/lib/permissions';
 
 const MAX_COMMENT_BODY_LENGTH = 500;
@@ -70,7 +71,13 @@ export async function createCommentAction(formData: FormData) {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true, status: true },
+    select: {
+      id: true,
+      status: true,
+      title: true,
+      body: true,
+      authorId: true,
+    },
   });
 
   if (!post || post.status !== 'PUBLISHED') {
@@ -85,6 +92,16 @@ export async function createCommentAction(formData: FormData) {
       status: COMMENT_STATUS.PUBLISHED,
     },
   });
+
+  if (post!.authorId !== user.id) {
+    await notifyCommentForPost({
+      postId,
+      postTitle: post!.title,
+      postBody: post!.body,
+      commenterDisplayName: user.displayName,
+      commentBody: body,
+    });
+  }
 
   trackServerEvent('comment_created', {
     userId: user.id,

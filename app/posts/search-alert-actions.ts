@@ -46,7 +46,6 @@ export async function saveSearchAlertAction(formData: FormData) {
   const user = await requireUser();
   const query = normalizeText(formData.get('query'));
   const returnTo = normalizeReturnTo(formData.get('returnTo'));
-  const notifyOnKakao = formData.get('notifyOnKakao') === 'on';
   const queryValidationMessage = validateQuery(query);
 
   if (queryValidationMessage) {
@@ -63,11 +62,9 @@ export async function saveSearchAlertAction(formData: FormData) {
     create: {
       userId: user.id,
       query,
-      notifyOnKakao,
       isActive: true,
     },
     update: {
-      notifyOnKakao,
       isActive: true,
     },
   });
@@ -80,7 +77,6 @@ export async function updateSearchAlertAction(formData: FormData) {
   const user = await requireUser();
   const alertId = normalizeText(formData.get('alertId'));
   const returnTo = normalizeReturnTo(formData.get('returnTo'));
-  const notifyOnKakao = formData.get('notifyOnKakao') === 'on';
   const isActive = formData.get('isActive') === 'on';
 
   if (!alertId) {
@@ -90,7 +86,6 @@ export async function updateSearchAlertAction(formData: FormData) {
   await prisma.searchAlert.updateMany({
     where: { id: alertId, userId: user.id },
     data: {
-      notifyOnKakao,
       isActive,
     },
   });
