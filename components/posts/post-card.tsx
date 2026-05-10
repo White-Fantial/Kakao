@@ -57,14 +57,14 @@ export function PostCard({ post }: PostCardProps) {
           sizes="24px"
         />
         <span className="text-zinc-600">{post.author.displayName}</span>
-        <span aria-hidden>·</span>
+        <span aria-hidden="true">·</span>
         <span>댓글 {post.commentCount}</span>
         <time dateTime={post.createdAt.toISOString()}>
           {new Date(post.createdAt).toLocaleString('ko-KR')}
         </time>
         {post.price ? (
           <>
-            <span aria-hidden>·</span>
+            <span aria-hidden="true">·</span>
             <span>NZD {post.price}</span>
           </>
         ) : null}
