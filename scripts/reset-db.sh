@@ -14,6 +14,11 @@ echo "⚠️  This will DESTROY all data in the database and re-seed it."
 echo "    DATABASE_URL: ${DATABASE_URL:-<not set>}"
 echo ""
 
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "❌ DATABASE_URL is required."
+  exit 1
+fi
+
 read -r -p "Continue? [y/N] " answer
 case "$answer" in
   [yY][eE][sS]|[yY]) ;;
@@ -21,11 +26,6 @@ case "$answer" in
 esac
 
 echo ""
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "❌ DATABASE_URL is required."
-  exit 1
-fi
-
 echo "🗑️  Dropping all tables..."
 cat <<'SQL' | npx prisma db execute --schema prisma/schema.prisma --stdin
 DO $$
