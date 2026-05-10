@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { CategoryType } from '@prisma/client';
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -229,9 +230,22 @@ export async function createCategoryAction(formData: FormData) {
 
   const name = normalizeText(formData.get('name'));
   const slug = normalizeText(formData.get('slug'));
+  const type = normalizeText(formData.get('type')) as CategoryType;
 
-  if (!name || !slug) {
-    redirect('/admin/categories?error=이름과 슬러그를 입력해 주세요.');
+  if (!name || !slug || !type) {
+    redirect('/admin/categories?error=이름, 슬러그, 타입을 입력해 주세요.');
+  }
+
+  const validTypes: CategoryType[] = [
+    'GENERAL',
+    'SALE',
+    'RECRUIT',
+    'GIVEAWAY',
+    'HELP',
+    'QUESTION',
+  ];
+  if (!validTypes.includes(type)) {
+    redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
   const existing = await prisma.category.findUnique({ where: { slug } });
@@ -240,7 +254,7 @@ export async function createCategoryAction(formData: FormData) {
   }
 
   await prisma.category.create({
-    data: { name, slug },
+    data: { name, slug, type },
   });
 
   revalidatePath('/admin/categories');
@@ -280,6 +294,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
 
   const categoryId = normalizeText(formData.get('categoryId'));
   const minRole = normalizeText(formData.get('minRole')) as UserRole;
+  const type = normalizeText(formData.get('type')) as CategoryType;
   const isAlwaysIncluded = formData.get('isAlwaysIncluded') === 'true';
   const ignoreCity = formData.get('ignoreCity') === 'true';
   const supportsAllCities = formData.get('supportsAllCities') === 'true';
@@ -293,9 +308,21 @@ export async function updateCategorySettingsAction(formData: FormData) {
     redirect('/admin/categories?error=유효하지 않은 역할입니다.');
   }
 
+  const validTypes: CategoryType[] = [
+    'GENERAL',
+    'SALE',
+    'RECRUIT',
+    'GIVEAWAY',
+    'HELP',
+    'QUESTION',
+  ];
+  if (!validTypes.includes(type)) {
+    redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
+  }
+
   await prisma.category.update({
     where: { id: categoryId },
-    data: { minRole, isAlwaysIncluded, ignoreCity, supportsAllCities },
+    data: { type, minRole, isAlwaysIncluded, ignoreCity, supportsAllCities },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
