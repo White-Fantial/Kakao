@@ -8,6 +8,7 @@ import {
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canHoldPost } from '@/lib/permissions';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { truncatePostBody } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
@@ -140,9 +141,11 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
                           placeholder="보류 사유 (선택)"
                           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                         />
-                        <button type="submit" className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
-                          보류 확정
-                        </button>
+                        <FormSubmitButton
+                          idleLabel="보류 확정"
+                          pendingLabel="처리 중..."
+                          className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+                        />
                       </form>
                     </details>
                   ) : null}
@@ -150,9 +153,11 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
                   {post.status === 'HELD' ? (
                     <form action={restorePostAction}>
                       <input type="hidden" name="postId" value={post.id} />
-                      <button type="submit" className="rounded-xl border border-green-300 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-50">
-                        재게시
-                      </button>
+                      <FormSubmitButton
+                        idleLabel="재게시"
+                        pendingLabel="처리 중..."
+                        className="rounded-xl border border-green-300 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-50"
+                      />
                     </form>
                   ) : null}
                 </div>
@@ -200,9 +205,11 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
                       placeholder="검토 사유 (필수)"
                       className="w-full rounded-lg border border-[#e8e8e8] px-3 py-1 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                     />
-                    <button type="submit" className="rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700">
-                      검토 요청 제출
-                    </button>
+                    <FormSubmitButton
+                      idleLabel="검토 요청 제출"
+                      pendingLabel="처리 중..."
+                      className="rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
+                    />
                   </form>
                 </details>
               </li>
