@@ -1,3 +1,4 @@
+import type { UserRole } from '@prisma/client';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -16,7 +17,7 @@ type AdminCategoriesPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-const MIN_ROLE_LABELS: Record<string, string> = {
+const MIN_ROLE_LABELS: Record<UserRole, string> = {
   USER: '전체',
   COORDINATOR: '운영자+',
   ADMIN: '어드민만',

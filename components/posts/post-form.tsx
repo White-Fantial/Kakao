@@ -63,6 +63,8 @@ export function PostForm({
 
   const shouldShowPrice = selectedCategory?.slug === SALE_CATEGORY_SLUG;
   const isCityIgnored = selectedCategory?.ignoreCity ?? false;
+  // Show a city selector only when the category permits all-city posts AND the user
+  // has at least coordinator privileges (coordinators choose the target city per post).
   const showCitySelector =
     !isCityIgnored && (selectedCategory?.supportsAllCities ?? false) && canSelectAllCities;
 

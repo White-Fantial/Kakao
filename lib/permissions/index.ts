@@ -24,6 +24,8 @@ type PermissionCategory = {
 
 const ROLE_RANK: Record<UserRole, number> = { USER: 0, COORDINATOR: 1, ADMIN: 2 };
 
+export { ROLE_RANK };
+
 function isActiveWriter(user: PermissionUser | null | undefined) {
   return user?.status === 'ACTIVE';
 }

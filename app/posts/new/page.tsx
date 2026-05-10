@@ -6,7 +6,7 @@ import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getProfileCityRequiredHref } from '@/lib/posts/profile-city';
-import { canPostToCategory } from '@/lib/permissions';
+import { canPostToCategory, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -17,8 +17,6 @@ export const metadata: Metadata = {
 type NewPostPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
-
-const ROLE_RANK = { USER: 0, COORDINATOR: 1, ADMIN: 2 } as const;
 
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const user = await requireUser();

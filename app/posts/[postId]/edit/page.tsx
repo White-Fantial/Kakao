@@ -4,7 +4,7 @@ import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost, canPostToCategory } from '@/lib/permissions';
+import { canEditPost, canPostToCategory, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +12,6 @@ type EditPostPageProps = {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ error?: string }>;
 };
-
-const ROLE_RANK = { USER: 0, COORDINATOR: 1, ADMIN: 2 } as const;
 
 export default async function EditPostPage({
   params,
