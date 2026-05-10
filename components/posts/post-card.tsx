@@ -22,7 +22,8 @@ type PostCardProps = {
 };
 
 export function PostCard({ post }: PostCardProps) {
-  const preview = post.title || post.body.split('\n')[0] || '내용 없음';
+  const hasTitle = Boolean(post.title?.trim());
+  const preview = post.title?.trim() || post.body.split('\n')[0] || '내용 없음';
 
   return (
     <Link
@@ -46,25 +47,27 @@ export function PostCard({ post }: PostCardProps) {
           />
         </div>
       ) : null}
-      <p className="text-base font-semibold leading-6">{preview}</p>
+      {hasTitle ? <p className="text-base font-semibold leading-6">{preview}</p> : null}
       <p className="line-clamp-2 text-sm text-zinc-700">{post.body}</p>
-      <div className="flex items-center gap-2 text-sm text-zinc-600">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
         <UserAvatar
           displayName={post.author.displayName}
           profileImageUrl={post.author.profileImageUrl}
           className="h-6 w-6"
           sizes="24px"
         />
-        <span>{post.author.displayName}</span>
-      </div>
-      <div className="flex items-center justify-between text-sm text-zinc-500">
-        {post.price ? <span>NZD {post.price}</span> : <span />}
-        <div className="flex items-center gap-2">
-          <span>댓글 {post.commentCount}</span>
-          <time dateTime={post.createdAt.toISOString()}>
-            {new Date(post.createdAt).toLocaleString('ko-KR')}
-          </time>
-        </div>
+        <span className="text-zinc-600">{post.author.displayName}</span>
+        <span aria-hidden>·</span>
+        <span>댓글 {post.commentCount}</span>
+        <time dateTime={post.createdAt.toISOString()}>
+          {new Date(post.createdAt).toLocaleString('ko-KR')}
+        </time>
+        {post.price ? (
+          <>
+            <span aria-hidden>·</span>
+            <span>NZD {post.price}</span>
+          </>
+        ) : null}
       </div>
     </Link>
   );
