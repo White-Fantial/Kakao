@@ -35,16 +35,23 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
       },
     },
     orderBy: { createdAt: 'desc' },
-    include: {
-      city: { select: { name: true } },
-      category: { select: { name: true, type: true } },
-      images: {
-        select: { url: true },
-        orderBy: { sortOrder: 'asc' },
-        take: 1,
+      include: {
+        city: { select: { name: true } },
+        category: { select: { name: true, type: true } },
+        images: {
+          select: { url: true },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            comments: {
+              where: { status: 'PUBLISHED' },
+            },
+          },
+        },
       },
-    },
-  });
+    });
 
   return (
     <section className="space-y-4">
@@ -93,6 +100,13 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   </div>
                   <h2 className="text-base font-semibold">{postHeading}</h2>
                   <p className="line-clamp-2 text-sm text-[#555]">{post.body}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#888]">
+                    <span>댓글 {post._count.comments}</span>
+                    <span aria-hidden="true">·</span>
+                    <time dateTime={post.createdAt.toISOString()}>
+                      {new Date(post.createdAt).toLocaleString('ko-KR')}
+                    </time>
+                  </div>
                 </div>
               </div>
 

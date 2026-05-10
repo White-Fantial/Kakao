@@ -39,13 +39,26 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
           id: true,
           title: true,
           body: true,
+          createdAt: true,
           saleStatus: true,
+          author: {
+            select: {
+              displayName: true,
+            },
+          },
           category: { select: { name: true } },
           city: { select: { name: true } },
           images: {
             select: { url: true },
             orderBy: { sortOrder: 'asc' },
             take: 1,
+          },
+          _count: {
+            select: {
+              comments: {
+                where: { status: 'PUBLISHED' },
+              },
+            },
           },
         },
       },
@@ -99,6 +112,15 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
                     </div>
                     <h2 className="text-base font-semibold">{postHeading}</h2>
                     <p className="line-clamp-2 text-sm text-[#555]">{post.body}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#888]">
+                      <span className="text-[#666]">{post.author.displayName}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>댓글 {post._count.comments}</span>
+                      <span aria-hidden="true">·</span>
+                      <time dateTime={post.createdAt.toISOString()}>
+                        {new Date(post.createdAt).toLocaleString('ko-KR')}
+                      </time>
+                    </div>
                   </div>
                 </div>
 
