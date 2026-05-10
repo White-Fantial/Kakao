@@ -26,7 +26,7 @@ const MAX_SCALE = 4;
 const SCALE_STEP = 0.3;
 
 export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
-  const [lb, setLb] = useState<LightboxState>({
+  const [lightbox, setLightbox] = useState<LightboxState>({
     open: false,
     index: 0,
     scale: 1,
@@ -40,16 +40,16 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
   const lastPinchDistance = useRef<number | null>(null);
 
   const open = useCallback((index: number) => {
-    setLb({ open: true, index, scale: 1, originX: 50, originY: 50 });
+    setLightbox({ open: true, index, scale: 1, originX: 50, originY: 50 });
   }, []);
 
   const close = useCallback(() => {
-    setLb((prev) => ({ ...prev, open: false, scale: 1 }));
+    setLightbox((prev) => ({ ...prev, open: false, scale: 1 }));
   }, []);
 
   const navigate = useCallback(
     (delta: number) => {
-      setLb((prev) => ({
+      setLightbox((prev) => ({
         ...prev,
         index: (prev.index + delta + images.length) % images.length,
         scale: 1,
@@ -62,7 +62,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
 
   // Keyboard navigation & Escape
   useEffect(() => {
-    if (!lb.open) return;
+    if (!lightbox.open) return;
 
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
@@ -72,21 +72,21 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [lb.open, close, navigate]);
+  }, [lightbox.open, close, navigate]);
 
   // Prevent background scroll when lightbox is open
   useEffect(() => {
-    document.body.style.overflow = lb.open ? 'hidden' : '';
+    document.body.style.overflow = lightbox.open ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [lb.open]);
+  }, [lightbox.open]);
 
-  // Wheel zoom
+  // Wheel zoom — only fires inside the lightbox container which is only rendered when open
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const delta = e.deltaY < 0 ? SCALE_STEP : -SCALE_STEP;
-    setLb((prev) => {
+    setLightbox((prev) => {
       const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale + delta));
       return { ...prev, scale: next };
     });
@@ -110,7 +110,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
       const newDist = getPinchDistance(e.touches);
       const ratio = newDist / lastPinchDistance.current;
       lastPinchDistance.current = newDist;
-      setLb((prev) => {
+      setLightbox((prev) => {
         const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * ratio));
         return { ...prev, scale: next };
       });
@@ -121,13 +121,12 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
     lastPinchDistance.current = null;
   }, []);
 
-  // Double-tap to toggle zoom
+  // Double-tap/click to toggle zoom
   const lastTapTime = useRef(0);
   const handleTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const now = Date.now();
     if (now - lastTapTime.current < 300) {
-      // Double tap/click: toggle between 1x and 2x
-      setLb((prev) => {
+      setLightbox((prev) => {
         if (prev.scale > MIN_SCALE) {
           return { ...prev, scale: 1, originX: 50, originY: 50 };
         }
@@ -141,7 +140,8 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
     lastTapTime.current = now;
   }, []);
 
-  const currentImage = images[lb.index];
+  const currentImage = images[lightbox.index];
+  const isZoomed = lightbox.scale > MIN_SCALE;
 
   return (
     <>
@@ -167,7 +167,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
       </div>
 
       {/* Lightbox */}
-      {lb.open ? (
+      {lightbox.open ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           role="dialog"
@@ -179,7 +179,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
             type="button"
             onClick={close}
             className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white"
-            aria-label="닫기"
+            aria-label="닫기 (Esc)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -214,18 +214,18 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
             </button>
           ) : null}
 
-          {/* Image container */}
+          {/* Image container — cursor reflects current zoom state */}
           <div
             ref={imgRef}
-            className="relative flex h-full w-full cursor-zoom-in items-center justify-center overflow-hidden"
+            className={`relative flex h-full w-full items-center justify-center overflow-hidden ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
             onWheel={handleWheel}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onClick={handleTap}
           >
-            {/* Backdrop click to close (only when not zoomed) */}
-            {lb.scale === 1 ? (
+            {/* Backdrop — clicking closes when not zoomed; keyboard users rely on the close button and Escape */}
+            {!isZoomed ? (
               <div
                 className="absolute inset-0"
                 onClick={close}
@@ -235,8 +235,8 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
 
             <div
               style={{
-                transform: `scale(${lb.scale})`,
-                transformOrigin: `${lb.originX}% ${lb.originY}%`,
+                transform: `scale(${lightbox.scale})`,
+                transformOrigin: `${lightbox.originX}% ${lightbox.originY}%`,
                 transition: 'transform 0.15s ease',
                 maxWidth: '90vw',
                 maxHeight: '90vh',
@@ -246,7 +246,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
               <Image
                 key={currentImage.id}
                 src={currentImage.url}
-                alt={`${postTitle ?? '게시글'} 이미지 ${lb.index + 1}`}
+                alt={`${postTitle ?? '게시글'} 이미지 ${lightbox.index + 1}`}
                 width={1200}
                 height={900}
                 style={{
@@ -267,16 +267,17 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
           {/* Counter */}
           {images.length > 1 ? (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-sm text-white">
-              {lb.index + 1} / {images.length}
+              {lightbox.index + 1} / {images.length}
             </div>
           ) : null}
 
           {/* Zoom hint */}
-          <div className="absolute bottom-4 right-4 text-xs text-white/50 hidden sm:block">
-            스크롤로 확대 · 더블클릭으로 확대/축소
+          <div className="absolute bottom-4 right-4 hidden text-xs text-white/50 sm:block">
+            스크롤로 확대 · 더블클릭으로 확대/축소 · Esc로 닫기
           </div>
         </div>
       ) : null}
     </>
   );
 }
+
