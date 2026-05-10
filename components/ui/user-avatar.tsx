@@ -9,7 +9,8 @@ type UserAvatarProps = {
 
 function getInitial(displayName: string) {
   const trimmed = displayName.trim();
-  return trimmed ? trimmed[0].toUpperCase() : '?';
+  const firstChar = Array.from(trimmed)[0];
+  return firstChar ? firstChar.toUpperCase() : '?';
 }
 
 export function UserAvatar({ displayName, profileImageUrl, className, sizes }: UserAvatarProps) {
@@ -20,7 +21,7 @@ export function UserAvatar({ displayName, profileImageUrl, className, sizes }: U
       <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${avatarClassName}`}>
         <Image
           src={profileImageUrl}
-          alt={`${displayName} 프로필 이미지`}
+          alt={displayName}
           fill
           sizes={sizes ?? '32px'}
           className="object-cover"
