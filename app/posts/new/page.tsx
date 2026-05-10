@@ -62,12 +62,12 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
       <PostForm
         action={createPostAction}
         categories={categories.map((category) => ({
-           id: category.id,
-           label: category.name,
-           type: category.type,
-           ignoreCity: category.ignoreCity,
-           supportsAllCities: category.supportsAllCities,
-         }))}
+          id: category.id,
+          label: category.name,
+          type: category.type,
+          ignoreCity: category.ignoreCity,
+          supportsAllCities: category.supportsAllCities,
+        }))}
         cities={cities}
         cityLabel={cityLabel}
         defaultCityId={defaultCityId}
