@@ -164,6 +164,7 @@ export default async function PostDetailPage({
                 src={image.url}
                 alt={`${post.title ?? '게시글'} 이미지 ${index + 1}`}
                 fill
+                sizes="(max-width: 640px) 50vw, 33vw"
                 className="object-cover"
               />
             </div>

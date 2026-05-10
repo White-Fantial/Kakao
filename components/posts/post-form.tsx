@@ -214,6 +214,7 @@ export function PostForm({
                   src={image.url}
                   alt={`기존 게시글 이미지 ${index + 1}`}
                   fill
+                  sizes="(max-width: 768px) 33vw, 120px"
                   className="object-cover"
                 />
               </div>

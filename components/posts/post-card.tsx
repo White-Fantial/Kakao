@@ -43,6 +43,7 @@ export function PostCard({ post }: PostCardProps) {
             src={post.thumbnailUrl}
             alt=""
             fill
+            sizes="(max-width: 768px) 100vw, 640px"
             className="object-cover"
           />
         </div>
