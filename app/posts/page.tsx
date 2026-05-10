@@ -145,74 +145,120 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       : {}),
   };
 
-  const posts = canViewReportStats
-    ? await prisma.post.findMany({
-        where: postWhere,
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-        select: {
-          id: true,
-          title: true,
-          body: true,
-          createdAt: true,
-          saleStatus: true,
-          price: true,
-          category: { select: { name: true } },
-          city: { select: { name: true } },
-          author: {
-            select: {
-              displayName: true,
-              profileImageUrl: true,
+  let normalizedPosts: Array<{
+    id: string;
+    title: string | null;
+    body: string;
+    createdAt: Date;
+    saleStatus: 'SOLD' | 'AVAILABLE' | 'RESERVED' | null;
+    price: string | null;
+    thumbnailUrl: string | null;
+    commentCount: number;
+    reportCount?: number;
+    category: { name: string };
+    city: { name: string } | null;
+    author: { displayName: string; profileImageUrl: string | null };
+  }> = [];
+
+  if (canViewReportStats) {
+    const posts = await prisma.post.findMany({
+      where: postWhere,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        createdAt: true,
+        saleStatus: true,
+        price: true,
+        category: { select: { name: true } },
+        city: { select: { name: true } },
+        author: {
+          select: {
+            displayName: true,
+            profileImageUrl: true,
+          },
+        },
+        images: {
+          select: { url: true },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            comments: {
+              where: { status: 'PUBLISHED' },
             },
+            reports: true,
           },
-          images: {
-            select: { url: true },
-            orderBy: { sortOrder: 'asc' },
-            take: 1,
+        },
+      },
+    });
+
+    normalizedPosts = posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      createdAt: post.createdAt,
+      saleStatus: post.saleStatus,
+      price: post.price ? post.price.toString() : null,
+      thumbnailUrl: post.images[0]?.url ?? null,
+      commentCount: post._count.comments,
+      reportCount: post._count.reports,
+      category: post.category,
+      city: post.city,
+      author: post.author,
+    }));
+  } else {
+    const posts = await prisma.post.findMany({
+      where: postWhere,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        createdAt: true,
+        saleStatus: true,
+        price: true,
+        category: { select: { name: true } },
+        city: { select: { name: true } },
+        author: {
+          select: {
+            displayName: true,
+            profileImageUrl: true,
           },
-          _count: {
-            select: {
-              comments: {
-                where: { status: 'PUBLISHED' },
-              },
-              reports: true,
+        },
+        images: {
+          select: { url: true },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            comments: {
+              where: { status: 'PUBLISHED' },
             },
           },
         },
-      })
-    : await prisma.post.findMany({
-        where: postWhere,
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-        select: {
-          id: true,
-          title: true,
-          body: true,
-          createdAt: true,
-          saleStatus: true,
-          price: true,
-          category: { select: { name: true } },
-          city: { select: { name: true } },
-          author: {
-            select: {
-              displayName: true,
-              profileImageUrl: true,
-            },
-          },
-          images: {
-            select: { url: true },
-            orderBy: { sortOrder: 'asc' },
-            take: 1,
-          },
-          _count: {
-            select: {
-              comments: {
-                where: { status: 'PUBLISHED' },
-              },
-            },
-          },
-        },
-      });
+      },
+    });
+
+    normalizedPosts = posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      createdAt: post.createdAt,
+      saleStatus: post.saleStatus,
+      price: post.price ? post.price.toString() : null,
+      thumbnailUrl: post.images[0]?.url ?? null,
+      commentCount: post._count.comments,
+      category: post.category,
+      city: post.city,
+      author: post.author,
+    }));
+  }
 
   const hasFilters = shouldFilterByCategory || shouldFilterByCity || hasKeyword;
 
@@ -393,7 +439,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         </section>
       ) : null}
 
-      {posts.length === 0 ? (
+      {normalizedPosts.length === 0 ? (
         <div className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-center text-sm text-[#888]">
           {hasFilters
             ? '선택한 조건에 맞는 글이 없어요.'
@@ -401,15 +447,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {posts.map((post) => (
+          {normalizedPosts.map((post) => (
             <PostCard
               key={post.id}
               post={{
                 ...post,
-                price: post.price ? post.price.toString() : null,
-                thumbnailUrl: post.images[0]?.url ?? null,
-                commentCount: post._count.comments,
-                reportCount: canViewReportStats ? post._count.reports : undefined,
               }}
             />
           ))}

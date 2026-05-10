@@ -412,7 +412,7 @@ export async function reportPostAction(formData: FormData) {
     redirect(`/posts/${postId}?error=${encodeURIComponent('신고 사유를 선택해 주세요.')}`);
   }
 
-  if (additionalReason.length > 500) {
+  if (additionalReason && additionalReason.length > 500) {
     redirect(`/posts/${postId}?error=${encodeURIComponent('추가 사유는 500자 이내로 입력해 주세요.')}`);
   }
 

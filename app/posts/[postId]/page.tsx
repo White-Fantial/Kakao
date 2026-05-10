@@ -134,24 +134,27 @@ export default async function PostDetailPage({
 
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
   const canSubmitReport = currentUser ? canReportPost(currentUser, post) : false;
-  const [reportOptions, myReport] = canSubmitReport
-    ? await Promise.all([
-        prisma.reportOption.findMany({
-          where: { isActive: true },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          select: { id: true, label: true },
-        }),
-        prisma.postReport.findUnique({
-          where: {
-            postId_reporterId: {
-              postId: post.id,
-              reporterId: currentUser.id,
-            },
+  let reportOptions: { id: string; label: string }[] = [];
+  let myReport: { optionId: string; additionalReason: string | null } | null = null;
+
+  if (canSubmitReport && currentUser) {
+    [reportOptions, myReport] = await Promise.all([
+      prisma.reportOption.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true, label: true },
+      }),
+      prisma.postReport.findUnique({
+        where: {
+          postId_reporterId: {
+            postId: post.id,
+            reporterId: currentUser.id,
           },
-          select: { optionId: true, additionalReason: true },
-        }),
-      ])
-    : [[], null];
+        },
+        select: { optionId: true, additionalReason: true },
+      }),
+    ]);
+  }
 
   const isOwner = currentUser?.id === post.authorId;
   const isSalePost = post.category.type === CategoryType.SALE;

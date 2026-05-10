@@ -50,7 +50,7 @@ export function canReportPost(
   user: PermissionUser | null | undefined,
   post: PermissionPost,
 ) {
-  if (!isActiveWriter(user)) {
+  if (!user || !isActiveWriter(user)) {
     return false;
   }
 
