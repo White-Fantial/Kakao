@@ -16,6 +16,7 @@ import {
   restorePostAction,
 } from '@/app/coordinator/actions';
 import { PostMarkdown } from '@/components/posts/post-markdown';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canDeleteComment, canHoldPost, canRestorePost } from '@/lib/permissions';
@@ -82,6 +83,7 @@ export default async function PostDetailPage({
         select: {
           id: true,
           displayName: true,
+          profileImageUrl: true,
           openChatUrl: true,
         },
       },
@@ -102,6 +104,7 @@ export default async function PostDetailPage({
           author: {
             select: {
               displayName: true,
+              profileImageUrl: true,
             },
           },
         },
@@ -171,9 +174,16 @@ export default async function PostDetailPage({
         <p className="text-sm font-medium">가격: NZD {post.price.toString()}</p>
       ) : null}
 
-      <p className="text-sm text-zinc-500">
-        작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}
-      </p>
+      <div className="flex items-center gap-2 text-sm text-zinc-500">
+        <UserAvatar
+          displayName={post.author.displayName}
+          profileImageUrl={post.author.profileImageUrl}
+          className="h-7 w-7"
+        />
+        <span>
+          작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}
+        </span>
+      </div>
 
       {contactUrl ? (
         <a
@@ -286,10 +296,17 @@ export default async function PostDetailPage({
                 <li key={comment.id} className="rounded-md border p-3">
                   <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
                   <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
-                    <span>
-                      {comment.author.displayName} ·{' '}
-                      {new Date(comment.createdAt).toLocaleString('ko-KR')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        displayName={comment.author.displayName}
+                        profileImageUrl={comment.author.profileImageUrl}
+                        className="h-6 w-6"
+                      />
+                      <span>
+                        {comment.author.displayName} ·{' '}
+                        {new Date(comment.createdAt).toLocaleString('ko-KR')}
+                      </span>
+                    </div>
                     {canDelete ? (
                       <form action={deleteCommentAction}>
                         <input type="hidden" name="postId" value={post.id} />

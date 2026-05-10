@@ -107,6 +107,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       price: true,
       category: { select: { name: true } },
       city: { select: { name: true } },
+      author: {
+        select: {
+          displayName: true,
+          profileImageUrl: true,
+        },
+      },
       images: {
         select: { url: true },
         orderBy: { sortOrder: 'asc' },
