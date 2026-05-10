@@ -5,8 +5,9 @@ import { notFound } from 'next/navigation';
 import { CategoryType } from '@prisma/client';
 
 import {
-  deletePostAction,
   markPostAsSoldAction,
+  markPostAsReservedAction,
+  markPostAsAvailableAction,
 } from '@/app/posts/actions';
 import {
   createCommentAction,
@@ -16,6 +17,7 @@ import {
   holdPostAction,
   restorePostAction,
 } from '@/app/coordinator/actions';
+import { DeletePostButton } from '@/components/posts/delete-post-button';
 import { PostMarkdown } from '@/components/posts/post-markdown';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -127,10 +129,13 @@ export default async function PostDetailPage({
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
 
   const isOwner = currentUser?.id === post.authorId;
+  const isSalePost = post.category.type === CategoryType.SALE;
+  const canMarkReserved = isOwner && isSalePost && post.saleStatus === 'AVAILABLE';
   const canMarkSold =
     isOwner &&
-    post.category.type === CategoryType.SALE &&
-    post.saleStatus !== 'SOLD';
+    isSalePost &&
+    (post.saleStatus === 'AVAILABLE' || post.saleStatus === 'RESERVED');
+  const canMarkAvailable = isOwner && isSalePost && post.saleStatus !== 'AVAILABLE';
 
   return (
     <article className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
@@ -148,6 +153,9 @@ export default async function PostDetailPage({
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
         <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
+        {post.saleStatus === 'RESERVED' ? (
+          <span className="rounded-full bg-[#e8f0fe] px-2 py-1 text-[#1a56db]">예약중</span>
+        ) : null}
         {post.saleStatus === 'SOLD' ? (
           <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
         ) : null}
@@ -209,20 +217,36 @@ export default async function PostDetailPage({
           <Link href={`/posts/${post.id}/edit`} className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
             수정
           </Link>
-          {canMarkSold ? (
-            <form action={markPostAsSoldAction}>
+          {canMarkReserved ? (
+            <form action={markPostAsReservedAction}>
               <input type="hidden" name="postId" value={post.id} />
               <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
-                판매 완료로 변경
+                예약중으로 변경
               </button>
             </form>
           ) : null}
-          <form action={deletePostAction}>
-            <input type="hidden" name="postId" value={post.id} />
-            <button type="submit" className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-              삭제하기
-            </button>
-          </form>
+          {canMarkSold ? (
+            <form action={markPostAsSoldAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <FormSubmitButton
+                idleLabel="판매 완료로 변경"
+                pendingLabel="처리 중..."
+                className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+              />
+            </form>
+          ) : null}
+          {canMarkAvailable ? (
+            <form action={markPostAsAvailableAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
+                판매중으로 변경
+              </button>
+            </form>
+          ) : null}
+          <DeletePostButton
+            postId={post.id}
+            className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          />
         </div>
       ) : null}
 
@@ -242,18 +266,22 @@ export default async function PostDetailPage({
                   placeholder="보류 사유 (선택)"
                   className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                 />
-                <button type="submit" className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
-                  보류 확정
-                </button>
+                <FormSubmitButton
+                  idleLabel="보류 확정"
+                  pendingLabel="처리 중..."
+                  className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+                />
               </form>
             </details>
           ) : null}
           {post.status === 'HELD' && currentUser && canRestorePost(currentUser) ? (
             <form action={restorePostAction}>
               <input type="hidden" name="postId" value={post.id} />
-              <button type="submit" className="rounded-xl border border-green-300 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50">
-                재게시
-              </button>
+              <FormSubmitButton
+                idleLabel="재게시"
+                pendingLabel="처리 중..."
+                className="rounded-xl border border-green-300 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50"
+              />
             </form>
           ) : null}
         </div>
@@ -320,9 +348,11 @@ export default async function PostDetailPage({
                       <form action={deleteCommentAction}>
                         <input type="hidden" name="postId" value={post.id} />
                         <input type="hidden" name="commentId" value={comment.id} />
-                        <button type="submit" className="text-red-500">
-                          삭제
-                        </button>
+                        <FormSubmitButton
+                          idleLabel="삭제"
+                          pendingLabel="삭제 중..."
+                          className="text-red-500"
+                        />
                       </form>
                     ) : null}
                   </div>

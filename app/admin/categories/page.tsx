@@ -10,6 +10,7 @@ import {
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,9 +82,11 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
             pattern="[a-z0-9-]+"
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           />
-          <button type="submit" className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
-            추가
-          </button>
+          <FormSubmitButton
+            idleLabel="추가"
+            pendingLabel="처리 중..."
+            className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+          />
         </form>
       </div>
 
@@ -112,9 +115,11 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                   <form action={toggleCategoryActiveAction}>
                     <input type="hidden" name="categoryId" value={cat.id} />
                     <input type="hidden" name="isActive" value={String(cat.isActive)} />
-                    <button type="submit" className="rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]">
-                      {cat.isActive ? '비활성화' : '활성화'}
-                    </button>
+                    <FormSubmitButton
+                      idleLabel={cat.isActive ? '비활성화' : '활성화'}
+                      pendingLabel="처리 중..."
+                      className="rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]"
+                    />
                   </form>
                 </div>
 
@@ -179,12 +184,11 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                       </div>
                     </div>
 
-                    <button
-                      type="submit"
+                    <FormSubmitButton
+                      idleLabel="설정 저장"
+                      pendingLabel="저장 중..."
                       className="rounded-xl bg-[#fee500] px-3 py-1.5 text-xs font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
-                    >
-                      설정 저장
-                    </button>
+                    />
                   </form>
                 </details>
               </li>

@@ -4,9 +4,12 @@ import type { Metadata } from 'next';
 import { CategoryType } from '@prisma/client';
 
 import {
-  deletePostAction,
   markPostAsSoldAction,
+  markPostAsReservedAction,
+  markPostAsAvailableAction,
 } from '@/app/posts/actions';
+import { DeletePostButton } from '@/components/posts/delete-post-button';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
@@ -99,20 +102,38 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   수정
                 </Link>
                 {post.category.type === CategoryType.SALE &&
-                post.saleStatus !== 'SOLD' ? (
-                  <form action={markPostAsSoldAction}>
+                post.saleStatus === 'AVAILABLE' ? (
+                  <form action={markPostAsReservedAction}>
                     <input type="hidden" name="postId" value={post.id} />
                     <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
-                      판매 완료로 변경
+                      예약중으로 변경
                     </button>
                   </form>
                 ) : null}
-                <form action={deletePostAction}>
-                  <input type="hidden" name="postId" value={post.id} />
-                  <button type="submit" className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-                    삭제하기
-                  </button>
-                </form>
+                {post.category.type === CategoryType.SALE &&
+                (post.saleStatus === 'AVAILABLE' || post.saleStatus === 'RESERVED') ? (
+                  <form action={markPostAsSoldAction}>
+                    <input type="hidden" name="postId" value={post.id} />
+                    <FormSubmitButton
+                      idleLabel="판매 완료로 변경"
+                      pendingLabel="처리 중..."
+                      className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+                    />
+                  </form>
+                ) : null}
+                {post.category.type === CategoryType.SALE &&
+                post.saleStatus !== 'AVAILABLE' ? (
+                  <form action={markPostAsAvailableAction}>
+                    <input type="hidden" name="postId" value={post.id} />
+                    <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
+                      판매중으로 변경
+                    </button>
+                  </form>
+                ) : null}
+                <DeletePostButton
+                  postId={post.id}
+                  className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                />
               </div>
             </li>
             );
