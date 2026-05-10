@@ -25,6 +25,11 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const SCALE_STEP = 0.3;
 
+function getPinchDistance(touches: React.TouchList): number {
+  const [a, b] = [touches[0], touches[1]];
+  return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+}
+
 export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
   const [lightbox, setLightbox] = useState<LightboxState>({
     open: false,
@@ -93,11 +98,6 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
   }, []);
 
   // Pinch zoom
-  const getPinchDistance = (touches: React.TouchList) => {
-    const [a, b] = [touches[0], touches[1]];
-    return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-  };
-
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
       lastPinchDistance.current = getPinchDistance(e.touches);
@@ -224,12 +224,14 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
             onTouchEnd={handleTouchEnd}
             onClick={handleTap}
           >
-            {/* Backdrop — clicking closes when not zoomed; keyboard users rely on the close button and Escape */}
+            {/* Backdrop — clicking closes when not zoomed; keyboard users use the close button (Tab) or Escape */}
             {!isZoomed ? (
-              <div
+              <button
+                type="button"
                 className="absolute inset-0"
                 onClick={close}
-                aria-hidden="true"
+                tabIndex={-1}
+                aria-label="닫기"
               />
             ) : null}
 
