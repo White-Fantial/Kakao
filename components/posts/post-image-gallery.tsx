@@ -229,7 +229,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
               <button
                 type="button"
                 className="absolute inset-0"
-                onClick={close}
+                onClick={(e) => { e.stopPropagation(); close(); }}
                 tabIndex={-1}
                 aria-label="닫기"
               />
@@ -275,7 +275,7 @@ export function PostImageGallery({ images, postTitle }: PostImageGalleryProps) {
 
           {/* Zoom hint */}
           <div className="absolute bottom-4 right-4 hidden text-xs text-white/50 sm:block">
-            스크롤로 확대 · 더블클릭으로 확대/축소 · Esc로 닫기
+            스크롤·핀치로 확대 · 더블클릭으로 확대/축소 · ←→ 이미지 이동 · Esc로 닫기
           </div>
         </div>
       ) : null}
