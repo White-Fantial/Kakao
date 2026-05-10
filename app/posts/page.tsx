@@ -9,6 +9,7 @@ import {
 } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { canMakeFinalUserDecision } from '@/lib/permissions';
 import { getActiveCategories, getActiveCities } from '@/lib/posts/reference-data';
 
 export const dynamic = 'force-dynamic';
@@ -126,55 +127,92 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     returnToParams.set('q', keyword);
   }
   const returnTo = `/posts${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`;
+  const canViewReportStats = currentUser ? canMakeFinalUserDecision(currentUser) : false;
+  const postWhere = {
+    status: 'PUBLISHED' as const,
+    categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
+    ...(shouldFilterByCity
+      ? { OR: [{ cityId: { in: selectedCityIds } }, { cityId: null }] }
+      : {}),
+    ...(hasKeyword
+      ? {
+          OR: [
+            { title: { contains: keyword, mode: 'insensitive' as const } },
+            { body: { contains: keyword, mode: 'insensitive' as const } },
+            { author: { displayName: { contains: keyword, mode: 'insensitive' as const } } },
+          ],
+        }
+      : {}),
+  };
 
-  const posts = await prisma.post.findMany({
-    where: {
-      status: 'PUBLISHED',
-      categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
-      ...(shouldFilterByCity
-        ? { OR: [{ cityId: { in: selectedCityIds } }, { cityId: null }] }
-        : {}),
-      ...(hasKeyword
-        ? {
-            OR: [
-              { title: { contains: keyword, mode: 'insensitive' } },
-              { body: { contains: keyword, mode: 'insensitive' } },
-              { author: { displayName: { contains: keyword, mode: 'insensitive' } } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      createdAt: true,
-      saleStatus: true,
-      price: true,
-      category: { select: { name: true } },
-      city: { select: { name: true } },
-      author: {
+  const posts = canViewReportStats
+    ? await prisma.post.findMany({
+        where: postWhere,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
         select: {
-          displayName: true,
-          profileImageUrl: true,
-        },
-      },
-      images: {
-        select: { url: true },
-        orderBy: { sortOrder: 'asc' },
-        take: 1,
-      },
-      _count: {
-        select: {
-          comments: {
-            where: { status: 'PUBLISHED' },
+          id: true,
+          title: true,
+          body: true,
+          createdAt: true,
+          saleStatus: true,
+          price: true,
+          category: { select: { name: true } },
+          city: { select: { name: true } },
+          author: {
+            select: {
+              displayName: true,
+              profileImageUrl: true,
+            },
+          },
+          images: {
+            select: { url: true },
+            orderBy: { sortOrder: 'asc' },
+            take: 1,
+          },
+          _count: {
+            select: {
+              comments: {
+                where: { status: 'PUBLISHED' },
+              },
+              reports: true,
+            },
           },
         },
-      },
-    },
-  });
+      })
+    : await prisma.post.findMany({
+        where: postWhere,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          createdAt: true,
+          saleStatus: true,
+          price: true,
+          category: { select: { name: true } },
+          city: { select: { name: true } },
+          author: {
+            select: {
+              displayName: true,
+              profileImageUrl: true,
+            },
+          },
+          images: {
+            select: { url: true },
+            orderBy: { sortOrder: 'asc' },
+            take: 1,
+          },
+          _count: {
+            select: {
+              comments: {
+                where: { status: 'PUBLISHED' },
+              },
+            },
+          },
+        },
+      });
 
   const hasFilters = shouldFilterByCategory || shouldFilterByCity || hasKeyword;
 
@@ -371,6 +409,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 price: post.price ? post.price.toString() : null,
                 thumbnailUrl: post.images[0]?.url ?? null,
                 commentCount: post._count.comments,
+                reportCount: canViewReportStats ? post._count.reports : undefined,
               }}
             />
           ))}

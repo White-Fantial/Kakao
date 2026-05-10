@@ -25,6 +25,15 @@ const categories = [
   { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
 ];
 
+const reportOptions = [
+  '사기/거래 위험',
+  '욕설/혐오/괴롭힘',
+  '음란/부적절한 콘텐츠',
+  '광고/스팸',
+  '개인정보 노출',
+  '기타',
+];
+
 function slugifyCity(city) {
   return city.toLowerCase().replace(/\s+/g, '-');
 }
@@ -64,6 +73,16 @@ async function main() {
           isActive: true,
           sortOrder: index,
         },
+      }),
+    ),
+  );
+
+  await Promise.all(
+    reportOptions.map((label, index) =>
+      prisma.reportOption.upsert({
+        where: { label },
+        update: { isActive: true, sortOrder: index },
+        create: { label, isActive: true, sortOrder: index },
       }),
     ),
   );

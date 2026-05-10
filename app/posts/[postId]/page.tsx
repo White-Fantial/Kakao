@@ -7,6 +7,7 @@ import {
   markPostAsSoldAction,
   markPostAsReservedAction,
   markPostAsAvailableAction,
+  reportPostAction,
 } from '@/app/posts/actions';
 import {
   createCommentAction,
@@ -23,7 +24,12 @@ import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canDeleteComment, canHoldPost, canRestorePost } from '@/lib/permissions';
+import {
+  canDeleteComment,
+  canHoldPost,
+  canReportPost,
+  canRestorePost,
+} from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 const TITLE_PREVIEW_LENGTH = 40;
@@ -31,7 +37,7 @@ const DESCRIPTION_PREVIEW_LENGTH = 80;
 
 type PostDetailPageProps = {
   params: Promise<{ postId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 };
 
 export async function generateMetadata({
@@ -127,6 +133,25 @@ export default async function PostDetailPage({
   }
 
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
+  const canSubmitReport = currentUser ? canReportPost(currentUser, post) : false;
+  const [reportOptions, myReport] = canSubmitReport
+    ? await Promise.all([
+        prisma.reportOption.findMany({
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          select: { id: true, label: true },
+        }),
+        prisma.postReport.findUnique({
+          where: {
+            postId_reporterId: {
+              postId: post.id,
+              reporterId: currentUser.id,
+            },
+          },
+          select: { optionId: true, additionalReason: true },
+        }),
+      ])
+    : [[], null];
 
   const isOwner = currentUser?.id === post.authorId;
   const isSalePost = post.category.type === CategoryType.SALE;
@@ -141,6 +166,9 @@ export default async function PostDetailPage({
     <article className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
       {query.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{query.error}</p>
+      ) : null}
+      {query.success ? (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{query.success}</p>
       ) : null}
 
       {post.status === 'HELD' ? (
@@ -236,6 +264,56 @@ export default async function PostDetailPage({
             className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           />
         </div>
+      ) : null}
+
+      {canSubmitReport && reportOptions.length > 0 ? (
+        <section className="space-y-2 border-t border-[#e8e8e8] pt-4">
+          <h2 className="text-sm font-semibold">신고하기</h2>
+          {myReport ? (
+            <p className="text-xs text-[#888]">
+              이미 신고한 글입니다. 다시 제출하면 신고 내용이 업데이트됩니다.
+            </p>
+          ) : null}
+          <form action={reportPostAction} className="space-y-2">
+            <input type="hidden" name="postId" value={post.id} />
+            <label htmlFor="report-option" className="text-xs text-[#555]">
+              신고 사유
+            </label>
+            <select
+              id="report-option"
+              name="optionId"
+              defaultValue={myReport?.optionId ?? ''}
+              required
+              className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+            >
+              <option value="" disabled>
+                신고 사유를 선택해 주세요
+              </option>
+              {reportOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="report-additional-reason" className="text-xs text-[#555]">
+              추가 사유 (선택)
+            </label>
+            <textarea
+              id="report-additional-reason"
+              name="additionalReason"
+              rows={3}
+              maxLength={500}
+              defaultValue={myReport?.additionalReason ?? ''}
+              placeholder="옵션 외 추가로 설명할 내용이 있다면 입력해 주세요."
+              className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+            />
+            <FormSubmitButton
+              idleLabel={myReport ? '신고 내용 수정' : '신고 접수'}
+              pendingLabel="접수 중..."
+              className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+            />
+          </form>
+        </section>
       ) : null}
 
       {isCoordinator ? (

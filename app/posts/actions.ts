@@ -14,6 +14,7 @@ import {
   canCreatePost,
   canDeletePost,
   canEditPost,
+  canReportPost,
   canMarkPostAsSold,
   canMarkPostAsReserved,
   canMarkPostAsAvailable,
@@ -395,6 +396,68 @@ export async function deletePostAction(formData: FormData) {
   revalidatePath('/posts');
   revalidatePath('/my/posts');
   redirect('/my/posts');
+}
+
+export async function reportPostAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = normalizeText(formData.get('postId'));
+  const optionId = normalizeText(formData.get('optionId'));
+  const additionalReason = normalizeText(formData.get('additionalReason'));
+
+  if (!postId) {
+    redirect('/posts?error=게시글 정보가 없습니다.');
+  }
+
+  if (!optionId) {
+    redirect(`/posts/${postId}?error=${encodeURIComponent('신고 사유를 선택해 주세요.')}`);
+  }
+
+  if (additionalReason.length > 500) {
+    redirect(`/posts/${postId}?error=${encodeURIComponent('추가 사유는 500자 이내로 입력해 주세요.')}`);
+  }
+
+  const [post, option] = await Promise.all([
+    prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, authorId: true, status: true, saleStatus: true },
+    }),
+    prisma.reportOption.findFirst({
+      where: { id: optionId, isActive: true },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!post || !canReportPost(user, post)) {
+    redirect(`/posts/${postId}?error=${encodeURIComponent('신고할 수 없는 게시글입니다.')}`);
+  }
+
+  if (!option) {
+    redirect(`/posts/${postId}?error=${encodeURIComponent('유효한 신고 사유를 선택해 주세요.')}`);
+  }
+
+  await prisma.postReport.upsert({
+    where: {
+      postId_reporterId: {
+        postId,
+        reporterId: user.id,
+      },
+    },
+    update: {
+      optionId: option.id,
+      additionalReason: additionalReason || null,
+    },
+    create: {
+      postId,
+      reporterId: user.id,
+      optionId: option.id,
+      additionalReason: additionalReason || null,
+    },
+  });
+
+  revalidatePath('/posts');
+  revalidatePath(`/posts/${postId}`);
+  revalidatePath('/admin/reports');
+  redirect(`/posts/${postId}?success=${encodeURIComponent('신고가 접수되었어요.')}`);
 }
 
 export async function markPostAsSoldAction(formData: FormData) {

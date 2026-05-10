@@ -354,3 +354,65 @@ export async function toggleCityActiveAction(formData: FormData) {
   revalidatePath('/admin/cities');
   redirect('/admin/cities');
 }
+
+export async function createReportOptionAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const label = normalizeText(formData.get('label'));
+
+  if (!label) {
+    redirect('/admin/report-options?error=신고 옵션 이름을 입력해 주세요.');
+  }
+
+  const exists = await prisma.reportOption.findFirst({
+    where: { label },
+    select: { id: true },
+  });
+
+  if (exists) {
+    redirect('/admin/report-options?error=이미 존재하는 신고 옵션입니다.');
+  }
+
+  const sortOrder = await prisma.reportOption.count();
+  const option = await prisma.reportOption.create({
+    data: {
+      label,
+      isActive: true,
+      sortOrder,
+    },
+    select: { id: true },
+  });
+
+  await logModerationAction(user.id, 'REPORT_OPTION', option.id, 'CREATE', label);
+
+  revalidatePath('/admin/report-options');
+  redirect('/admin/report-options');
+}
+
+export async function toggleReportOptionActiveAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const optionId = normalizeText(formData.get('optionId'));
+  const isActive = formData.get('isActive') === 'true';
+
+  if (!optionId) {
+    redirect('/admin/report-options?error=신고 옵션 ID가 없습니다.');
+  }
+
+  await prisma.reportOption.update({
+    where: { id: optionId },
+    data: { isActive: !isActive },
+  });
+
+  await logModerationAction(
+    user.id,
+    'REPORT_OPTION',
+    optionId,
+    isActive ? 'DEACTIVATE' : 'ACTIVATE',
+  );
+
+  revalidatePath('/admin/report-options');
+  redirect('/admin/report-options');
+}
