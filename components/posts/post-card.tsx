@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 type PostCardProps = {
   post: {
@@ -13,6 +14,10 @@ type PostCardProps = {
     commentCount: number;
     category: { name: string };
     city: { name: string };
+    author: {
+      displayName: string;
+      profileImageUrl: string | null;
+    };
   };
 };
 
@@ -43,6 +48,15 @@ export function PostCard({ post }: PostCardProps) {
       ) : null}
       <p className="text-base font-semibold leading-6">{preview}</p>
       <p className="line-clamp-2 text-sm text-zinc-700">{post.body}</p>
+      <div className="flex items-center gap-2 text-sm text-zinc-600">
+        <UserAvatar
+          displayName={post.author.displayName}
+          profileImageUrl={post.author.profileImageUrl}
+          className="h-6 w-6"
+          sizes="24px"
+        />
+        <span>{post.author.displayName}</span>
+      </div>
       <div className="flex items-center justify-between text-sm text-zinc-500">
         {post.price ? <span>NZD {post.price}</span> : <span />}
         <div className="flex items-center gap-2">
