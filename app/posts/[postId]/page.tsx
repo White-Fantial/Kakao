@@ -139,27 +139,8 @@ export default async function PostDetailPage({
   let myReport: { optionId: string; additionalReason: string | null } | null = null;
   let isSaved = false;
 
-  if (canSubmitReport && currentUser) {
-    [reportOptions, myReport] = await Promise.all([
-      prisma.reportOption.findMany({
-        where: { isActive: true },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        select: { id: true, label: true },
-      }),
-      prisma.postReport.findUnique({
-        where: {
-          postId_reporterId: {
-            postId: post.id,
-            reporterId: currentUser.id,
-          },
-        },
-        select: { optionId: true, additionalReason: true },
-      }),
-    ]);
-  }
-
   if (currentUser) {
-    const savedPost = await prisma.savedPost.findUnique({
+    const savedPostPromise = prisma.savedPost.findUnique({
       where: {
         userId_postId: {
           userId: currentUser.id,
@@ -168,7 +149,32 @@ export default async function PostDetailPage({
       },
       select: { id: true },
     });
-    isSaved = Boolean(savedPost);
+
+    if (canSubmitReport) {
+      const [savedPost, options, report] = await Promise.all([
+        savedPostPromise,
+        prisma.reportOption.findMany({
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          select: { id: true, label: true },
+        }),
+        prisma.postReport.findUnique({
+          where: {
+            postId_reporterId: {
+              postId: post.id,
+              reporterId: currentUser.id,
+            },
+          },
+          select: { optionId: true, additionalReason: true },
+        }),
+      ]);
+
+      isSaved = Boolean(savedPost);
+      reportOptions = options;
+      myReport = report;
+    } else {
+      isSaved = Boolean(await savedPostPromise);
+    }
   }
 
   const isOwner = currentUser?.id === post.authorId;
