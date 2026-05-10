@@ -25,7 +25,9 @@ function normalizeReturnTo(value: FormDataEntryValue | null) {
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
   const openChatUrl = normalizeText(formData.get('openChatUrl')) || null;
-  const cityId = normalizeText(formData.get('cityId')) || null;
+  const submittedCityValue = formData.get('cityId');
+  const cityId = normalizeText(submittedCityValue) || null;
+  const hasCityField = formData.has('cityId');
   const returnTo = normalizeReturnTo(formData.get('returnTo'));
 
   if (cityId) {
@@ -39,7 +41,7 @@ export async function updateProfileAction(formData: FormData) {
     }
   }
 
-  if (returnTo && !cityId) {
+  if (returnTo && hasCityField && !cityId) {
     redirect(getProfileCityRequiredHref(returnTo));
   }
 

@@ -58,7 +58,7 @@ export default async function EditPostPage({
     }),
   ]);
 
-  if (!post || !canEditPost(user, post)) {
+  if (!post || !post.city || !canEditPost(user, post)) {
     notFound();
   }
 
@@ -72,7 +72,7 @@ export default async function EditPostPage({
           label: category.name,
           slug: category.slug,
         }))}
-        cityLabel={post.city?.name ?? '설정된 지역 없음'}
+        cityLabel={post.city.name}
         submitLabel="수정하기"
         errorMessage={query.error}
         defaultValues={{
