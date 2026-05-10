@@ -14,13 +14,16 @@ export function FormSubmitButton({
   className = '',
 }: FormSubmitButtonProps) {
   const { pending } = useFormStatus();
+  const composedClassName = className
+    ? `${className} disabled:cursor-not-allowed disabled:opacity-60`
+    : 'disabled:cursor-not-allowed disabled:opacity-60';
 
   return (
     <button
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className={`${className} disabled:cursor-not-allowed disabled:opacity-60`}
+      className={composedClassName}
     >
       {pending ? pendingLabel : idleLabel}
     </button>
