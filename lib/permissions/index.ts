@@ -94,6 +94,20 @@ export function canMarkPostAsSold(
   return user.id === post.authorId && user.status === 'ACTIVE';
 }
 
+export function canMarkPostAsReserved(
+  user: PermissionUser | null | undefined,
+  post: PermissionPost,
+) {
+  return canMarkPostAsSold(user, post);
+}
+
+export function canMarkPostAsAvailable(
+  user: PermissionUser | null | undefined,
+  post: PermissionPost,
+) {
+  return canMarkPostAsSold(user, post);
+}
+
 export function canHoldPost(user: PermissionUser | null | undefined) {
   return user?.role === 'COORDINATOR' || user?.role === 'ADMIN';
 }

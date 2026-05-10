@@ -7,6 +7,8 @@ import { CategoryType } from '@prisma/client';
 import {
   deletePostAction,
   markPostAsSoldAction,
+  markPostAsReservedAction,
+  markPostAsAvailableAction,
 } from '@/app/posts/actions';
 import {
   createCommentAction,
@@ -127,10 +129,13 @@ export default async function PostDetailPage({
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
 
   const isOwner = currentUser?.id === post.authorId;
+  const isSalePost = post.category.type === CategoryType.SALE;
+  const canMarkReserved = isOwner && isSalePost && post.saleStatus === 'AVAILABLE';
   const canMarkSold =
     isOwner &&
-    post.category.type === CategoryType.SALE &&
-    post.saleStatus !== 'SOLD';
+    isSalePost &&
+    (post.saleStatus === 'AVAILABLE' || post.saleStatus === 'RESERVED');
+  const canMarkAvailable = isOwner && isSalePost && post.saleStatus !== 'AVAILABLE';
 
   return (
     <article className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
@@ -148,6 +153,9 @@ export default async function PostDetailPage({
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
         <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
+        {post.saleStatus === 'RESERVED' ? (
+          <span className="rounded-full bg-[#e8f0fe] px-2 py-1 text-[#1a56db]">예약중</span>
+        ) : null}
         {post.saleStatus === 'SOLD' ? (
           <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
         ) : null}
@@ -209,11 +217,27 @@ export default async function PostDetailPage({
           <Link href={`/posts/${post.id}/edit`} className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
             수정
           </Link>
+          {canMarkReserved ? (
+            <form action={markPostAsReservedAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
+                예약중으로 변경
+              </button>
+            </form>
+          ) : null}
           {canMarkSold ? (
             <form action={markPostAsSoldAction}>
               <input type="hidden" name="postId" value={post.id} />
               <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
                 판매 완료로 변경
+              </button>
+            </form>
+          ) : null}
+          {canMarkAvailable ? (
+            <form action={markPostAsAvailableAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
+                판매중으로 변경
               </button>
             </form>
           ) : null}
