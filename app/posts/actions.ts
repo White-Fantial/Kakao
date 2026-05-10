@@ -219,32 +219,13 @@ export async function createPostAction(formData: FormData) {
     return post.id;
   });
 
-  const createdPostForNotification = await prisma.post.findUnique({
-    where: { id: postId },
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      author: {
-        select: { displayName: true },
-      },
-      images: {
-        orderBy: { sortOrder: 'asc' },
-        take: 1,
-        select: { url: true },
-      },
-    },
+  await notifySearchAlertsForPost({
+    id: postId,
+    title: title || null,
+    body,
+    authorDisplayName: user.displayName,
+    imageUrl: uploadedImages[0]?.url ?? null,
   });
-
-  if (createdPostForNotification) {
-    await notifySearchAlertsForPost({
-      id: createdPostForNotification.id,
-      title: createdPostForNotification.title,
-      body: createdPostForNotification.body,
-      authorDisplayName: createdPostForNotification.author.displayName,
-      imageUrl: createdPostForNotification.images[0]?.url ?? null,
-    });
-  }
 
   trackServerEvent('post_created', {
     userId: user.id,

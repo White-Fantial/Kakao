@@ -3,6 +3,7 @@ import { refreshKakaoAccessToken } from '@/lib/kakao/oauth';
 
 const KAKAO_MEMO_SEND_URL = 'https://kapi.kakao.com/v2/api/talk/memo/default/send';
 const PREVIEW_LENGTH = 80;
+const TOKEN_REFRESH_BUFFER_MS = 60_000;
 
 type NotifyPostInput = {
   id: string;
@@ -60,7 +61,7 @@ async function ensureValidAccessToken(user: {
 
   const shouldRefresh =
     user.kakaoAccessTokenExpiresAt &&
-    user.kakaoAccessTokenExpiresAt.getTime() <= Date.now() + 60_000;
+    user.kakaoAccessTokenExpiresAt.getTime() <= Date.now() + TOKEN_REFRESH_BUFFER_MS;
 
   if (!shouldRefresh) {
     return user.kakaoAccessToken;

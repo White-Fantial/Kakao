@@ -19,14 +19,36 @@ function normalizeReturnTo(value: FormDataEntryValue | null) {
   return normalizeInternalPath(value) ?? '/posts';
 }
 
+function buildRedirectUrl(path: string, key: string, value: string) {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}${key}=${encodeURIComponent(value)}`;
+}
+
+function validateQuery(query: string) {
+  if (!query) {
+    return '저장할 검색어를 입력해 주세요.';
+  }
+
+  if (query.length > 100) {
+    return '검색어는 100자 이하로 입력해 주세요.';
+  }
+
+  if (/[\r\n\t]/.test(query)) {
+    return '검색어에 줄바꿈이나 탭은 사용할 수 없어요.';
+  }
+
+  return null;
+}
+
 export async function saveSearchAlertAction(formData: FormData) {
   const user = await requireUser();
   const query = normalizeText(formData.get('query'));
   const returnTo = normalizeReturnTo(formData.get('returnTo'));
   const notifyOnKakao = formData.get('notifyOnKakao') === 'on';
+  const queryValidationMessage = validateQuery(query);
 
-  if (!query) {
-    redirect(`${returnTo}${returnTo.includes('?') ? '&' : '?'}error=${encodeURIComponent('저장할 검색어를 입력해 주세요.')}`);
+  if (queryValidationMessage) {
+    redirect(buildRedirectUrl(returnTo, 'error', queryValidationMessage));
   }
 
   await prisma.searchAlert.upsert({
@@ -49,7 +71,7 @@ export async function saveSearchAlertAction(formData: FormData) {
   });
 
   revalidatePath('/posts');
-  redirect(`${returnTo}${returnTo.includes('?') ? '&' : '?'}success=1`);
+  redirect(buildRedirectUrl(returnTo, 'success', '1'));
 }
 
 export async function updateSearchAlertAction(formData: FormData) {
@@ -60,7 +82,7 @@ export async function updateSearchAlertAction(formData: FormData) {
   const isActive = formData.get('isActive') === 'on';
 
   if (!alertId) {
-    redirect(`${returnTo}${returnTo.includes('?') ? '&' : '?'}error=${encodeURIComponent('검색 조건을 찾을 수 없어요.')}`);
+    redirect(buildRedirectUrl(returnTo, 'error', '검색 조건을 찾을 수 없어요.'));
   }
 
   await prisma.searchAlert.updateMany({
