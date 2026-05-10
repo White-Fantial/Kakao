@@ -5,6 +5,7 @@ import { createCityAction, toggleCityActiveAction } from '@/app/admin/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,9 +67,11 @@ export default async function AdminCitiesPage({ searchParams }: AdminCitiesPageP
             pattern="[a-z0-9-]+"
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           />
-          <button type="submit" className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
-            추가
-          </button>
+          <FormSubmitButton
+            idleLabel="추가"
+            pendingLabel="처리 중..."
+            className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+          />
         </form>
       </div>
 
@@ -96,9 +99,11 @@ export default async function AdminCitiesPage({ searchParams }: AdminCitiesPageP
                 <form action={toggleCityActiveAction}>
                   <input type="hidden" name="cityId" value={city.id} />
                   <input type="hidden" name="isActive" value={String(city.isActive)} />
-                  <button type="submit" className="rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]">
-                    {city.isActive ? '비활성화' : '활성화'}
-                  </button>
+                  <FormSubmitButton
+                    idleLabel={city.isActive ? '비활성화' : '활성화'}
+                    pendingLabel="처리 중..."
+                    className="rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]"
+                  />
                 </form>
               </li>
             ))}

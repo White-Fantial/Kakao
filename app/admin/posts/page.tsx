@@ -5,6 +5,7 @@ import { adminDeletePostAction, adminRestorePostAction } from '@/app/admin/actio
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { truncatePostBody } from '@/lib/posts/constants';
 
 export const dynamic = 'force-dynamic';
@@ -150,9 +151,11 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                           placeholder="삭제 사유 (선택)"
                           className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         />
-                        <button type="submit" className="rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700">
-                          삭제 확정
-                        </button>
+                        <FormSubmitButton
+                          idleLabel="삭제 확정"
+                          pendingLabel="삭제 중..."
+                          className="rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
+                        />
                       </form>
                     </details>
                   ) : null}
@@ -160,9 +163,11 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                   {post.status === 'HELD' ? (
                     <form action={adminRestorePostAction}>
                       <input type="hidden" name="postId" value={post.id} />
-                      <button type="submit" className="rounded-xl border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50">
-                        재게시
-                      </button>
+                      <FormSubmitButton
+                        idleLabel="재게시"
+                        pendingLabel="처리 중..."
+                        className="rounded-xl border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
+                      />
                     </form>
                   ) : null}
                 </div>

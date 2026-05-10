@@ -5,6 +5,7 @@ import { changeUserRoleAction, changeUserStatusAction } from '@/app/admin/action
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,9 +127,11 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                           placeholder="사유 (선택)"
                           className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         />
-                        <button type="submit" className="rounded-xl bg-[#fee500] px-3 py-1.5 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
-                          변경
-                        </button>
+                        <FormSubmitButton
+                          idleLabel="변경"
+                          pendingLabel="처리 중..."
+                          className="rounded-xl bg-[#fee500] px-3 py-1.5 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+                        />
                       </form>
                     </details>
 
@@ -154,9 +157,11 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                           placeholder="사유 (선택)"
                           className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         />
-                        <button type="submit" className="rounded-xl bg-red-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700">
-                          변경
-                        </button>
+                        <FormSubmitButton
+                          idleLabel="변경"
+                          pendingLabel="처리 중..."
+                          className="rounded-xl bg-red-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700"
+                        />
                       </form>
                     </details>
                   </div>
