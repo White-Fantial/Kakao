@@ -50,6 +50,10 @@
   - 기본 분석 이벤트 로깅 (클라이언트 전환 + 서버 액션)
   - 게시글/댓글 작성 rate limit + spam 체크
 - 한국어 UI 라벨/메시지 반영
+- 검색/알림
+  - 제목/본문/작성자 닉네임 통합 검색
+  - 검색어 저장 및 카카오톡 알림 수신 여부 설정
+  - 조건 매칭 새 글 등록 시 카카오톡 메시지 자동 발송 (글 링크/사진 링크 포함)
 
 ## Not Yet Implemented
 - 분석 이벤트 외부 대시보드 연동
@@ -86,6 +90,7 @@
 - `KAKAO_CLIENT_ID`
 - `KAKAO_CLIENT_SECRET`
 - `KAKAO_REDIRECT_URI`
+- `KAKAO_AUTH_SCOPE` (기본값 `talk_message`)
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
 - `NEXT_PUBLIC_SITE_URL` (기본 SEO 메타데이터 base URL)

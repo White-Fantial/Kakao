@@ -9,6 +9,7 @@ import { requireUser } from '@/lib/auth/session';
 import { trackServerEvent } from '@/lib/analytics/server';
 import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { prisma } from '@/lib/db/prisma';
+import { notifySearchAlertsForPost } from '@/lib/kakao/message';
 import {
   canCreatePost,
   canDeletePost,
@@ -216,6 +217,14 @@ export async function createPostAction(formData: FormData) {
     }
 
     return post.id;
+  });
+
+  await notifySearchAlertsForPost({
+    id: postId,
+    title: title || null,
+    body,
+    authorDisplayName: user.displayName,
+    imageUrl: uploadedImages[0]?.url ?? null,
   });
 
   trackServerEvent('post_created', {

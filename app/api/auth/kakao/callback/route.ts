@@ -36,13 +36,19 @@ export async function GET(request: NextRequest) {
   let kakaoId: string;
   let displayName: string;
   let profileImageUrl: string | null;
+  let kakaoAccessToken: string;
+  let kakaoRefreshToken: string | null;
+  let kakaoAccessTokenExpiresAt: Date | null;
 
   try {
-    const accessToken = await exchangeCodeForToken(code);
-    const userInfo = await getKakaoUserInfo(accessToken);
+    const tokenResponse = await exchangeCodeForToken(code);
+    const userInfo = await getKakaoUserInfo(tokenResponse.accessToken);
     kakaoId = userInfo.kakaoId;
     displayName = userInfo.displayName;
     profileImageUrl = userInfo.profileImageUrl;
+    kakaoAccessToken = tokenResponse.accessToken;
+    kakaoRefreshToken = tokenResponse.refreshToken;
+    kakaoAccessTokenExpiresAt = tokenResponse.accessTokenExpiresAt;
   } catch (err) {
     console.error('[kakao/callback] OAuth error:', err);
     redirect('/login?error=oauth');
@@ -53,12 +59,18 @@ export async function GET(request: NextRequest) {
     update: {
       displayName,
       profileImageUrl,
+      kakaoAccessToken,
+      kakaoRefreshToken: kakaoRefreshToken ?? undefined,
+      kakaoAccessTokenExpiresAt,
       status: UserStatus.ACTIVE,
     },
     create: {
       kakaoId,
       displayName,
       profileImageUrl,
+      kakaoAccessToken,
+      kakaoRefreshToken,
+      kakaoAccessTokenExpiresAt,
       role: UserRole.USER,
       status: UserStatus.ACTIVE,
     },
