@@ -5,13 +5,13 @@ import { useFormStatus } from 'react-dom';
 type FormSubmitButtonProps = {
   idleLabel: string;
   pendingLabel: string;
-  className: string;
+  className?: string;
 };
 
 export function FormSubmitButton({
   idleLabel,
   pendingLabel,
-  className,
+  className = '',
 }: FormSubmitButtonProps) {
   const { pending } = useFormStatus();
 
