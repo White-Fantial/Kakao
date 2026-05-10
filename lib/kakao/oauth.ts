@@ -3,7 +3,8 @@ const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token';
 const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
 
 export function getKakaoAuthUrl(state: string): string {
-  // talk_message scope is required for sending KakaoTalk memo notifications.
+  // talk_message is the default so KakaoTalk memo notifications work out of the box.
+  // Override KAKAO_AUTH_SCOPE when a different consent scope set is needed.
   const scope = process.env.KAKAO_AUTH_SCOPE ?? 'talk_message';
   const params = new URLSearchParams({
     client_id: process.env.KAKAO_CLIENT_ID ?? '',
