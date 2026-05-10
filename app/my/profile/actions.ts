@@ -29,6 +29,8 @@ export async function updateProfileAction(formData: FormData) {
   const cityId = normalizeText(submittedCityValue) || null;
   const hasCityField = formData.has('cityId');
   const returnTo = normalizeReturnTo(formData.get('returnTo'));
+  const notifyOnKakaoForSearchAlert = formData.get('notifyOnKakaoForSearchAlert') === 'on';
+  const notifyOnKakaoForComment = formData.get('notifyOnKakaoForComment') === 'on';
 
   if (cityId) {
     const city = await prisma.city.findFirst({
@@ -47,7 +49,7 @@ export async function updateProfileAction(formData: FormData) {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { openChatUrl, cityId },
+    data: { openChatUrl, cityId, notifyOnKakaoForSearchAlert, notifyOnKakaoForComment },
   });
 
   revalidatePath('/my/profile');

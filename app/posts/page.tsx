@@ -351,12 +351,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <input type="hidden" name="returnTo" value={returnTo} />
             <input type="hidden" name="query" value={keyword} />
             <p className="text-xs text-[#777]">
-              현재 검색어를 저장하고 조건에 맞는 글이 올라오면 카카오톡 알림을 받을 수 있어요.
+              현재 검색어를 저장하고 조건에 맞는 글이 올라오면 알림을 받을 수 있어요. 카카오톡 알림은 프로필 페이지에서 설정할 수 있어요.
             </p>
-            <label htmlFor="save-alert-notify" className="flex items-center gap-2 text-sm">
-              <input id="save-alert-notify" type="checkbox" name="notifyOnKakao" className="accent-[#fee500]" />
-              카카오톡 알림 받기
-            </label>
             <button
               type="submit"
               className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]"

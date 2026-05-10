@@ -67,6 +67,8 @@ model User {
   restrictions         UserRestriction[]  @relation("RestrictedUser")
   createdRestrictions  UserRestriction[]  @relation("RestrictionCreatedBy")
   reviewedRestrictions UserRestriction[]  @relation("RestrictionReviewedBy")
+  notifyOnKakaoForSearchAlert Boolean            @default(false)
+  notifyOnKakaoForComment     Boolean            @default(false)
   searchAlerts         SearchAlert[]
   postReports          PostReport[]
   savedPosts           SavedPost[]
@@ -240,7 +242,6 @@ model SearchAlert {
   id            String   @id @default(cuid())
   userId        String
   query         String
-  notifyOnKakao Boolean  @default(false)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

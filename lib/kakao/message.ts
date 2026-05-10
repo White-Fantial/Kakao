@@ -13,6 +13,14 @@ type NotifyPostInput = {
   imageUrl: string | null;
 };
 
+type NotifyCommentInput = {
+  postId: string;
+  postTitle: string | null;
+  postBody: string;
+  commenterDisplayName: string;
+  commentBody: string;
+};
+
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
 }
@@ -133,7 +141,7 @@ export async function notifySearchAlertsForPost(post: NotifyPostInput) {
   const alerts = await prisma.searchAlert.findMany({
     where: {
       isActive: true,
-      notifyOnKakao: true,
+      user: { notifyOnKakaoForSearchAlert: true },
     },
     select: {
       query: true,
@@ -189,5 +197,51 @@ export async function notifySearchAlertsForPost(post: NotifyPostInput) {
     } catch (error) {
       console.error('[kakao/message] failed to send alert', error);
     }
+  }
+}
+
+export async function notifyCommentForPost(input: NotifyCommentInput) {
+  const post = await prisma.post.findUnique({
+    where: { id: input.postId },
+    select: {
+      author: {
+        select: {
+          id: true,
+          notifyOnKakaoForComment: true,
+          kakaoAccessToken: true,
+          kakaoRefreshToken: true,
+          kakaoAccessTokenExpiresAt: true,
+        },
+      },
+    },
+  });
+
+  if (!post?.author.notifyOnKakaoForComment) {
+    return;
+  }
+
+  try {
+    const accessToken = await ensureValidAccessToken(post.author);
+    if (!accessToken) {
+      return;
+    }
+
+    const postUrl = `${getSiteBaseUrl()}/posts/${input.postId}`;
+    const postPreview = truncateText(
+      (input.postTitle?.trim() || input.postBody.trim()),
+      PREVIEW_LENGTH,
+    );
+    const commentPreview = truncateText(input.commentBody.trim(), PREVIEW_LENGTH);
+
+    const messageLines = [
+      `[댓글 알림] "${postPreview}"에 새 댓글이 달렸어요.`,
+      `작성자: ${input.commenterDisplayName}`,
+      `댓글: ${commentPreview}`,
+      `링크: ${postUrl}`,
+    ];
+
+    await sendKakaoMemo(accessToken, messageLines.join('\n'), postUrl);
+  } catch (error) {
+    console.error('[kakao/message] failed to send comment notification', error);
   }
 }
