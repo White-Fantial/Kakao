@@ -101,13 +101,13 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                     <h2 className="text-base font-semibold">{postHeading}</h2>
                     <p className="line-clamp-2 text-sm text-[#555]">{post.body}</p>
                     <div className="flex flex-wrap items-center gap-2 text-sm text-[#888]">
-                      <span>댓글 {post._count.comments}</span>
-                      <span aria-hidden="true">·</span>
-                      <time dateTime={post.createdAt.toISOString()}>
-                        {new Date(post.createdAt).toLocaleString('ko-KR')}
-                      </time>
-                    </div>
+                    <span>댓글 {post._count.comments}</span>
+                    <span aria-hidden="true">·</span>
+                    <time dateTime={post.createdAt.toISOString()}>
+                      {post.createdAt.toLocaleString('ko-KR')}
+                    </time>
                   </div>
+                </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

@@ -118,7 +118,7 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
                       <span>댓글 {post._count.comments}</span>
                       <span aria-hidden="true">·</span>
                       <time dateTime={post.createdAt.toISOString()}>
-                        {new Date(post.createdAt).toLocaleString('ko-KR')}
+                        {post.createdAt.toLocaleString('ko-KR')}
                       </time>
                     </div>
                   </div>
