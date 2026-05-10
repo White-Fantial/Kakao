@@ -14,6 +14,8 @@ import {
   canDeletePost,
   canEditPost,
   canMarkPostAsSold,
+  canMarkPostAsReserved,
+  canMarkPostAsAvailable,
   canPostToCategory,
 } from '@/lib/permissions';
 import {
@@ -432,6 +434,86 @@ export async function markPostAsSoldAction(formData: FormData) {
     where: { id: postId },
     data: {
       saleStatus: 'SOLD',
+    },
+  });
+
+  revalidatePath('/posts');
+  revalidatePath('/my/posts');
+  revalidatePath(`/posts/${postId}`);
+  redirect('/my/posts');
+}
+
+export async function markPostAsReservedAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = normalizeText(formData.get('postId'));
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      authorId: true,
+      status: true,
+      saleStatus: true,
+      category: { select: { type: true } },
+    },
+  });
+
+  if (!post || !canMarkPostAsReserved(user, post)) {
+    redirect('/my/posts?error=권한이 없습니다.');
+  }
+
+  if (post.category.type !== CategoryType.SALE) {
+    redirect('/my/posts?error=판매글만 예약중 처리할 수 있어요.');
+  }
+
+  if (post.saleStatus !== 'AVAILABLE') {
+    redirect('/my/posts?error=판매중 상태인 글만 예약중으로 변경할 수 있어요.');
+  }
+
+  await prisma.post.update({
+    where: { id: postId },
+    data: {
+      saleStatus: 'RESERVED',
+    },
+  });
+
+  revalidatePath('/posts');
+  revalidatePath('/my/posts');
+  revalidatePath(`/posts/${postId}`);
+  redirect('/my/posts');
+}
+
+export async function markPostAsAvailableAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = normalizeText(formData.get('postId'));
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      authorId: true,
+      status: true,
+      saleStatus: true,
+      category: { select: { type: true } },
+    },
+  });
+
+  if (!post || !canMarkPostAsAvailable(user, post)) {
+    redirect('/my/posts?error=권한이 없습니다.');
+  }
+
+  if (post.category.type !== CategoryType.SALE) {
+    redirect('/my/posts?error=판매글만 상태를 변경할 수 있어요.');
+  }
+
+  if (post.saleStatus === 'AVAILABLE') {
+    redirect('/my/posts?error=이미 판매중 상태예요.');
+  }
+
+  await prisma.post.update({
+    where: { id: postId },
+    data: {
+      saleStatus: 'AVAILABLE',
     },
   });
 

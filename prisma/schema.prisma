@@ -29,6 +29,7 @@ enum PostStatus {
 
 enum SaleStatus {
   AVAILABLE
+  RESERVED
   SOLD
 }
 
