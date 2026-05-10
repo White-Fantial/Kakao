@@ -195,6 +195,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             name="q"
             defaultValue={keyword}
             placeholder="제목, 내용, 닉네임으로 검색"
+            aria-label="게시글 검색어"
             className="w-full rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           />
           <button
@@ -291,8 +292,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <p className="text-xs text-[#777]">
               현재 검색어를 저장하고 조건에 맞는 글이 올라오면 카카오톡 알림을 받을 수 있어요.
             </p>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="notifyOnKakao" className="accent-[#fee500]" />
+            <label htmlFor="save-alert-notify" className="flex items-center gap-2 text-sm">
+              <input id="save-alert-notify" type="checkbox" name="notifyOnKakao" className="accent-[#fee500]" />
               카카오톡 알림 받기
             </label>
             <button
@@ -315,8 +316,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                     <form action={updateSearchAlertAction} className="flex items-center gap-2">
                       <input type="hidden" name="alertId" value={alert.id} />
                       <input type="hidden" name="returnTo" value={returnTo} />
-                      <label className="flex items-center gap-1 text-xs text-[#555]">
+                      <label htmlFor={`alert-active-${alert.id}`} className="flex items-center gap-1 text-xs text-[#555]">
                         <input
+                          id={`alert-active-${alert.id}`}
                           type="checkbox"
                           name="isActive"
                           defaultChecked={alert.isActive}
@@ -324,8 +326,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                         />
                         사용
                       </label>
-                      <label className="flex items-center gap-1 text-xs text-[#555]">
+                      <label htmlFor={`alert-notify-${alert.id}`} className="flex items-center gap-1 text-xs text-[#555]">
                         <input
+                          id={`alert-notify-${alert.id}`}
                           type="checkbox"
                           name="notifyOnKakao"
                           defaultChecked={alert.notifyOnKakao}
