@@ -2,6 +2,11 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { PostCard } from '@/components/posts/post-card';
+import {
+  deleteSearchAlertAction,
+  saveSearchAlertAction,
+  updateSearchAlertAction,
+} from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getActiveCategories, getActiveCities } from '@/lib/posts/reference-data';
@@ -16,6 +21,9 @@ type PostsPageProps = {
   searchParams: Promise<{
     category?: string | string[];
     city?: string | string[];
+    q?: string | string[];
+    success?: string;
+    error?: string;
   }>;
 };
 
@@ -27,11 +35,20 @@ function toArray(value: string | string[] | undefined) {
   return Array.isArray(value) ? value : [value];
 }
 
+function toSingle(value: string | string[] | undefined) {
+  if (!value) {
+    return '';
+  }
+
+  return (Array.isArray(value) ? value[0] : value).trim();
+}
+
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = await searchParams;
   const currentUser = await getCurrentUser();
+  const keyword = toSingle(params.q);
 
-  const [categories, cities, dbUser] = await Promise.all([
+  const [categories, cities, dbUser, searchAlerts] = await Promise.all([
     getActiveCategories(),
     getActiveCities(),
     currentUser
@@ -40,6 +57,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           select: { cityId: true },
         })
       : Promise.resolve(null),
+    currentUser
+      ? prisma.searchAlert.findMany({
+          where: { userId: currentUser.id },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            query: true,
+            notifyOnKakao: true,
+            isActive: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   const alwaysIncludedCategories = categories.filter((category) => category.isAlwaysIncluded);
@@ -77,6 +106,19 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const shouldFilterByCategory =
     selectedFilterCategoryIds.length !== filterCategories.length;
   const shouldFilterByCity = selectedCityIds.length !== cities.length;
+  const hasKeyword = Boolean(keyword);
+
+  const returnToParams = new URLSearchParams();
+  for (const categoryId of selectedFilterCategoryIdsFromParams) {
+    returnToParams.append('category', categoryId);
+  }
+  for (const cityId of selectedCityIdsFromParams) {
+    returnToParams.append('city', cityId);
+  }
+  if (keyword) {
+    returnToParams.set('q', keyword);
+  }
+  const returnTo = `/posts${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`;
 
   const posts = await prisma.post.findMany({
     where: {
@@ -84,6 +126,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
       ...(shouldFilterByCity
         ? { OR: [{ cityId: { in: selectedCityIds } }, { cityId: null }] }
+        : {}),
+      ...(hasKeyword
+        ? {
+            OR: [
+              { title: { contains: keyword, mode: 'insensitive' } },
+              { body: { contains: keyword, mode: 'insensitive' } },
+              { author: { displayName: { contains: keyword, mode: 'insensitive' } } },
+            ],
+          }
         : {}),
     },
     orderBy: { createdAt: 'desc' },
@@ -118,11 +169,34 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     },
   });
 
-  const hasFilters = shouldFilterByCategory || shouldFilterByCity;
+  const hasFilters = shouldFilterByCategory || shouldFilterByCity || hasKeyword;
 
   return (
     <section className="space-y-4">
+      {params.success ? (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+          검색 조건이 저장되었어요.
+        </p>
+      ) : null}
+      {params.error ? (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
+      ) : null}
       <form>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="search"
+            name="q"
+            defaultValue={keyword}
+            placeholder="제목, 내용, 닉네임으로 검색"
+            className="w-full rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+          />
+          <button
+            type="submit"
+            className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+          >
+            검색
+          </button>
+        </div>
         <details className="group rounded-xl border border-[#e8e8e8] bg-white p-3 shadow-sm">
           <summary className="flex cursor-pointer items-center justify-between text-sm font-medium">
             <span>필터</span>
@@ -200,6 +274,74 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           </div>
         </details>
       </form>
+
+      {currentUser ? (
+        <section className="space-y-3 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold">검색 조건 저장</h2>
+          <form action={saveSearchAlertAction} className="space-y-2">
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <input type="hidden" name="query" value={keyword} />
+            <p className="text-xs text-[#777]">
+              현재 검색어를 저장하고 조건에 맞는 글이 올라오면 카카오톡 알림을 받을 수 있어요.
+            </p>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="notifyOnKakao" className="accent-[#fee500]" />
+              카카오톡 알림 받기
+            </label>
+            <button
+              type="submit"
+              disabled={!keyword}
+              className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              현재 검색 조건 저장
+            </button>
+          </form>
+
+          {searchAlerts.length > 0 ? (
+            <ul className="space-y-2 border-t border-[#f0f0f0] pt-3">
+              {searchAlerts.map((alert) => (
+                <li key={alert.id} className="rounded-lg border border-[#efefef] p-3">
+                  <p className="mb-2 text-sm font-medium">"{alert.query}"</p>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={updateSearchAlertAction} className="flex items-center gap-2">
+                      <input type="hidden" name="alertId" value={alert.id} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
+                      <label className="flex items-center gap-1 text-xs text-[#555]">
+                        <input
+                          type="checkbox"
+                          name="isActive"
+                          defaultChecked={alert.isActive}
+                          className="accent-[#fee500]"
+                        />
+                        사용
+                      </label>
+                      <label className="flex items-center gap-1 text-xs text-[#555]">
+                        <input
+                          type="checkbox"
+                          name="notifyOnKakao"
+                          defaultChecked={alert.notifyOnKakao}
+                          className="accent-[#fee500]"
+                        />
+                        카카오 알림
+                      </label>
+                      <button type="submit" className="rounded-md border border-[#e8e8e8] px-2 py-1 text-xs hover:bg-[#f9f9f9]">
+                        저장
+                      </button>
+                    </form>
+                    <form action={deleteSearchAlertAction}>
+                      <input type="hidden" name="alertId" value={alert.id} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
+                      <button type="submit" className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+                        삭제
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
 
       {posts.length === 0 ? (
         <div className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-center text-sm text-[#888]">

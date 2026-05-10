@@ -9,6 +9,7 @@ import { requireUser } from '@/lib/auth/session';
 import { trackServerEvent } from '@/lib/analytics/server';
 import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { prisma } from '@/lib/db/prisma';
+import { notifySearchAlertsForPost } from '@/lib/kakao/message';
 import {
   canCreatePost,
   canDeletePost,
@@ -217,6 +218,33 @@ export async function createPostAction(formData: FormData) {
 
     return post.id;
   });
+
+  const createdPostForNotification = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      author: {
+        select: { displayName: true },
+      },
+      images: {
+        orderBy: { sortOrder: 'asc' },
+        take: 1,
+        select: { url: true },
+      },
+    },
+  });
+
+  if (createdPostForNotification) {
+    await notifySearchAlertsForPost({
+      id: createdPostForNotification.id,
+      title: createdPostForNotification.title,
+      body: createdPostForNotification.body,
+      authorDisplayName: createdPostForNotification.author.displayName,
+      imageUrl: createdPostForNotification.images[0]?.url ?? null,
+    });
+  }
 
   trackServerEvent('post_created', {
     userId: user.id,
