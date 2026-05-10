@@ -56,6 +56,8 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
         <nav className="flex gap-3 text-sm">
           <Link href="/admin/users" className="font-medium text-[#3c1e1e] underline">사용자</Link>
           <Link href="/admin/posts" className="font-medium text-[#3c1e1e] underline">게시글</Link>
+          <Link href="/admin/reports" className="font-medium text-[#3c1e1e] underline">신고내역</Link>
+          <Link href="/admin/report-options" className="font-medium text-[#3c1e1e] underline">신고옵션</Link>
           <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
         </nav>
       </div>

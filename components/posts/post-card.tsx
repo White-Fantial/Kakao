@@ -12,6 +12,7 @@ type PostCardProps = {
     price: string | null;
     thumbnailUrl: string | null;
     commentCount: number;
+    reportCount?: number;
     category: { name: string };
     city: { name: string } | null;
     author: {
@@ -38,6 +39,17 @@ export function PostCard({ post }: PostCardProps) {
         ) : null}
         {post.saleStatus === 'SOLD' ? (
           <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
+        ) : null}
+        {typeof post.reportCount === 'number' ? (
+          <span
+            className={`rounded-full px-2 py-1 ${
+              post.reportCount > 0
+                ? 'bg-red-50 text-red-700'
+                : 'bg-[#f5f5f5] text-[#666]'
+            }`}
+          >
+            신고 {post.reportCount}
+          </span>
         ) : null}
       </div>
       {post.thumbnailUrl ? (

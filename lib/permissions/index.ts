@@ -46,6 +46,21 @@ export function canCreateComment(user: PermissionUser | null | undefined) {
   return isActiveWriter(user);
 }
 
+export function canReportPost(
+  user: PermissionUser | null | undefined,
+  post: PermissionPost,
+) {
+  if (!user || !isActiveWriter(user)) {
+    return false;
+  }
+
+  if (post.status !== 'PUBLISHED') {
+    return false;
+  }
+
+  return user.id !== post.authorId;
+}
+
 export function canEditPost(
   user: PermissionUser | null | undefined,
   post: PermissionPost,
