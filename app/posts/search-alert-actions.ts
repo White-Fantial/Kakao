@@ -34,7 +34,7 @@ function validateQuery(query: string) {
   }
 
   if (/[\r\n\t]/.test(query)) {
-    return '검색어에 줄바꿈이나 탭은 사용할 수 없어요.';
+    return '검색어에 줄바꿈 문자나 탭은 사용할 수 없어요.';
   }
 
   return null;

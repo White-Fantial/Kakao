@@ -43,6 +43,13 @@ function toSingle(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value).trim();
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, maxLength).trimEnd()}…`;
+}
+
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = await searchParams;
   const currentUser = await getCurrentUser();
@@ -301,7 +308,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <ul className="space-y-2 border-t border-[#f0f0f0] pt-3">
               {searchAlerts.map((alert) => (
                 <li key={alert.id} className="rounded-lg border border-[#efefef] p-3">
-                  <p className="mb-2 text-sm font-medium">&quot;{alert.query}&quot;</p>
+                  <p className="mb-2 text-sm font-medium">
+                    &quot;{truncateText(alert.query, 40)}&quot;
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     <form action={updateSearchAlertAction} className="flex items-center gap-2">
                       <input type="hidden" name="alertId" value={alert.id} />
