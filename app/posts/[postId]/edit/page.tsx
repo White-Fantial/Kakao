@@ -4,7 +4,7 @@ import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost } from '@/lib/permissions';
+import { canEditPost, canPostToCategory } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +12,8 @@ type EditPostPageProps = {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ error?: string }>;
 };
+
+const ROLE_RANK = { USER: 0, COORDINATOR: 1, ADMIN: 2 } as const;
 
 export default async function EditPostPage({
   params,
@@ -21,7 +23,7 @@ export default async function EditPostPage({
   const { postId } = await params;
   const query = await searchParams;
 
-  const [post, categories] = await Promise.all([
+  const [post, allCategories, cities] = await Promise.all([
     prisma.post.findUnique({
       where: { id: postId },
       select: {
@@ -35,32 +37,32 @@ export default async function EditPostPage({
         status: true,
         saleStatus: true,
         contactUrl: true,
-        city: {
-          select: {
-            name: true,
-          },
-        },
+        city: { select: { name: true } },
         images: {
-          select: {
-            id: true,
-            url: true,
-          },
-          orderBy: {
-            sortOrder: 'asc',
-          },
+          select: { id: true, url: true },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     }),
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+    }),
+    prisma.city.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true },
     }),
   ]);
 
-  if (!post || !post.city || !canEditPost(user, post)) {
+  if (!post || !canEditPost(user, post)) {
     notFound();
   }
+
+  const categories = allCategories.filter((cat) => canPostToCategory(user, cat));
+  const canSelectAllCities = ROLE_RANK[user.role] >= ROLE_RANK['COORDINATOR'];
+  const cityLabel = post.city?.name ?? '전 지역';
 
   return (
     <section className="space-y-4">
@@ -71,8 +73,13 @@ export default async function EditPostPage({
           id: category.id,
           label: category.name,
           slug: category.slug,
+          ignoreCity: category.ignoreCity,
+          supportsAllCities: category.supportsAllCities,
         }))}
-        cityLabel={post.city.name}
+        cities={cities}
+        cityLabel={cityLabel}
+        defaultCityId={post.cityId}
+        canSelectAllCities={canSelectAllCities}
         submitLabel="수정하기"
         errorMessage={query.error}
         defaultValues={{
