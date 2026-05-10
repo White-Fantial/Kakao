@@ -123,18 +123,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">홈</h1>
-        <Link href="/posts/new" className="rounded-md bg-black px-3 py-2 text-sm text-white">
+        <h1 className="text-xl font-bold">홈</h1>
+        <Link href="/posts/new" className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
           글쓰기
         </Link>
       </div>
 
       <form>
-        <details className="group rounded-lg border bg-white p-3">
+        <details className="group rounded-xl border border-[#e8e8e8] bg-white p-3 shadow-sm">
           <summary className="flex cursor-pointer items-center justify-between text-sm font-medium">
             <span>필터</span>
-            <span className="group-open:hidden">펼치기</span>
-            <span className="hidden group-open:inline">접기</span>
+            <span className="group-open:hidden text-[#888]">펼치기</span>
+            <span className="hidden group-open:inline text-[#888]">접기</span>
           </summary>
 
           <div className="mt-3 hidden grid-cols-1 gap-4 group-open:grid sm:grid-cols-2">
@@ -144,13 +144,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 {filterCategories.map((category) => (
                   <label
                     key={category.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5"
+                    className="flex cursor-pointer items-center gap-2 rounded-full border border-[#e8e8e8] px-3 py-1.5 hover:border-[#fee500] hover:bg-[#fffde7]"
                   >
                     <input
                       type="checkbox"
                       name="category"
                       value={category.id}
                       defaultChecked={selectedFilterCategoryIds.includes(category.id)}
+                      className="accent-[#fee500]"
                     />
                     <span>{category.name}</span>
                   </label>
@@ -167,7 +168,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                   return (
                     <label
                       key={city.id}
-                      className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5"
+                      className="flex cursor-pointer items-center gap-2 rounded-full border border-[#e8e8e8] px-3 py-1.5 hover:border-[#fee500] hover:bg-[#fffde7]"
                     >
                       <input
                         type="checkbox"
@@ -180,10 +181,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                             ? `${city.name} (프로필 기본 지역으로 항상 선택됨)`
                             : city.name
                         }
+                        className="accent-[#fee500]"
                       />
                       <span>{city.name}</span>
                       {isProfileCity ? (
-                        <span className="text-xs text-zinc-500">(기본 지역)</span>
+                        <span className="text-xs text-[#888]">(기본 지역)</span>
                       ) : null}
                     </label>
                   );
@@ -194,11 +196,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <div className="flex flex-wrap gap-2 sm:col-span-2">
               <button
                 type="submit"
-                className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+                className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
               >
                 필터 적용
               </button>
-              <Link href="/posts" className="rounded-md border px-3 py-2 text-sm">
+              <Link href="/posts" className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]">
                 초기화
               </Link>
             </div>
@@ -207,7 +209,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       </form>
 
       {posts.length === 0 ? (
-        <div className="rounded-lg border bg-white p-6 text-center text-sm text-zinc-600">
+        <div className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-center text-sm text-[#888]">
           {hasFilters
             ? '선택한 조건에 맞는 글이 없어요.'
             : '아직 올라온 글이 없어요. 첫 글을 남겨보세요.'}

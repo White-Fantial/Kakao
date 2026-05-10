@@ -27,8 +27,8 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
   ]);
 
   return (
-    <section className="space-y-4 rounded-lg border bg-white p-4">
-      <h1 className="text-xl font-semibold">내 프로필</h1>
+    <section className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+      <h1 className="text-xl font-bold">내 프로필</h1>
       <div className="flex items-center gap-3">
         <UserAvatar
           displayName={user.displayName}
@@ -36,22 +36,22 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
           className="h-14 w-14"
           sizes="56px"
         />
-        <p className="text-sm">이름: {user.displayName}</p>
+        <p className="text-sm font-medium">{user.displayName}</p>
       </div>
-      <p className="text-sm">역할: {user.role}</p>
-      <p className="text-sm">상태: {user.status}</p>
+      <p className="text-sm text-[#888]">역할: {user.role}</p>
+      <p className="text-sm text-[#888]">상태: {user.status}</p>
 
       {params.success ? (
-        <p className="rounded-md bg-green-100 px-3 py-2 text-sm text-green-700">
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
           프로필이 저장되었어요.
         </p>
       ) : null}
 
       {params.error ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{params.error}</p>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
-      <form action={updateProfileAction} className="space-y-3 border-t pt-4">
+      <form action={updateProfileAction} className="space-y-3 border-t border-[#e8e8e8] pt-4">
         <input type="hidden" name="returnTo" value={params.returnTo ?? ''} />
         <div className="space-y-1">
           <label htmlFor="cityId" className="text-sm font-medium">
@@ -61,7 +61,7 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
             id="cityId"
             name="cityId"
             defaultValue={dbUser?.cityId ?? ''}
-            className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           >
             <option value="">지역을 선택해 주세요.</option>
             {cities.map((city) => (
@@ -70,7 +70,7 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
               </option>
             ))}
           </select>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#888]">
             글쓰기는 여기에서 설정한 지역으로만 등록돼요.
           </p>
         </div>
@@ -84,16 +84,16 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
             type="url"
             defaultValue={dbUser?.openChatUrl ?? ''}
             placeholder="https://open.kakao.com/o/..."
-            className="w-full rounded-md border px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           />
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#888]">
             등록하면 게시글 상세 페이지에서 연락 버튼이 표시됩니다.
           </p>
         </div>
         <FormSubmitButton
           idleLabel="저장하기"
           pendingLabel="저장 중..."
-          className="rounded-md bg-black px-4 py-2 text-sm text-white"
+          className="w-full rounded-xl bg-[#fee500] px-4 py-3 text-base font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
         />
       </form>
     </section>

@@ -51,36 +51,36 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">관리자 — 사용자 관리</h1>
+        <h1 className="text-xl font-bold">관리자 — 사용자 관리</h1>
         <nav className="flex gap-3 text-sm">
-          <Link href="/admin/posts" className="text-zinc-600 underline">게시글</Link>
-          <Link href="/admin/categories" className="text-zinc-600 underline">카테고리</Link>
-          <Link href="/admin/cities" className="text-zinc-600 underline">도시</Link>
+          <Link href="/admin/posts" className="font-medium text-[#3c1e1e] underline">게시글</Link>
+          <Link href="/admin/categories" className="font-medium text-[#3c1e1e] underline">카테고리</Link>
+          <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
         </nav>
       </div>
 
       {params.error ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{params.error}</p>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
-      <div className="rounded-lg border bg-white p-4">
+      <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
         <h2 className="mb-3 font-semibold">사용자 목록 ({users.length}명)</h2>
 
         {users.length === 0 ? (
-          <p className="text-sm text-zinc-500">사용자가 없습니다.</p>
+          <p className="text-sm text-[#888]">사용자가 없습니다.</p>
         ) : (
           <ul className="space-y-4">
             {users.map((u) => (
-              <li key={u.id} className="rounded-md border p-3 space-y-2">
+              <li key={u.id} className="space-y-2 rounded-xl border border-[#e8e8e8] p-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-sm">{u.displayName}</span>
+                  <span className="text-sm font-medium">{u.displayName}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       u.role === 'ADMIN'
                         ? 'bg-purple-100 text-purple-700'
                         : u.role === 'COORDINATOR'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-zinc-100 text-zinc-600'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-[#f5f5f5] text-[#555]'
                     }`}
                   >
                     {roleLabels[u.role]}
@@ -88,17 +88,17 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       u.status === 'ACTIVE'
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-green-50 text-green-700'
                         : u.status === 'LIMITED'
-                          ? 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-[#fffde7] text-[#7a6000]'
                           : u.status === 'SUSPENDED'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-red-100 text-red-700'
+                            ? 'bg-orange-50 text-orange-700'
+                            : 'bg-red-50 text-red-700'
                     }`}
                   >
                     {statusLabels[u.status]}
                   </span>
-                  <span className="ml-auto text-xs text-zinc-400">
+                  <span className="ml-auto text-xs text-[#aaa]">
                     글 {u._count.posts} · 댓글 {u._count.comments}
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 {u.id !== currentUser.id ? (
                   <div className="flex flex-wrap gap-2">
                     <details>
-                      <summary className="cursor-pointer rounded-md border px-2 py-1 text-xs">
+                      <summary className="cursor-pointer rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]">
                         역할 변경
                       </summary>
                       <form action={changeUserRoleAction} className="mt-2 space-y-2">
@@ -114,7 +114,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         <select
                           name="role"
                           defaultValue={u.role}
-                          className="w-full rounded-md border px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         >
                           <option value="USER">일반 (USER)</option>
                           <option value="COORDINATOR">운영 (COORDINATOR)</option>
@@ -124,16 +124,16 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                           type="text"
                           name="reason"
                           placeholder="사유 (선택)"
-                          className="w-full rounded-md border px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         />
-                        <button type="submit" className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm text-white">
+                        <button type="submit" className="rounded-xl bg-[#fee500] px-3 py-1.5 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
                           변경
                         </button>
                       </form>
                     </details>
 
                     <details>
-                      <summary className="cursor-pointer rounded-md border px-2 py-1 text-xs">
+                      <summary className="cursor-pointer rounded-xl border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]">
                         상태 변경
                       </summary>
                       <form action={changeUserStatusAction} className="mt-2 space-y-2">
@@ -141,7 +141,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         <select
                           name="status"
                           defaultValue={u.status}
-                          className="w-full rounded-md border px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         >
                           <option value="ACTIVE">활성 (ACTIVE)</option>
                           <option value="LIMITED">제한 (LIMITED)</option>
@@ -152,16 +152,16 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                           type="text"
                           name="reason"
                           placeholder="사유 (선택)"
-                          className="w-full rounded-md border px-2 py-1 text-sm"
+                          className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-sm focus:border-[#fee500] focus:outline-none"
                         />
-                        <button type="submit" className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white">
+                        <button type="submit" className="rounded-xl bg-red-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700">
                           변경
                         </button>
                       </form>
                     </details>
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-400">본인 계정은 수정할 수 없습니다.</p>
+                  <p className="text-xs text-[#aaa]">본인 계정은 수정할 수 없습니다.</p>
                 )}
               </li>
             ))}

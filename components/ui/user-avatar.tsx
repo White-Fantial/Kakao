@@ -35,7 +35,7 @@ export function UserAvatar({ displayName, profileImageUrl, className, sizes }: U
 
   if (resolvedProfileImageUrl) {
     return (
-      <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${avatarClassName}`}>
+      <span className={`relative overflow-hidden rounded-full bg-[#fee500] ${avatarClassName}`}>
         <Image
           src={resolvedProfileImageUrl}
           alt={displayName}
@@ -48,7 +48,7 @@ export function UserAvatar({ displayName, profileImageUrl, className, sizes }: U
   }
 
   return (
-    <span className={`inline-flex items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 ${avatarClassName}`}>
+    <span className={`inline-flex items-center justify-center rounded-full bg-[#fee500] text-xs font-semibold text-[#3c1e1e] ${avatarClassName}`}>
       {getInitial(displayName)}
     </span>
   );

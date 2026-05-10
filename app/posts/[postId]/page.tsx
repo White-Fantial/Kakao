@@ -133,33 +133,33 @@ export default async function PostDetailPage({
     post.saleStatus !== 'SOLD';
 
   return (
-    <article className="space-y-4 rounded-lg border bg-white p-4">
+    <article className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
       {query.error ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{query.error}</p>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{query.error}</p>
       ) : null}
 
       {post.status === 'HELD' ? (
-        <div className="rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
+        <div className="rounded-lg border border-yellow-200 bg-[#fffde7] px-3 py-2 text-sm text-[#7a6000]">
           <span>이 게시글은 현재 보류 상태입니다.</span>
           {post.heldReason ? <span> 사유: {post.heldReason}</span> : null}
         </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full bg-zinc-100 px-2 py-1">{post.category.name}</span>
-        <span className="rounded-full bg-zinc-100 px-2 py-1">{post.city?.name ?? '전 지역'}</span>
+        <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
+        <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
         {post.saleStatus === 'SOLD' ? (
-          <span className="rounded-full bg-zinc-900 px-2 py-1 text-white">판매완료</span>
+          <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
         ) : null}
       </div>
 
-      {post.title ? <h1 className="text-xl font-semibold">{post.title}</h1> : null}
+      {post.title ? <h1 className="text-xl font-bold">{post.title}</h1> : null}
       <PostMarkdown body={post.body} />
 
       {post.images.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {post.images.map((image, index) => (
-            <div key={image.id} className="relative h-36 overflow-hidden rounded-md border">
+            <div key={image.id} className="relative h-36 overflow-hidden rounded-lg border border-[#e8e8e8]">
               <Image
                 src={image.url}
                 alt={`${post.title ?? '게시글'} 이미지 ${index + 1}`}
@@ -172,10 +172,10 @@ export default async function PostDetailPage({
       ) : null}
 
       {post.price ? (
-        <p className="text-sm font-medium">가격: NZD {post.price.toString()}</p>
+        <p className="text-base font-bold text-[#3c1e1e]">가격: NZD {post.price.toString()}</p>
       ) : null}
 
-      <div className="flex items-center gap-2 text-sm text-zinc-500">
+      <div className="flex items-center gap-2 text-sm text-[#888]">
         <UserAvatar
           displayName={post.author.displayName}
           profileImageUrl={post.author.profileImageUrl}
@@ -192,30 +192,33 @@ export default async function PostDetailPage({
           href={contactUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-block rounded-md border px-3 py-2 text-sm"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#fee500] px-4 py-3 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
         >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+            <path fill="currentColor" d="M12 3C6.477 3 2 6.477 2 10.8c0 2.7 1.62 5.085 4.073 6.525L5.1 21l4.89-2.925c.65.09 1.32.135 2.01.135 5.523 0 10-3.477 10-7.8S17.523 3 12 3z" />
+          </svg>
           카카오톡으로 연락하기
         </a>
       ) : (
-        <p className="text-sm text-zinc-500">작성자가 연락 링크를 등록하지 않았어요.</p>
+        <p className="text-sm text-[#888]">작성자가 연락 링크를 등록하지 않았어요.</p>
       )}
 
       {isOwner ? (
-        <div className="flex flex-wrap gap-2 border-t pt-4">
-          <Link href={`/posts/${post.id}/edit`} className="rounded-md border px-3 py-2 text-sm">
+        <div className="flex flex-wrap gap-2 border-t border-[#e8e8e8] pt-4">
+          <Link href={`/posts/${post.id}/edit`} className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
             수정
           </Link>
           {canMarkSold ? (
             <form action={markPostAsSoldAction}>
               <input type="hidden" name="postId" value={post.id} />
-              <button type="submit" className="rounded-md border px-3 py-2 text-sm">
+              <button type="submit" className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
                 판매 완료로 변경
               </button>
             </form>
           ) : null}
           <form action={deletePostAction}>
             <input type="hidden" name="postId" value={post.id} />
-            <button type="submit" className="rounded-md border px-3 py-2 text-sm text-red-600">
+            <button type="submit" className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
               삭제하기
             </button>
           </form>
@@ -223,11 +226,11 @@ export default async function PostDetailPage({
       ) : null}
 
       {isCoordinator ? (
-        <div className="flex flex-wrap gap-2 border-t pt-4">
-          <span className="w-full text-xs text-zinc-400">운영 관리</span>
+        <div className="flex flex-wrap gap-2 border-t border-[#e8e8e8] pt-4">
+          <span className="w-full text-xs text-[#aaa]">운영 관리</span>
           {post.status === 'PUBLISHED' && currentUser && canHoldPost(currentUser) ? (
             <details>
-              <summary className="cursor-pointer rounded-md border px-3 py-2 text-sm text-yellow-700">
+              <summary className="cursor-pointer rounded-xl border border-yellow-300 bg-[#fffde7] px-3 py-2 text-sm font-medium text-[#7a6000]">
                 보류 처리
               </summary>
               <form action={holdPostAction} className="mt-2 space-y-2">
@@ -236,9 +239,9 @@ export default async function PostDetailPage({
                   type="text"
                   name="reason"
                   placeholder="보류 사유 (선택)"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                 />
-                <button type="submit" className="rounded-md bg-yellow-600 px-3 py-1.5 text-sm text-white">
+                <button type="submit" className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]">
                   보류 확정
                 </button>
               </form>
@@ -247,7 +250,7 @@ export default async function PostDetailPage({
           {post.status === 'HELD' && currentUser && canRestorePost(currentUser) ? (
             <form action={restorePostAction}>
               <input type="hidden" name="postId" value={post.id} />
-              <button type="submit" className="rounded-md border border-green-600 px-3 py-2 text-sm text-green-700">
+              <button type="submit" className="rounded-xl border border-green-300 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-50">
                 재게시
               </button>
             </form>
@@ -255,8 +258,8 @@ export default async function PostDetailPage({
         </div>
       ) : null}
 
-      <section className="space-y-3 border-t pt-4">
-        <h2 className="text-base font-semibold">댓글 {post.comments.length}</h2>
+      <section className="space-y-3 border-t border-[#e8e8e8] pt-4">
+        <h2 className="text-base font-bold">댓글 {post.comments.length}</h2>
 
         {currentUser ? (
           <form action={createCommentAction} className="space-y-2">
@@ -271,18 +274,18 @@ export default async function PostDetailPage({
               rows={3}
               maxLength={500}
               placeholder="댓글을 남겨보세요."
-              className="w-full rounded-md border px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
             />
             <FormSubmitButton
               idleLabel="댓글 작성"
               pendingLabel="등록 중..."
-              className="rounded-md border px-3 py-2 text-sm"
+              className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
             />
           </form>
         ) : (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-[#888]">
             댓글을 작성하려면{' '}
-            <Link href="/login" className="underline">
+            <Link href="/login" className="font-semibold text-[#3c1e1e] underline">
               로그인
             </Link>{' '}
             이 필요해요.
@@ -290,16 +293,16 @@ export default async function PostDetailPage({
         )}
 
         {post.comments.length === 0 ? (
-          <p className="text-sm text-zinc-500">아직 댓글이 없어요.</p>
+          <p className="text-sm text-[#888]">아직 댓글이 없어요.</p>
         ) : (
           <ul className="space-y-3">
             {post.comments.map((comment) => {
               const canDelete = canDeleteComment(currentUser, comment);
 
               return (
-                <li key={comment.id} className="rounded-md border p-3">
+                <li key={comment.id} className="rounded-xl border border-[#e8e8e8] p-3">
                   <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
-                  <div className="mt-2 flex items-center justify-between text-xs text-zinc-500">
+                  <div className="mt-2 flex items-center justify-between text-xs text-[#888]">
                     <div className="flex items-center gap-2">
                       <UserAvatar
                         displayName={comment.author.displayName}
@@ -316,7 +319,7 @@ export default async function PostDetailPage({
                       <form action={deleteCommentAction}>
                         <input type="hidden" name="postId" value={post.id} />
                         <input type="hidden" name="commentId" value={comment.id} />
-                        <button type="submit" className="text-red-600">
+                        <button type="submit" className="text-red-500">
                           삭제
                         </button>
                       </form>
