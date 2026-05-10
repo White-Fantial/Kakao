@@ -72,7 +72,7 @@ export default async function EditPostPage({
           label: category.name,
           slug: category.slug,
         }))}
-        cityLabel={post.city?.name ?? '지역 정보 없음'}
+        cityLabel={post.city?.name ?? '설정된 지역 없음'}
         submitLabel="수정하기"
         errorMessage={query.error}
         defaultValues={{

@@ -17,7 +17,7 @@ type PostsPageProps = {
   }>;
 };
 
-function getMultiValue(value: string | string[] | undefined) {
+function toArray(value: string | string[] | undefined) {
   if (!value) {
     return [];
   }
@@ -43,8 +43,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const categoryIds = new Set(categories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
-  const selectedCategoryIds = getMultiValue(params.category).filter((id) => categoryIds.has(id));
-  const selectedCityIds = getMultiValue(params.city).filter((id) => cityIds.has(id));
+  const selectedCategoryIds = toArray(params.category).filter((id) => categoryIds.has(id));
+  const selectedCityIds = toArray(params.city).filter((id) => cityIds.has(id));
 
   const posts = await prisma.post.findMany({
     where: {
