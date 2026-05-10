@@ -7,6 +7,8 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { normalizeInternalPath } from '@/lib/posts/profile-city';
 
+const MAX_QUERY_LENGTH = 100;
+
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -29,8 +31,8 @@ function validateQuery(query: string) {
     return '저장할 검색어를 입력해 주세요.';
   }
 
-  if (query.length > 100) {
-    return '검색어는 100자 이하로 입력해 주세요.';
+  if (query.length > MAX_QUERY_LENGTH) {
+    return `검색어는 ${MAX_QUERY_LENGTH}자 이하로 입력해 주세요.`;
   }
 
   if (/[\r\n\t]/.test(query)) {
