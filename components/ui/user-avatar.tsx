@@ -9,15 +9,15 @@ type UserAvatarProps = {
 
 function getInitial(displayName: string) {
   const trimmed = displayName.trim();
-  return trimmed ? trimmed[0]!.toUpperCase() : '?';
+  return trimmed ? trimmed[0].toUpperCase() : '?';
 }
 
 export function UserAvatar({ displayName, profileImageUrl, className, sizes }: UserAvatarProps) {
-  const sizeClassName = className ?? 'h-8 w-8';
+  const avatarClassName = className ?? 'h-8 w-8';
 
   if (profileImageUrl) {
     return (
-      <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${sizeClassName}`}>
+      <span className={`relative overflow-hidden rounded-full bg-zinc-200 ${avatarClassName}`}>
         <Image
           src={profileImageUrl}
           alt={`${displayName} 프로필 이미지`}
@@ -30,7 +30,7 @@ export function UserAvatar({ displayName, profileImageUrl, className, sizes }: U
   }
 
   return (
-    <span className={`inline-flex items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 ${sizeClassName}`}>
+    <span className={`inline-flex items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 ${avatarClassName}`}>
       {getInitial(displayName)}
     </span>
   );
