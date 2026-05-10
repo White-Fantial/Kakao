@@ -85,6 +85,9 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
                     <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
+                    {post.saleStatus === 'RESERVED' ? (
+                      <span className="rounded-full bg-[#e8f0fe] px-2 py-1 text-[#1a56db]">예약중</span>
+                    ) : null}
                     {post.saleStatus === 'SOLD' ? (
                       <span className="rounded-full bg-[#3c1e1e] px-2 py-1 text-white">판매완료</span>
                     ) : null}
