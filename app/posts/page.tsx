@@ -60,8 +60,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const filterCategoryIds = new Set(filterCategories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
   const profileCityId = dbUser?.cityId;
-  const selectedFilterCategoryIdsFromParams = toArray(params.category).filter((id) =>
-    filterCategoryIds.has(id),
+  const selectedFilterCategoryIdsFromParams = Array.from(
+    new Set(toArray(params.category).filter((id) => filterCategoryIds.has(id))),
   );
   const selectedFilterCategoryIds =
     selectedFilterCategoryIdsFromParams.length > 0
@@ -73,7 +73,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ...alwaysIncludedCategories.map((category) => category.id),
     ]),
   );
-  const selectedCityIdsFromParams = toArray(params.city).filter((id) => cityIds.has(id));
+  const selectedCityIdsFromParams = Array.from(
+    new Set(toArray(params.city).filter((id) => cityIds.has(id))),
+  );
   const selectedCityIdsBase =
     selectedCityIdsFromParams.length > 0
       ? selectedCityIdsFromParams
@@ -85,7 +87,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ? [...selectedCityIdsBase, profileCityId]
       : selectedCityIdsBase;
 
-  const shouldFilterByCategory = selectedCategoryIds.length !== categories.length;
+  const shouldFilterByCategory =
+    selectedFilterCategoryIds.length !== filterCategories.length;
   const shouldFilterByCity = selectedCityIds.length !== cities.length;
 
   const posts = await prisma.post.findMany({
@@ -130,72 +133,73 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         </Link>
       </div>
 
-      <form className="rounded-lg border bg-white p-3">
-        <input id="posts-filter-toggle" type="checkbox" className="peer sr-only" />
-        <label
-          htmlFor="posts-filter-toggle"
-          className="flex cursor-pointer items-center justify-between text-sm font-medium sm:hidden"
-        >
-          <span>필터</span>
-          <span className="peer-checked:hidden">펼치기</span>
-          <span className="hidden peer-checked:inline">접기</span>
-        </label>
+      <form>
+        <details className="group rounded-lg border bg-white p-3">
+          <summary className="flex cursor-pointer items-center justify-between text-sm font-medium sm:hidden">
+            <span>필터</span>
+            <span className="group-open:hidden">펼치기</span>
+            <span className="hidden group-open:inline">접기</span>
+          </summary>
 
-        <div className="mt-3 hidden grid-cols-1 gap-4 peer-checked:grid sm:mt-0 sm:grid sm:grid-cols-2">
-          <fieldset className="space-y-2 text-sm">
-            <legend className="font-medium">카테고리 선택</legend>
-            <div className="flex flex-wrap gap-2">
-              {filterCategories.map((category) => (
-                <label
-                  key={category.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5"
-                >
-                  <input
-                    type="checkbox"
-                    name="category"
-                    value={category.id}
-                    defaultChecked={selectedFilterCategoryIds.includes(category.id)}
-                  />
-                  <span>{category.name}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="space-y-2 text-sm">
-            <legend className="font-medium">지역 선택</legend>
-            <div className="flex flex-wrap gap-2">
-              {cities.map((city) => {
-                const isProfileCity = city.id === profileCityId;
-
-                return (
+          <div className="mt-3 hidden grid-cols-1 gap-4 group-open:grid sm:mt-0 sm:grid sm:grid-cols-2">
+            <fieldset className="space-y-2 text-sm">
+              <legend className="font-medium">카테고리 선택</legend>
+              <div className="flex flex-wrap gap-2">
+                {filterCategories.map((category) => (
                   <label
-                    key={city.id}
+                    key={category.id}
                     className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5"
                   >
                     <input
                       type="checkbox"
-                      name="city"
-                      value={city.id}
-                      defaultChecked={selectedCityIds.includes(city.id)}
-                      disabled={isProfileCity}
+                      name="category"
+                      value={category.id}
+                      defaultChecked={selectedFilterCategoryIds.includes(category.id)}
                     />
-                    <span>{city.name}</span>
+                    <span>{category.name}</span>
                   </label>
-                );
-              })}
-            </div>
-          </fieldset>
+                ))}
+              </div>
+            </fieldset>
 
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <button type="submit" className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white">
-              필터 적용
-            </button>
-            <Link href="/posts" className="rounded-md border px-3 py-2 text-sm">
-              초기화
-            </Link>
+            <fieldset className="space-y-2 text-sm">
+              <legend className="font-medium">지역 선택</legend>
+              <div className="flex flex-wrap gap-2">
+                {cities.map((city) => {
+                  const isProfileCity = city.id === profileCityId;
+
+                  return (
+                    <label
+                      key={city.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5"
+                    >
+                      <input
+                        type="checkbox"
+                        name="city"
+                        value={city.id}
+                        defaultChecked={selectedCityIds.includes(city.id)}
+                        disabled={isProfileCity}
+                      />
+                      <span>{city.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="flex flex-wrap gap-2 sm:col-span-2">
+              <button
+                type="submit"
+                className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+              >
+                필터 적용
+              </button>
+              <Link href="/posts" className="rounded-md border px-3 py-2 text-sm">
+                초기화
+              </Link>
+            </div>
           </div>
-        </div>
+        </details>
       </form>
 
       {posts.length === 0 ? (
