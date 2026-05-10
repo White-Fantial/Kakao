@@ -23,6 +23,7 @@ CREATE TABLE "User" (
     "displayName" TEXT NOT NULL,
     "profileImageUrl" TEXT,
     "openChatUrl" TEXT,
+    "cityId" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -173,6 +174,9 @@ CREATE INDEX "ModerationAction_targetType_targetId_createdAt_idx" ON "Moderation
 
 -- CreateIndex
 CREATE INDEX "UserRestriction_userId_status_idx" ON "UserRestriction"("userId", "status");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_cityId_fkey" FOREIGN KEY ("cityId") REFERENCES "City"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
