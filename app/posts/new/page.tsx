@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
 import { createPostAction } from '@/app/posts/actions';
@@ -16,21 +17,31 @@ type NewPostPageProps = {
 };
 
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
-  await requireUser();
+  const user = await requireUser();
   const params = await searchParams;
 
-  const [categories, cities] = await Promise.all([
+  const [categories, dbUser] = await Promise.all([
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true, slug: true },
     }),
-    prisma.city.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true },
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        cityId: true,
+        city: {
+          select: { name: true },
+        },
+      },
     }),
   ]);
+
+  if (!dbUser?.cityId || !dbUser.city) {
+    redirect(
+      `/my/profile?returnTo=${encodeURIComponent('/posts/new')}&error=${encodeURIComponent('글을 쓰기 전에 지역을 먼저 설정해 주세요.')}`,
+    );
+  }
 
   return (
     <section className="space-y-4">
@@ -42,7 +53,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
           label: category.name,
           slug: category.slug,
         }))}
-        cities={cities.map((city) => ({ id: city.id, label: city.name }))}
+        cityLabel={dbUser.city.name}
         submitLabel="올리기"
         errorMessage={params.error}
       />
