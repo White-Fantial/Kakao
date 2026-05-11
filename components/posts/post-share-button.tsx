@@ -39,7 +39,6 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
         await navigator.share({
           title: previewText,
           text: shareText,
-          url: shareUrl,
         });
         setMessage('게시글 공유를 완료했어요.');
         return;
