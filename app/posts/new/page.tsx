@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { CategoryType } from '@prisma/client';
 import { redirect } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
@@ -6,7 +7,7 @@ import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getProfileCityRequiredHref } from '@/lib/posts/profile-city';
-import { canPostToCategory, ROLE_RANK } from '@/lib/permissions';
+import { filterPostableCategoriesForUser, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -18,6 +19,15 @@ type NewPostPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
+type CategoryListItem = {
+  id: string;
+  name: string;
+  type: CategoryType;
+  ignoreCity: boolean;
+  supportsAllCities: boolean;
+  ignoreCountry: boolean;
+};
+
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const user = await requireUser();
   const params = await searchParams;
@@ -26,7 +36,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
     }),
     prisma.city.findMany({
       where: {
@@ -45,8 +55,10 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
     }),
   ]);
 
-  const categories = allCategories.filter((cat) =>
-    canPostToCategory(user, cat),
+  const categories = await filterPostableCategoriesForUser<CategoryListItem>(
+    user,
+    allCategories,
+    user.countryId,
   );
 
   // Normal-category posts still require a profile city

@@ -1,4 +1,4 @@
-import { PrismaClient, CategoryType, UserRole } from '@prisma/client';
+import { PrismaClient, CategoryType, UserRole, PermissionEffect, PermissionResourceType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -21,13 +21,13 @@ const cities = [
 ];
 
 const categories = [
-  { name: '공지사항', slug: 'notice', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: true, supportsAllCities: false, ignoreCountry: true },
-  { name: '피쳐드', slug: 'featured', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: false, supportsAllCities: true, ignoreCountry: false },
-  { name: '궁금해요', slug: 'question', type: CategoryType.QUESTION, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '도와주세요', slug: 'help', type: CategoryType.HELP, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '팔아요', slug: 'sale', type: CategoryType.SALE, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '구인구직', slug: 'recruit', type: CategoryType.RECRUIT, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '공지사항', slug: 'notice', type: CategoryType.GENERAL, allowedRoles: [UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: true, ignoreCity: true, supportsAllCities: false, ignoreCountry: true },
+  { name: '피쳐드', slug: 'featured', type: CategoryType.GENERAL, allowedRoles: [UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: true, ignoreCity: false, supportsAllCities: true, ignoreCountry: false },
+  { name: '궁금해요', slug: 'question', type: CategoryType.QUESTION, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '도와주세요', slug: 'help', type: CategoryType.HELP, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '팔아요', slug: 'sale', type: CategoryType.SALE, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '구인구직', slug: 'recruit', type: CategoryType.RECRUIT, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
 ];
 
 const reportOptions = [
@@ -79,7 +79,7 @@ async function main() {
     ),
   );
 
-  await Promise.all(
+  const categoryRecords = await Promise.all(
     categories.map((category, index) =>
       prisma.category.upsert({
         where: { slug: category.slug },
@@ -88,20 +88,51 @@ async function main() {
           type: category.type,
           isActive: true,
           sortOrder: index,
-          minRole: category.minRole,
           isAlwaysIncluded: category.isAlwaysIncluded,
           ignoreCity: category.ignoreCity,
           supportsAllCities: category.supportsAllCities,
           ignoreCountry: category.ignoreCountry,
         },
         create: {
-          ...category,
+          name: category.name,
+          slug: category.slug,
+          type: category.type,
+          isAlwaysIncluded: category.isAlwaysIncluded,
+          ignoreCity: category.ignoreCity,
+          supportsAllCities: category.supportsAllCities,
+          ignoreCountry: category.ignoreCountry,
           isActive: true,
           sortOrder: index,
         },
       }),
     ),
   );
+
+  const allUserRoles = Object.values(UserRole);
+  const rolePolicyRows = categoryRecords.flatMap((categoryRecord) => {
+    const category = categories.find((entry) => entry.slug === categoryRecord.slug);
+    if (!category) {
+      throw new Error(`Missing seed policy definition for category slug: ${categoryRecord.slug}`);
+    }
+
+    return allUserRoles.map((role) => ({
+      role,
+      resourceType: PermissionResourceType.CATEGORY,
+      resourceId: categoryRecord.id,
+      effect: category.allowedRoles.includes(role) ? PermissionEffect.ALLOW : PermissionEffect.DENY,
+    }));
+  });
+
+  await prisma.roleWritePermissionPolicy.deleteMany({
+    where: {
+      resourceType: PermissionResourceType.CATEGORY,
+      resourceId: { in: categoryRecords.map((category) => category.id) },
+    },
+  });
+  await prisma.roleWritePermissionPolicy.createMany({
+    data: rolePolicyRows,
+    skipDuplicates: true,
+  });
 
   await Promise.all(
     reportOptions.map((label, index) =>
@@ -142,4 +173,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

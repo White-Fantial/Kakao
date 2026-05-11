@@ -1,16 +1,26 @@
+import type { CategoryType } from '@prisma/client';
 import { notFound } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost, canPostToCategory, ROLE_RANK } from '@/lib/permissions';
+import { canEditPost, filterPostableCategoriesForUser, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
 type EditPostPageProps = {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ error?: string }>;
+};
+
+type CategoryListItem = {
+  id: string;
+  name: string;
+  type: CategoryType;
+  ignoreCity: boolean;
+  supportsAllCities: boolean;
+  ignoreCountry: boolean;
 };
 
 export default async function EditPostPage({
@@ -45,7 +55,7 @@ export default async function EditPostPage({
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
     }),
     prisma.city.findMany({
       where: { isActive: true },
@@ -58,7 +68,11 @@ export default async function EditPostPage({
     notFound();
   }
 
-  const categories = allCategories.filter((cat) => canPostToCategory(user, cat));
+  const categories = await filterPostableCategoriesForUser<CategoryListItem>(
+    user,
+    allCategories,
+    user.countryId,
+  );
   const canSelectAllCities = ROLE_RANK[user.role] >= ROLE_RANK['COORDINATOR'];
   const cityLabel = post.city?.name ?? '전 지역';
 

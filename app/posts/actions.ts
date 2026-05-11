@@ -18,7 +18,7 @@ import {
   canMarkPostAsSold,
   canMarkPostAsReserved,
   canMarkPostAsAvailable,
-  canPostToCategory,
+  canPostToCategoryAndCountry,
 } from '@/lib/permissions';
 import {
   MAX_UPLOAD_IMAGE_COUNT,
@@ -78,7 +78,7 @@ function getUploadedImages(formData: FormData): PreUploadedImage[] {
 async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
-    select: { id: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
+    select: { id: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
   });
 
   if (!category) {
@@ -186,10 +186,6 @@ export async function createPostAction(formData: FormData) {
     redirect(`/posts/new?error=${encodeURIComponent(categoryResult.message)}`);
   }
 
-  if (!canPostToCategory(user, categoryResult.category)) {
-    redirect('/posts/new?error=이 카테고리에 글을 작성할 권한이 없습니다.');
-  }
-
   const resolvedCityId = await resolveCityId(
     rawCityId,
     categoryResult.category,
@@ -197,6 +193,13 @@ export async function createPostAction(formData: FormData) {
   );
 
   const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
+  const canWriteToScope = await canPostToCategoryAndCountry(user, {
+    categoryId: categoryResult.category.id,
+    countryId: resolvedCountryId,
+  });
+  if (!canWriteToScope) {
+    redirect('/posts/new?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.');
+  }
 
   const isSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
@@ -298,10 +301,6 @@ export async function updatePostAction(formData: FormData) {
     );
   }
 
-  if (!canPostToCategory(user, categoryResult.category)) {
-    redirect(`/posts/${postId}/edit?error=이 카테고리에 글을 작성할 권한이 없습니다.`);
-  }
-
   const resolvedCityId = await resolveCityId(
     rawCityId,
     categoryResult.category,
@@ -309,6 +308,13 @@ export async function updatePostAction(formData: FormData) {
   );
 
   const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
+  const canWriteToScope = await canPostToCategoryAndCountry(user, {
+    categoryId: categoryResult.category.id,
+    countryId: resolvedCountryId,
+  });
+  if (!canWriteToScope) {
+    redirect(`/posts/${postId}/edit?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.`);
+  }
   const isSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
 

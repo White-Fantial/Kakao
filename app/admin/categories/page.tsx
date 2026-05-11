@@ -1,4 +1,4 @@
-import type { CategoryType, UserRole } from '@prisma/client';
+import type { CategoryType, PermissionEffect, UserRole } from '@prisma/client';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -6,10 +6,11 @@ import {
   createCategoryAction,
   toggleCategoryActiveAction,
   updateCategorySettingsAction,
+  updateCategoryRolePolicyAction,
 } from '@/app/admin/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { canMakeFinalUserDecision, DEFAULT_PERMISSION_EFFECT, USER_ROLES } from '@/lib/permissions';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
@@ -18,10 +19,15 @@ type AdminCategoriesPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-const MIN_ROLE_LABELS: Record<UserRole, string> = {
-  USER: '전체',
-  COORDINATOR: '운영자+',
-  ADMIN: '어드민만',
+const ROLE_LABELS: Record<UserRole, string> = {
+  USER: '일반 유저',
+  COORDINATOR: '운영자',
+  ADMIN: '어드민',
+};
+
+const EFFECT_LABELS: Record<PermissionEffect, string> = {
+  ALLOW: '허용',
+  DENY: '거부',
 };
 
 const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
@@ -42,8 +48,9 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
 
   const params = await searchParams;
 
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: 'asc' },
+  const [categories, rolePolicies] = await Promise.all([
+    prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
         name: true,
@@ -52,13 +59,21 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
         isActive: true,
         isAlwaysIncluded: true,
         sortOrder: true,
-        minRole: true,
         ignoreCity: true,
-      supportsAllCities: true,
-      ignoreCountry: true,
-      _count: { select: { posts: true } },
-    },
-  });
+        supportsAllCities: true,
+        ignoreCountry: true,
+        _count: { select: { posts: true } },
+      },
+    }),
+    prisma.roleWritePermissionPolicy.findMany({
+      where: { resourceType: 'CATEGORY' },
+      select: { role: true, resourceId: true, effect: true },
+    }),
+  ]);
+
+  const rolePolicyMap = new Map(
+    rolePolicies.map((policy) => [`${policy.resourceId}:${policy.role}`, policy.effect]),
+  );
 
   return (
     <section className="space-y-6">
@@ -150,8 +165,8 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                 </div>
 
                 <details className="text-sm">
-                    <summary className="cursor-pointer text-xs text-[#888]">
-                     작성 권한 및 지역 설정 (현재: {CATEGORY_TYPE_LABELS[cat.type]} · {MIN_ROLE_LABELS[cat.minRole]}
+                     <summary className="cursor-pointer text-xs text-[#888]">
+                     작성 권한(역할별 상세는 펼침에서 확인) 및 지역 설정 (현재: {CATEGORY_TYPE_LABELS[cat.type]}
                      {cat.isAlwaysIncluded ? ' · 필터항상포함' : ''}
                      {cat.ignoreCity ? ' · 전지역강제' : ''}
                      {cat.supportsAllCities ? ' · 전지역선택가능' : ''}
@@ -173,19 +188,6 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                         <option value="GIVEAWAY">나눔 (GIVEAWAY)</option>
                         <option value="HELP">도움 (HELP)</option>
                         <option value="QUESTION">질문 (QUESTION)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-[#555]">작성 최소 역할</label>
-                      <select
-                        name="minRole"
-                        defaultValue={cat.minRole}
-                        className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs focus:border-[#fee500] focus:outline-none"
-                      >
-                        <option value="USER">전체 (USER)</option>
-                        <option value="COORDINATOR">운영자 이상 (COORDINATOR+)</option>
-                        <option value="ADMIN">어드민만 (ADMIN)</option>
                       </select>
                     </div>
 
@@ -245,6 +247,35 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                       className="rounded-xl bg-[#fee500] px-3 py-1.5 text-xs font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
                     />
                   </form>
+
+                  <div className="mt-3 space-y-2 rounded-lg border border-[#f1f1f1] bg-[#fafafa] p-2">
+                    <p className="text-xs font-medium text-[#555]">역할별 작성 권한 정책 (카테고리)</p>
+                    {USER_ROLES.map((role) => {
+                      const currentEffect =
+                        rolePolicyMap.get(`${cat.id}:${role}`) ??
+                        DEFAULT_PERMISSION_EFFECT[role].CATEGORY;
+                      return (
+                        <form key={role} action={updateCategoryRolePolicyAction} className="flex items-center gap-2">
+                          <input type="hidden" name="categoryId" value={cat.id} />
+                          <input type="hidden" name="role" value={role} />
+                          <span className="min-w-24 text-xs text-[#666]">{ROLE_LABELS[role]}</span>
+                          <select
+                            name="effect"
+                            defaultValue={currentEffect}
+                            className="rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs focus:border-[#fee500] focus:outline-none"
+                          >
+                            <option value="ALLOW">{EFFECT_LABELS.ALLOW}</option>
+                            <option value="DENY">{EFFECT_LABELS.DENY}</option>
+                          </select>
+                          <FormSubmitButton
+                            idleLabel="저장"
+                            pendingLabel="저장 중..."
+                            className="rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs font-medium hover:bg-[#f9f9f9]"
+                          />
+                        </form>
+                      );
+                    })}
+                  </div>
                 </details>
               </li>
             ))}
