@@ -254,10 +254,24 @@ export default async function PostDetailPage({
         </span>
       </div>
 
-      <PostShareButton
-        title={post.title}
-        body={post.body}
-      />
+      <div className={currentUser ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'}>
+        {currentUser ? (
+          <form action={isSaved ? unsavePostAction : savePostAction}>
+            <input type="hidden" name="postId" value={post.id} />
+            <input type="hidden" name="returnTo" value={`/posts/${post.id}`} />
+            <FormSubmitButton
+              idleLabel={isSaved ? '저장 취소' : '글 저장'}
+              pendingLabel="처리 중..."
+              className={outlineActionButtonClass}
+            />
+          </form>
+        ) : null}
+        <PostShareButton
+          title={post.title}
+          body={post.body}
+          className={outlineActionButtonClass}
+        />
+      </div>
 
       {contactUrl ? (
         <a
@@ -274,19 +288,6 @@ export default async function PostDetailPage({
       ) : (
         <p className="text-sm text-[#888]">작성자가 연락 링크를 등록하지 않았어요.</p>
       )}
-
-      {currentUser ? (
-        <form action={isSaved ? unsavePostAction : savePostAction}>
-          <input type="hidden" name="postId" value={post.id} />
-          <input type="hidden" name="returnTo" value={`/posts/${post.id}`} />
-          <FormSubmitButton
-            idleLabel={isSaved ? '저장 취소' : '글 저장'}
-            pendingLabel="처리 중..."
-            className={outlineActionButtonClass}
-          />
-        </form>
-      ) : null}
-
       {isOwner ? (
         <div className="grid grid-cols-2 gap-2 border-t border-[#e8e8e8] pt-4">
           <Link href={`/posts/${post.id}/edit`} className={outlineActionButtonClass}>
