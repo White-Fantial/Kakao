@@ -250,7 +250,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
-      <form>
+      <form key={returnToParams.toString()}>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <input
             type="search"
