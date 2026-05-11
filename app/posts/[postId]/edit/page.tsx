@@ -4,7 +4,7 @@ import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost, canPostToCategory, ROLE_RANK } from '@/lib/permissions';
+import { canEditPost, canPostToCategoryAndCountry, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,7 @@ export default async function EditPostPage({
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
     }),
     prisma.city.findMany({
       where: { isActive: true },
@@ -58,7 +58,17 @@ export default async function EditPostPage({
     notFound();
   }
 
-  const categories = allCategories.filter((cat) => canPostToCategory(user, cat));
+  const categories = (
+    await Promise.all(
+      allCategories.map(async (category) => {
+        const allowed = await canPostToCategoryAndCountry(user, {
+          categoryId: category.id,
+          countryId: category.ignoreCountry ? null : user.countryId,
+        });
+        return allowed ? category : null;
+      }),
+    )
+  ).filter((category): category is (typeof allCategories)[number] => category !== null);
   const canSelectAllCities = ROLE_RANK[user.role] >= ROLE_RANK['COORDINATOR'];
   const cityLabel = post.city?.name ?? '전 지역';
 

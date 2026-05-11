@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { CategoryType } from '@prisma/client';
+import { CategoryType, PermissionEffect, PermissionResourceType } from '@prisma/client';
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -287,7 +287,6 @@ export async function updateCategorySettingsAction(formData: FormData) {
   requireAdmin(user);
 
   const categoryId = normalizeText(formData.get('categoryId'));
-  const minRole = normalizeText(formData.get('minRole')) as UserRole;
   const type = normalizeText(formData.get('type')) as CategoryType;
   const isAlwaysIncluded = formData.get('isAlwaysIncluded') === 'true';
   const ignoreCity = formData.get('ignoreCity') === 'true';
@@ -298,21 +297,61 @@ export async function updateCategorySettingsAction(formData: FormData) {
     redirect('/admin/categories?error=카테고리 ID가 없습니다.');
   }
 
-  const validRoles: UserRole[] = ['USER', 'COORDINATOR', 'ADMIN'];
-  if (!validRoles.includes(minRole)) {
-    redirect('/admin/categories?error=유효하지 않은 역할입니다.');
-  }
-
   if (!VALID_CATEGORY_TYPES.includes(type)) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
   await prisma.category.update({
     where: { id: categoryId },
-    data: { type, minRole, isAlwaysIncluded, ignoreCity, supportsAllCities, ignoreCountry },
+    data: { type, isAlwaysIncluded, ignoreCity, supportsAllCities, ignoreCountry },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
+
+  revalidatePath('/admin/categories');
+  redirect('/admin/categories');
+}
+
+export async function updateCategoryRolePolicyAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const categoryId = normalizeText(formData.get('categoryId'));
+  const role = normalizeText(formData.get('role')) as UserRole;
+  const effect = normalizeText(formData.get('effect')) as PermissionEffect;
+
+  if (!categoryId) {
+    redirect('/admin/categories?error=카테고리 ID가 없습니다.');
+  }
+
+  const validRoles: UserRole[] = ['USER', 'COORDINATOR', 'ADMIN'];
+  if (!validRoles.includes(role)) {
+    redirect('/admin/categories?error=유효하지 않은 역할입니다.');
+  }
+
+  const validEffects: PermissionEffect[] = ['ALLOW', 'DENY'];
+  if (!validEffects.includes(effect)) {
+    redirect('/admin/categories?error=유효하지 않은 권한 효과입니다.');
+  }
+
+  await prisma.roleWritePermissionPolicy.upsert({
+    where: {
+      role_resourceType_resourceId: {
+        role,
+        resourceType: PermissionResourceType.CATEGORY,
+        resourceId: categoryId,
+      },
+    },
+    update: { effect },
+    create: {
+      role,
+      resourceType: PermissionResourceType.CATEGORY,
+      resourceId: categoryId,
+      effect,
+    },
+  });
+
+  await logModerationAction(user.id, 'CATEGORY', categoryId, `ROLE_POLICY_${role}_${effect}`);
 
   revalidatePath('/admin/categories');
   redirect('/admin/categories');

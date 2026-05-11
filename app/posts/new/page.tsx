@@ -6,7 +6,7 @@ import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getProfileCityRequiredHref } from '@/lib/posts/profile-city';
-import { canPostToCategory, ROLE_RANK } from '@/lib/permissions';
+import { canPostToCategoryAndCountry, ROLE_RANK } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
     prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
     }),
     prisma.city.findMany({
       where: {
@@ -45,9 +45,17 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
     }),
   ]);
 
-  const categories = allCategories.filter((cat) =>
-    canPostToCategory(user, cat),
-  );
+  const categories = (
+    await Promise.all(
+      allCategories.map(async (category) => {
+        const allowed = await canPostToCategoryAndCountry(user, {
+          categoryId: category.id,
+          countryId: category.ignoreCountry ? null : user.countryId,
+        });
+        return allowed ? category : null;
+      }),
+    )
+  ).filter((category): category is (typeof allCategories)[number] => category !== null);
 
   // Normal-category posts still require a profile city
   const hasRestrictedOnly = categories.every((cat) => cat.ignoreCity || cat.supportsAllCities);
