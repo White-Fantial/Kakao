@@ -22,7 +22,7 @@ function buildPreviewText(title: string | null, body: string) {
   return `${normalizedBody.slice(0, PREVIEW_LENGTH).trimEnd()}…`;
 }
 
-export function PostShareButton({ title, body, imageUrl, className = '' }: PostShareButtonProps) {
+export function PostShareButton({ title, body, imageUrl, className }: PostShareButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   const previewText = useMemo(() => buildPreviewText(title, body), [title, body]);
@@ -72,7 +72,7 @@ export function PostShareButton({ title, body, imageUrl, className = '' }: PostS
         type="button"
         onClick={onShare}
         aria-label="게시글 공유하기"
-        className={`${className} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]`.trim()}
+        className={className}
       >
         게시글 공유하기
       </button>

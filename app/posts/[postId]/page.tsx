@@ -193,6 +193,8 @@ export default async function PostDetailPage({
   const canMarkRecruitInProgress = isOwner && isRecruitCompleted;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
+  const primaryActionButtonClass =
+    'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]';
   const dangerActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50';
 
@@ -264,7 +266,7 @@ export default async function PostDetailPage({
           href={contactUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#fee500] px-4 py-3 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+          className={primaryActionButtonClass}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path fill="currentColor" d="M12 3C6.477 3 2 6.477 2 10.8c0 2.7 1.62 5.085 4.073 6.525L5.1 21l4.89-2.925c.65.09 1.32.135 2.01.135 5.523 0 10-3.477 10-7.8S17.523 3 12 3z" />
