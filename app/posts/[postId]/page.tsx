@@ -257,8 +257,6 @@ export default async function PostDetailPage({
       <PostShareButton
         title={post.title}
         body={post.body}
-        imageUrl={post.images?.[0]?.url ?? null}
-        className={outlineActionButtonClass}
       />
 
       {contactUrl ? (
