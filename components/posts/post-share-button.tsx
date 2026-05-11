@@ -34,7 +34,7 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
     }
     const shareText = textLines.join('\n');
 
-    if ('share' in navigator) {
+    if (typeof navigator.share === 'function') {
       try {
         await navigator.share({
           title: previewText,
@@ -50,12 +50,13 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
       }
     }
 
-    if (navigator.clipboard?.writeText) {
+    if (typeof navigator.clipboard?.writeText === 'function') {
       try {
         await navigator.clipboard.writeText(shareText);
         setMessage('공유 내용을 클립보드에 복사했어요.');
         return;
-      } catch {
+      } catch (error) {
+        console.error('[post-share] clipboard copy failed', error);
         setMessage('공유 내용을 클립보드에 복사하지 못했어요.');
         return;
       }
