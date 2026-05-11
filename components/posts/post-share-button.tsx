@@ -47,6 +47,7 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
+        console.error('[post-share] web share failed', error);
       }
     }
 
@@ -56,7 +57,7 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
         setMessage('공유 내용을 클립보드에 복사했어요.');
         return;
       } catch {
-        setMessage('클립보드 복사 권한이 없어 공유 내용을 복사하지 못했어요.');
+        setMessage('공유 내용을 클립보드에 복사하지 못했어요.');
         return;
       }
     }
