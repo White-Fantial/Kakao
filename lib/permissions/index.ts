@@ -1,4 +1,5 @@
-import type { PermissionEffect, PermissionResourceType, PostStatus, SaleStatus, UserRole, UserStatus } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import type { PermissionEffect, PermissionResourceType, PostStatus, SaleStatus, UserStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 
@@ -20,15 +21,12 @@ type PermissionComment = {
   authorId: string;
 };
 
-type PermissionCategory = {
-  id: string;
-};
-
 const ROLE_RANK: Record<UserRole, number> = { USER: 0, COORDINATOR: 1, ADMIN: 2 };
 
 export { ROLE_RANK };
+export const USER_ROLES = Object.values(UserRole) as UserRole[];
 
-const DEFAULT_PERMISSION_EFFECT: Record<UserRole, Record<PermissionResourceType, PermissionEffect>> = {
+export const DEFAULT_PERMISSION_EFFECT: Record<UserRole, Record<PermissionResourceType, PermissionEffect>> = {
   USER: {
     CATEGORY: 'ALLOW',
     COUNTRY: 'ALLOW',
@@ -47,7 +45,17 @@ const DEFAULT_PERMISSION_EFFECT: Record<UserRole, Record<PermissionResourceType,
 };
 
 function resolveDefaultEffect(user: PermissionUser, resourceType: PermissionResourceType) {
-  return DEFAULT_PERMISSION_EFFECT[user.role][resourceType];
+  const roleDefaults = DEFAULT_PERMISSION_EFFECT[user.role];
+  if (!roleDefaults) {
+    throw new Error(`Unknown user role for permission defaults: ${String(user.role)}`);
+  }
+
+  const effect = roleDefaults[resourceType];
+  if (!effect) {
+    throw new Error(`Unknown permission resource type: ${String(resourceType)}`);
+  }
+
+  return effect;
 }
 
 async function resolveResourcePermission(
@@ -56,7 +64,7 @@ async function resolveResourcePermission(
   resourceId: string | null | undefined,
 ) {
   if (!resourceId) {
-    return true;
+    return resolveDefaultEffect(user, resourceType) === 'ALLOW';
   }
 
   const [userPolicy, rolePolicy] = await Promise.all([
@@ -94,14 +102,6 @@ export function canCreatePost(user: PermissionUser | null | undefined) {
   return isActiveWriter(user);
 }
 
-export async function canPostToCategory(
-  user: PermissionUser | null | undefined,
-  category: PermissionCategory,
-) {
-  if (!user) return false;
-  return resolveResourcePermission(user, 'CATEGORY', category.id);
-}
-
 export async function canPostToCategoryAndCountry(
   user: PermissionUser | null | undefined,
   options: { categoryId: string; countryId: string | null | undefined },
@@ -114,6 +114,114 @@ export async function canPostToCategoryAndCountry(
   ]);
 
   return canUseCategory && canUseCountry;
+}
+
+type PostableCategory = {
+  id: string;
+  ignoreCountry: boolean;
+};
+
+function evaluateResourceEffect(
+  user: PermissionUser,
+  resourceType: PermissionResourceType,
+  resourceId: string | null | undefined,
+  userPolicyMap: Map<string, PermissionEffect>,
+  rolePolicyMap: Map<string, PermissionEffect>,
+) {
+  if (!resourceId) {
+    return resolveDefaultEffect(user, resourceType) === 'ALLOW';
+  }
+
+  const key = `${resourceType}:${resourceId}`;
+  const effect =
+    userPolicyMap.get(key) ??
+    rolePolicyMap.get(key) ??
+    resolveDefaultEffect(user, resourceType);
+
+  return effect === 'ALLOW';
+}
+
+export async function filterPostableCategoriesForUser<T extends PostableCategory>(
+  user: PermissionUser | null | undefined,
+  categories: T[],
+  userCountryId: string | null | undefined,
+) {
+  if (!user) return [];
+  if (categories.length === 0) return [];
+
+  const categoryIds = [...new Set(categories.map((category) => category.id))];
+  const countryIds =
+    userCountryId && categories.some((category) => !category.ignoreCountry)
+      ? [userCountryId]
+      : [];
+
+  const [userCatPolicies, roleCatPolicies, userCtryPolicies, roleCtryPolicies] = await Promise.all([
+    prisma.userWritePermissionPolicy.findMany({
+      where: {
+        userId: user.id,
+        resourceType: 'CATEGORY',
+        resourceId: { in: categoryIds },
+      },
+      select: { resourceType: true, resourceId: true, effect: true },
+    }),
+    prisma.roleWritePermissionPolicy.findMany({
+      where: {
+        role: user.role,
+        resourceType: 'CATEGORY',
+        resourceId: { in: categoryIds },
+      },
+      select: { resourceType: true, resourceId: true, effect: true },
+    }),
+    prisma.userWritePermissionPolicy.findMany({
+      where: {
+        userId: user.id,
+        resourceType: 'COUNTRY',
+        resourceId: { in: countryIds },
+      },
+      select: { resourceType: true, resourceId: true, effect: true },
+    }),
+    prisma.roleWritePermissionPolicy.findMany({
+      where: {
+        role: user.role,
+        resourceType: 'COUNTRY',
+        resourceId: { in: countryIds },
+      },
+      select: { resourceType: true, resourceId: true, effect: true },
+    }),
+  ]);
+
+  const userPolicyMap = new Map(
+    [...userCatPolicies, ...userCtryPolicies].map((policy) => [
+      `${policy.resourceType}:${policy.resourceId}`,
+      policy.effect,
+    ]),
+  );
+  const rolePolicyMap = new Map(
+    [...roleCatPolicies, ...roleCtryPolicies].map((policy) => [
+      `${policy.resourceType}:${policy.resourceId}`,
+      policy.effect,
+    ]),
+  );
+
+  return categories.filter((category) => {
+    const categoryAllowed = evaluateResourceEffect(
+      user,
+      'CATEGORY',
+      category.id,
+      userPolicyMap,
+      rolePolicyMap,
+    );
+    const countryId = category.ignoreCountry ? null : userCountryId;
+    const countryAllowed = evaluateResourceEffect(
+      user,
+      'COUNTRY',
+      countryId,
+      userPolicyMap,
+      rolePolicyMap,
+    );
+
+    return categoryAllowed && countryAllowed;
+  });
 }
 
 export function canCreateComment(user: PermissionUser | null | undefined) {

@@ -6,7 +6,7 @@ import { CategoryType, PermissionEffect, PermissionResourceType } from '@prisma/
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { canMakeFinalUserDecision, USER_ROLES } from '@/lib/permissions';
 import type { SessionUser } from '@/lib/auth/types';
 import type { UserRole, UserStatus } from '@prisma/client';
 
@@ -52,8 +52,7 @@ export async function changeUserRoleAction(formData: FormData) {
     redirect('/admin/users?error=잘못된 요청입니다.');
   }
 
-  const validRoles: UserRole[] = ['USER', 'COORDINATOR', 'ADMIN'];
-  if (!validRoles.includes(newRole)) {
+  if (!USER_ROLES.includes(newRole)) {
     redirect('/admin/users?error=유효하지 않은 역할입니다.');
   }
 
@@ -324,12 +323,11 @@ export async function updateCategoryRolePolicyAction(formData: FormData) {
     redirect('/admin/categories?error=카테고리 ID가 없습니다.');
   }
 
-  const validRoles: UserRole[] = ['USER', 'COORDINATOR', 'ADMIN'];
-  if (!validRoles.includes(role)) {
+  if (!USER_ROLES.includes(role)) {
     redirect('/admin/categories?error=유효하지 않은 역할입니다.');
   }
 
-  const validEffects: PermissionEffect[] = ['ALLOW', 'DENY'];
+  const validEffects = Object.values(PermissionEffect) as PermissionEffect[];
   if (!validEffects.includes(effect)) {
     redirect('/admin/categories?error=유효하지 않은 권한 효과입니다.');
   }

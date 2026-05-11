@@ -45,7 +45,7 @@ CREATE INDEX "UserWritePermissionPolicy_resourceType_resourceId_idx" ON "UserWri
 -- Migrate existing category minRole restrictions into explicit role policies
 INSERT INTO "RoleWritePermissionPolicy" ("id", "role", "resourceType", "resourceId", "effect", "createdAt", "updatedAt")
 SELECT
-  md5(random()::text || clock_timestamp()::text || c."id" || r.role),
+  'migrated:' || c."id" || ':' || r.role,
   r.role::"UserRole",
   'CATEGORY'::"PermissionResourceType",
   c."id",

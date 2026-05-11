@@ -10,7 +10,7 @@ import {
 } from '@/app/admin/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { canMakeFinalUserDecision, DEFAULT_PERMISSION_EFFECT, USER_ROLES } from '@/lib/permissions';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
@@ -250,8 +250,10 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
 
                   <div className="mt-3 space-y-2 rounded-lg border border-[#f1f1f1] bg-[#fafafa] p-2">
                     <p className="text-xs font-medium text-[#555]">역할별 작성 권한 정책 (카테고리)</p>
-                    {(['USER', 'COORDINATOR', 'ADMIN'] as UserRole[]).map((role) => {
-                      const currentEffect = rolePolicyMap.get(`${cat.id}:${role}`) ?? 'ALLOW';
+                    {USER_ROLES.map((role) => {
+                      const currentEffect =
+                        rolePolicyMap.get(`${cat.id}:${role}`) ??
+                        DEFAULT_PERMISSION_EFFECT[role].CATEGORY;
                       return (
                         <form key={role} action={updateCategoryRolePolicyAction} className="flex items-center gap-2">
                           <input type="hidden" name="categoryId" value={cat.id} />

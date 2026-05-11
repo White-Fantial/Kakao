@@ -108,12 +108,14 @@ async function main() {
     ),
   );
 
-  const allRoles = [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN];
+  const allUserRoles = Object.values(UserRole);
   await Promise.all(
     categoryRecords.flatMap((categoryRecord) => {
       const category = categories.find((entry) => entry.slug === categoryRecord.slug);
-      if (!category) return [];
-      return allRoles.map((role) =>
+      if (!category) {
+        throw new Error(`Missing seed policy definition for category slug: ${categoryRecord.slug}`);
+      }
+      return allUserRoles.map((role) =>
         prisma.roleWritePermissionPolicy.upsert({
           where: {
             role_resourceType_resourceId: {
