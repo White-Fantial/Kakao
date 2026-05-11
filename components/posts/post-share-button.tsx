@@ -7,7 +7,6 @@ const PREVIEW_LENGTH = 80;
 type PostShareButtonProps = {
   title: string | null;
   body: string;
-  imageUrl: string | null;
 };
 
 function buildPreviewText(title: string | null, body: string) {
@@ -21,18 +20,14 @@ function buildPreviewText(title: string | null, body: string) {
   return `${normalizedBody.slice(0, PREVIEW_LENGTH).trimEnd()}…`;
 }
 
-export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps) {
+export function PostShareButton({ title, body }: PostShareButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   const previewText = useMemo(() => buildPreviewText(title, body), [title, body]);
 
   const onShare = async () => {
     const shareUrl = window.location.href;
-    const textLines = [previewText, `링크: ${shareUrl}`];
-    if (imageUrl) {
-      textLines.push(`이미지: ${imageUrl}`);
-    }
-    const shareText = textLines.join('\n');
+    const shareText = [previewText, `링크: ${shareUrl}`].join('\n');
 
     if (typeof navigator.share === 'function') {
       try {
