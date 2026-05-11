@@ -55,6 +55,7 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
         minRole: true,
         ignoreCity: true,
       supportsAllCities: true,
+      ignoreCountry: true,
       _count: { select: { posts: true } },
     },
   });
@@ -69,6 +70,7 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
           <Link href="/admin/reports" className="font-medium text-[#3c1e1e] underline">신고내역</Link>
           <Link href="/admin/report-options" className="font-medium text-[#3c1e1e] underline">신고옵션</Link>
           <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
+          <Link href="/admin/countries" className="font-medium text-[#3c1e1e] underline">국가</Link>
         </nav>
       </div>
 
@@ -152,7 +154,8 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                      작성 권한 및 지역 설정 (현재: {CATEGORY_TYPE_LABELS[cat.type]} · {MIN_ROLE_LABELS[cat.minRole]}
                      {cat.isAlwaysIncluded ? ' · 필터항상포함' : ''}
                      {cat.ignoreCity ? ' · 전지역강제' : ''}
-                     {cat.supportsAllCities ? ' · 전지역선택가능' : ''})
+                     {cat.supportsAllCities ? ' · 전지역선택가능' : ''}
+                     {cat.ignoreCountry ? ' · 전국가공개' : ''})
                   </summary>
                   <form action={updateCategorySettingsAction} className="mt-2 space-y-2">
                     <input type="hidden" name="categoryId" value={cat.id} />
@@ -220,6 +223,18 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                         >
                           <option value="false">꺼짐</option>
                           <option value="true">켜짐</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-[#555]">전 국가 공개 (ignoreCountry)</label>
+                        <select
+                          name="ignoreCountry"
+                          defaultValue={String(cat.ignoreCountry)}
+                          className="w-full rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs focus:border-[#fee500] focus:outline-none"
+                        >
+                          <option value="false">꺼짐 (국가별 공개)</option>
+                          <option value="true">켜짐 (모든 국가에 공개)</option>
                         </select>
                       </div>
                     </div>

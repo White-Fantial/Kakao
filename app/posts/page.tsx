@@ -7,12 +7,12 @@ import { saveSearchAlertAction } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
-import { getActiveCategories, getActiveCities } from '@/lib/posts/reference-data';
+import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: '홈',
-  description: '뉴질랜드 한인 커뮤니티의 최신 게시글을 확인해 보세요.',
+  description: '한인 커뮤니티의 최신 게시글을 확인해 보세요.',
 };
 
 type PostsPageProps = {
@@ -46,9 +46,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const currentUser = await getCurrentUser();
   const keyword = toSingle(params.q);
 
+  const userCountryId = currentUser?.countryId ?? null;
+
   const [categories, cities, dbUser] = await Promise.all([
     getActiveCategories(),
-    getActiveCities(),
+    userCountryId ? getActiveCitiesByCountry(userCountryId) : getActiveCities(),
     currentUser
       ? prisma.user.findUnique({
           where: { id: currentUser.id },
@@ -89,6 +91,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ? [...selectedCityIdsBase, profileCityId]
       : selectedCityIdsBase;
 
+  const shouldFilterByCountry = Boolean(userCountryId);
   const shouldFilterByCategory =
     selectedFilterCategoryIds.length !== filterCategories.length;
   const shouldFilterByCity = selectedCityIds.length !== cities.length;
@@ -106,21 +109,29 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
   const returnTo = `/posts${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`;
   const canViewReportStats = currentUser ? canMakeFinalUserDecision(currentUser) : false;
-  const postWhere = {
-    status: 'PUBLISHED' as const,
-    categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
-    ...(shouldFilterByCity
-      ? { OR: [{ cityId: { in: selectedCityIds } }, { cityId: null }] }
-      : {}),
-    ...(hasKeyword
-      ? {
+
+  const countryCondition = shouldFilterByCountry
+    ? [{ OR: [{ countryId: userCountryId }, { countryId: null }] }]
+    : [];
+  const cityCondition = shouldFilterByCity
+    ? [{ OR: [{ cityId: { in: selectedCityIds } }, { cityId: null }] }]
+    : [];
+  const keywordCondition = hasKeyword
+    ? [
+        {
           OR: [
             { title: { contains: keyword, mode: 'insensitive' as const } },
             { body: { contains: keyword, mode: 'insensitive' as const } },
             { author: { displayName: { contains: keyword, mode: 'insensitive' as const } } },
           ],
-        }
-      : {}),
+        },
+      ]
+    : [];
+
+  const postWhere = {
+    status: 'PUBLISHED' as const,
+    categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
+    AND: [...countryCondition, ...cityCondition, ...keywordCondition],
   };
 
   let normalizedPosts: Array<{

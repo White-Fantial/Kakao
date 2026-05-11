@@ -78,7 +78,7 @@ function getUploadedImages(formData: FormData): PreUploadedImage[] {
 async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
-    select: { id: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
+    select: { id: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
   });
 
   if (!category) {
@@ -97,6 +97,16 @@ async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
   }
 
   return { ok: true as const, category, price };
+}
+
+function resolvePostCountryId(
+  category: { ignoreCountry: boolean },
+  userCountryId: string | null,
+): string | null {
+  if (category.ignoreCountry) {
+    return null;
+  }
+  return userCountryId ?? null;
 }
 
 async function resolveCityId(
@@ -186,6 +196,8 @@ export async function createPostAction(formData: FormData) {
     '/posts/new',
   );
 
+  const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
+
   const isSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
 
@@ -201,6 +213,7 @@ export async function createPostAction(formData: FormData) {
         body,
         categoryId,
         cityId: resolvedCityId,
+        countryId: resolvedCountryId,
         price: categoryResult.price,
         status: 'PUBLISHED',
         saleStatus: isProgressTrackCategory ? 'AVAILABLE' : null,
@@ -295,6 +308,7 @@ export async function updatePostAction(formData: FormData) {
     `/posts/${postId}/edit`,
   );
 
+  const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
   const isSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
 
@@ -336,6 +350,7 @@ export async function updatePostAction(formData: FormData) {
         body,
         categoryId,
         cityId: resolvedCityId,
+        countryId: resolvedCountryId,
         price: isSaleCategory ? categoryResult.price : null,
         saleStatus: isProgressTrackCategory
           ? post.saleStatus === 'SOLD'

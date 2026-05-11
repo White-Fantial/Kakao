@@ -76,6 +76,7 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
           <Link href="/admin/report-options" className="font-medium text-[#3c1e1e] underline">신고옵션</Link>
           <Link href="/admin/categories" className="font-medium text-[#3c1e1e] underline">카테고리</Link>
           <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
+          <Link href="/admin/countries" className="font-medium text-[#3c1e1e] underline">국가</Link>
         </nav>
       </div>
 

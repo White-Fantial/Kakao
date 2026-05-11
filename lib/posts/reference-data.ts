@@ -23,3 +23,16 @@ export const getActiveCities = unstable_cache(
   ['reference-cities'],
   { revalidate: 3600 },
 );
+
+export function getActiveCitiesByCountry(countryId: string) {
+  return unstable_cache(
+    () =>
+      prisma.city.findMany({
+        where: { isActive: true, countryId },
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, name: true },
+      }),
+    [`reference-cities-${countryId}`],
+    { revalidate: 3600 },
+  )();
+}

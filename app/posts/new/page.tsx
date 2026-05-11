@@ -29,7 +29,10 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
       select: { id: true, name: true, type: true, minRole: true, ignoreCity: true, supportsAllCities: true },
     }),
     prisma.city.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(user.countryId ? { countryId: user.countryId } : {}),
+      },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true },
     }),
