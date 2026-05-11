@@ -186,7 +186,7 @@ export async function notifySearchAlertsForPost(post: NotifyPostInput) {
         `[검색 알림] ${preview}`,
         `작성자: ${post.authorDisplayName}`,
         `내용: ${bodyPreview}`,
-        `링크: ${postUrl}`,
+        postUrl,
       ];
 
       if (post.imageUrl) {
@@ -237,7 +237,7 @@ export async function notifyCommentForPost(input: NotifyCommentInput) {
       `[댓글 알림] "${postPreview}"에 새 댓글이 달렸어요.`,
       `작성자: ${input.commenterDisplayName}`,
       `댓글: ${commentPreview}`,
-      `링크: ${postUrl}`,
+      postUrl,
     ];
 
     await sendKakaoMemo(accessToken, messageLines.join('\n'), postUrl);
