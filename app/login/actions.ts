@@ -48,7 +48,7 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
       role: normalizedRole,
       status: UserStatus.ACTIVE,
     },
-    select: { id: true },
+    select: { id: true, countryId: true },
   });
 
   const token = randomUUID();
@@ -72,7 +72,7 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
     maxAge: sessionMaxAgeSeconds,
   });
 
-  redirect('/posts');
+  redirect(user.countryId ? '/posts' : '/select-country');
 }
 
 export async function logoutAction() {

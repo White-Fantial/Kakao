@@ -6,4 +6,5 @@ export type SessionUser = {
   displayName: string;
   role: UserRole;
   status: UserStatus;
+  countryId: string | null;
 };

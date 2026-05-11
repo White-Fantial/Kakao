@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       role: UserRole.USER,
       status: UserStatus.ACTIVE,
     },
-    select: { id: true },
+    select: { id: true, countryId: true },
   });
 
   const token = randomUUID();
@@ -93,5 +93,5 @@ export async function GET(request: NextRequest) {
     maxAge: sessionMaxAgeSeconds,
   });
 
-  redirect('/posts');
+  redirect(user.countryId ? '/posts' : '/select-country');
 }

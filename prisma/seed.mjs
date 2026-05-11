@@ -2,6 +2,10 @@ import { PrismaClient, CategoryType, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const countries = [
+  { name: 'New Zealand', slug: 'new-zealand' },
+];
+
 const cities = [
   'Auckland',
   'Wellington',
@@ -17,13 +21,13 @@ const cities = [
 ];
 
 const categories = [
-  { name: '공지사항', slug: 'notice', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: true, supportsAllCities: false },
-  { name: '피쳐드', slug: 'featured', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: false, supportsAllCities: true },
-  { name: '궁금해요', slug: 'question', type: CategoryType.QUESTION, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
-  { name: '도와주세요', slug: 'help', type: CategoryType.HELP, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
-  { name: '팔아요', slug: 'sale', type: CategoryType.SALE, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
-  { name: '구인구직', slug: 'recruit', type: CategoryType.RECRUIT, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
-  { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false },
+  { name: '공지사항', slug: 'notice', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: true, supportsAllCities: false, ignoreCountry: true },
+  { name: '피쳐드', slug: 'featured', type: CategoryType.GENERAL, minRole: UserRole.COORDINATOR, isAlwaysIncluded: true, ignoreCity: false, supportsAllCities: true, ignoreCountry: false },
+  { name: '궁금해요', slug: 'question', type: CategoryType.QUESTION, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '도와주세요', slug: 'help', type: CategoryType.HELP, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '팔아요', slug: 'sale', type: CategoryType.SALE, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '구인구직', slug: 'recruit', type: CategoryType.RECRUIT, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, minRole: UserRole.USER, isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
 ];
 
 const reportOptions = [
@@ -40,16 +44,36 @@ function slugifyCity(city) {
 }
 
 async function main() {
+  // Upsert countries
+  const countryRecords = {};
+  for (const [index, country] of countries.entries()) {
+    const record = await prisma.country.upsert({
+      where: { slug: country.slug },
+      update: { name: country.name, isActive: true, sortOrder: index },
+      create: {
+        name: country.name,
+        slug: country.slug,
+        isActive: true,
+        sortOrder: index,
+      },
+    });
+    countryRecords[country.slug] = record;
+  }
+
+  const nzId = countryRecords['new-zealand'].id;
+
+  // Upsert cities and assign to New Zealand
   await Promise.all(
     cities.map((name, index) =>
       prisma.city.upsert({
         where: { slug: slugifyCity(name) },
-        update: { name, isActive: true, sortOrder: index },
+        update: { name, isActive: true, sortOrder: index, countryId: nzId },
         create: {
           name,
           slug: slugifyCity(name),
           isActive: true,
           sortOrder: index,
+          countryId: nzId,
         },
       }),
     ),
@@ -68,6 +92,7 @@ async function main() {
           isAlwaysIncluded: category.isAlwaysIncluded,
           ignoreCity: category.ignoreCity,
           supportsAllCities: category.supportsAllCities,
+          ignoreCountry: category.ignoreCountry,
         },
         create: {
           ...category,
@@ -106,7 +131,7 @@ async function main() {
     },
   });
 
-  console.log('✅ Seed complete: cities, categories, and admin user inserted/updated.');
+  console.log('✅ Seed complete: countries, cities, categories, and admin user inserted/updated.');
 }
 
 main()
@@ -117,3 +142,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

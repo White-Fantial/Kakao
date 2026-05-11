@@ -292,6 +292,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
   const isAlwaysIncluded = formData.get('isAlwaysIncluded') === 'true';
   const ignoreCity = formData.get('ignoreCity') === 'true';
   const supportsAllCities = formData.get('supportsAllCities') === 'true';
+  const ignoreCountry = formData.get('ignoreCountry') === 'true';
 
   if (!categoryId) {
     redirect('/admin/categories?error=카테고리 ID가 없습니다.');
@@ -308,7 +309,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
 
   await prisma.category.update({
     where: { id: categoryId },
-    data: { type, minRole, isAlwaysIncluded, ignoreCity, supportsAllCities },
+    data: { type, minRole, isAlwaysIncluded, ignoreCity, supportsAllCities, ignoreCountry },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
@@ -323,6 +324,7 @@ export async function createCityAction(formData: FormData) {
 
   const name = normalizeText(formData.get('name'));
   const slug = normalizeText(formData.get('slug'));
+  const countryId = normalizeText(formData.get('countryId')) || null;
 
   if (!name || !slug) {
     redirect('/admin/cities?error=이름과 슬러그를 입력해 주세요.');
@@ -333,8 +335,15 @@ export async function createCityAction(formData: FormData) {
     redirect('/admin/cities?error=이미 존재하는 슬러그입니다.');
   }
 
+  if (countryId) {
+    const country = await prisma.country.findUnique({ where: { id: countryId }, select: { id: true } });
+    if (!country) {
+      redirect('/admin/cities?error=유효하지 않은 국가입니다.');
+    }
+  }
+
   await prisma.city.create({
-    data: { name, slug },
+    data: { name, slug, countryId },
   });
 
   revalidatePath('/admin/cities');
@@ -428,4 +437,92 @@ export async function toggleReportOptionActiveAction(formData: FormData) {
 
   revalidatePath('/admin/report-options');
   redirect('/admin/report-options');
+}
+
+export async function createCountryAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const name = normalizeText(formData.get('name'));
+  const slug = normalizeText(formData.get('slug'));
+
+  if (!name || !slug) {
+    redirect('/admin/countries?error=이름과 슬러그를 입력해 주세요.');
+  }
+
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    redirect('/admin/countries?error=슬러그는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.');
+  }
+
+  const existing = await prisma.country.findUnique({ where: { slug } });
+  if (existing) {
+    redirect('/admin/countries?error=이미 존재하는 슬러그입니다.');
+  }
+
+  const sortOrder = await prisma.country.count();
+  const country = await prisma.country.create({
+    data: { name, slug, sortOrder },
+    select: { id: true },
+  });
+
+  await logModerationAction(user.id, 'COUNTRY', country.id, 'CREATE', name);
+
+  revalidatePath('/admin/countries');
+  redirect('/admin/countries');
+}
+
+export async function toggleCountryActiveAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const countryId = normalizeText(formData.get('countryId'));
+  const isActive = formData.get('isActive') === 'true';
+
+  if (!countryId) {
+    redirect('/admin/countries?error=국가 ID가 없습니다.');
+  }
+
+  await prisma.country.update({
+    where: { id: countryId },
+    data: { isActive: !isActive },
+  });
+
+  await logModerationAction(
+    user.id,
+    'COUNTRY',
+    countryId,
+    isActive ? 'DEACTIVATE' : 'ACTIVATE',
+  );
+
+  revalidatePath('/admin/countries');
+  redirect('/admin/countries');
+}
+
+export async function assignCityCountryAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const cityId = normalizeText(formData.get('cityId'));
+  const countryId = normalizeText(formData.get('countryId')) || null;
+
+  if (!cityId) {
+    redirect('/admin/cities?error=도시 ID가 없습니다.');
+  }
+
+  if (countryId) {
+    const country = await prisma.country.findUnique({ where: { id: countryId }, select: { id: true } });
+    if (!country) {
+      redirect('/admin/cities?error=유효하지 않은 국가입니다.');
+    }
+  }
+
+  await prisma.city.update({
+    where: { id: cityId },
+    data: { countryId },
+  });
+
+  await logModerationAction(user.id, 'CITY', cityId, 'ASSIGN_COUNTRY', countryId ?? 'none');
+
+  revalidatePath('/admin/cities');
+  redirect('/admin/cities');
 }

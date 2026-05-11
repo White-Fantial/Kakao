@@ -24,13 +24,17 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
       select: {
         openChatUrl: true,
         cityId: true,
+        countryId: true,
         profileImageUrl: true,
         notifyOnKakaoForSearchAlert: true,
         notifyOnKakaoForComment: true,
       },
     }),
     prisma.city.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(user.countryId ? { countryId: user.countryId } : {}),
+      },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true },
     }),

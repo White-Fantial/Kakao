@@ -32,21 +32,21 @@ const metadataBaseUrl = getMetadataBaseUrl();
 export const metadata: Metadata = {
   metadataBase: metadataBaseUrl ? new URL(metadataBaseUrl) : undefined,
   title: {
-    default: 'NZ 한인 커뮤니티 보드',
-    template: '%s | NZ 한인 커뮤니티 보드',
+    default: '한인 커뮤니티',
+    template: '%s | 한인 커뮤니티',
   },
-  description: '뉴질랜드 한인을 위한 카카오 친화형 지역 커뮤니티 마켓',
+  description: '전 세계 한인 이민자를 위한 지역 커뮤니티',
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    title: 'NZ 한인 커뮤니티 보드',
-    description: '뉴질랜드 한인을 위한 카카오 친화형 지역 커뮤니티 마켓',
-    siteName: 'NZ 한인 커뮤니티 보드',
+    title: '한인 커뮤니티',
+    description: '전 세계 한인 이민자를 위한 지역 커뮤니티',
+    siteName: '한인 커뮤니티',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NZ 한인 커뮤니티 보드',
-    description: '뉴질랜드 한인을 위한 카카오 친화형 지역 커뮤니티 마켓',
+    title: '한인 커뮤니티',
+    description: '전 세계 한인 이민자를 위한 지역 커뮤니티',
   },
   robots: {
     index: true,
@@ -67,7 +67,7 @@ export default async function RootLayout({
             <div className="mb-3 flex items-center justify-between">
               <Link href="/posts" className="flex items-center gap-2 text-lg font-bold">
                 <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#fee500] text-base font-black text-[#3c1e1e]">K</span>
-                <span>NZ 한인 커뮤니티</span>
+                <span>한인 커뮤니티</span>
               </Link>
               <Suspense fallback={<div className="w-16" />}>
                 <HeaderAuthButton />
