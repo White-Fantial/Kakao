@@ -34,7 +34,7 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
     }
     const shareText = textLines.join('\n');
 
-    if (typeof navigator.share === 'function') {
+    if ('share' in navigator) {
       try {
         await navigator.share({
           title: previewText,
@@ -51,9 +51,14 @@ export function PostShareButton({ title, body, imageUrl }: PostShareButtonProps)
     }
 
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(shareText);
-      setMessage('공유 내용을 클립보드에 복사했어요.');
-      return;
+      try {
+        await navigator.clipboard.writeText(shareText);
+        setMessage('공유 내용을 클립보드에 복사했어요.');
+        return;
+      } catch {
+        setMessage('클립보드 복사 권한이 없어 공유 내용을 복사하지 못했어요.');
+        return;
+      }
     }
 
     setMessage('이 브라우저에서는 자동 공유를 지원하지 않아요.');
