@@ -7,6 +7,7 @@ const PREVIEW_LENGTH = 80;
 type PostShareButtonProps = {
   title: string | null;
   body: string;
+  className?: string;
 };
 
 function buildPreviewText(title: string | null, body: string) {
@@ -20,7 +21,7 @@ function buildPreviewText(title: string | null, body: string) {
   return `${normalizedBody.slice(0, PREVIEW_LENGTH).trimEnd()}…`;
 }
 
-export function PostShareButton({ title, body }: PostShareButtonProps) {
+export function PostShareButton({ title, body, className }: PostShareButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   const previewText = useMemo(() => buildPreviewText(title, body), [title, body]);
