@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { retryKakaoMessageDelivery } from '@/lib/kakao/message';
 import {
   canHoldPost,
   canRestorePost,
@@ -224,4 +225,27 @@ export async function requestUserReviewAction(formData: FormData) {
 
   revalidatePath('/coordinator');
   redirect('/coordinator');
+}
+
+export async function retryKakaoMessageDeliveryAction(formData: FormData) {
+  const user = await requireUser();
+
+  if (!canHoldPost(user)) {
+    redirect('/coordinator/kakao-messages?error=권한이 없습니다.');
+  }
+
+  const deliveryId = normalizeText(formData.get('deliveryId'));
+
+  if (!deliveryId) {
+    redirect('/coordinator/kakao-messages?error=카카오 전송 로그 ID가 없습니다.');
+  }
+
+  const result = await retryKakaoMessageDelivery(deliveryId, user.id);
+
+  revalidatePath('/coordinator/kakao-messages');
+  if (!result.ok) {
+    redirect(`/coordinator/kakao-messages?error=${encodeURIComponent(result.message)}`);
+  }
+
+  redirect(`/coordinator/kakao-messages?success=${encodeURIComponent(result.message)}`);
 }
