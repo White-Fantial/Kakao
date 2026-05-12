@@ -42,6 +42,8 @@ enum CategoryType {
   HOUSING
   SERVICE
   EVENT
+  COLUMN
+  ADVERTISEMENT
   NOTICE
 }
 

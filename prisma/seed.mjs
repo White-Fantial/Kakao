@@ -68,10 +68,22 @@ const categories = [
     visibilityMode: CategoryVisibilityMode.NORMAL,
   },
   {
+    name: '컬럼',
+    slug: 'column',
+    type: CategoryType.COLUMN,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '광고',
+    slug: 'advertisement',
+    type: CategoryType.ADVERTISEMENT,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
     name: '공지사항',
     slug: 'notice',
     type: CategoryType.NOTICE,
-    visibilityMode: CategoryVisibilityMode.NORMAL,
+    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
   },
 ];
 
