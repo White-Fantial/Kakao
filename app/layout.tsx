@@ -71,11 +71,11 @@ export default async function RootLayout({
                 </span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://github.com/user-attachments/assets/ea3c202e-ee31-4622-bf82-c9b93f3d0d67"
+                  src="/kormmunity-logo.svg"
                   alt="Kormmunity logo"
-                  width={108}
-                  height={24}
-                  className="h-6 w-auto"
+                  width={260}
+                  height={48}
+                  className="h-7 w-auto"
                 />
                 <span>한인 커뮤니티</span>
               </Link>
