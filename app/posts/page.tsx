@@ -346,6 +346,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const hasFilters = shouldFilterByCategory || shouldFilterByCategoryType || shouldFilterByTag || shouldFilterByCity || hasKeyword;
   const hasPrevPage = currentPage > 1;
+  const emptyState = hasFilters
+    ? {
+        title: '선택한 조건에 맞는 글이 없어요.',
+        description: '필터 조건을 조금 완화하거나 검색어를 바꿔 다시 확인해 보세요.',
+      }
+    : {
+        title: '아직 올라온 글이 없어요.',
+        description: '첫 글을 남겨서 동네 소식을 나눠보세요.',
+      };
 
   return (
     <section className="space-y-4">
@@ -525,14 +534,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
       {normalizedPosts.length === 0 ? (
         <div className="space-y-3">
-          <EmptyStateMessage
-            title={hasFilters ? '선택한 조건에 맞는 글이 없어요.' : '아직 올라온 글이 없어요.'}
-            description={
-              hasFilters
-                ? '필터 조건을 조금 완화하거나 검색어를 바꿔 다시 확인해 보세요.'
-                : '첫 글을 남겨서 동네 소식을 나눠보세요.'
-            }
-          />
+          <EmptyStateMessage title={emptyState.title} description={emptyState.description} />
           {hasPrevPage ? (
             <div className="flex justify-center">
               <Link
