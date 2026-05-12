@@ -72,7 +72,7 @@ export default async function RootLayout({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://github.com/user-attachments/assets/ea3c202e-ee31-4622-bf82-c9b93f3d0d67"
-                  alt="Kormmunity 로고"
+                  alt="Kormmunity logo"
                   width={108}
                   height={24}
                   className="h-6 w-auto"
