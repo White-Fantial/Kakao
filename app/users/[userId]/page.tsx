@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { PostTagBadge } from '@/components/posts/post-tag-badge';
+import { EmptyStateMessage } from '@/components/ui/empty-state-message';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { prisma } from '@/lib/db/prisma';
 
@@ -132,9 +133,10 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
       <h2 className="px-1 text-base font-bold">게시물 목록</h2>
 
       {visiblePosts.length === 0 ? (
-        <p className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-sm text-[#888]">
-          아직 게시물이 없어요.
-        </p>
+        <EmptyStateMessage
+          title="아직 게시물이 없어요."
+          description={`${user.displayName}님이 글을 올리면 여기에서 확인할 수 있어요.`}
+        />
       ) : (
         <ul className="space-y-3">
           {visiblePosts.map((post) => {
