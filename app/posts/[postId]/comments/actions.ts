@@ -94,7 +94,7 @@ export async function createCommentAction(formData: FormData) {
   });
 
   if (post!.authorId !== user.id) {
-    notifyCommentForPost({
+    void notifyCommentForPost({
       postId,
       postTitle: post!.title,
       postBody: post!.body,

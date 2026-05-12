@@ -26,7 +26,7 @@ export function invalidateSessionCache(token: string) {
   revalidateTag(getSessionCacheTag(token), { expire: 0 });
 }
 
-function fetchSessionUserByToken(token: string): Promise<SessionUser | null> {
+async function fetchSessionUserByToken(token: string): Promise<SessionUser | null> {
   return unstable_cache(
     async () => {
       const session = await prisma.session.findUnique({

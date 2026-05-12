@@ -291,7 +291,7 @@ export async function createPostAction(formData: FormData) {
     return post.id;
   });
 
-  notifySearchAlertsForPost({
+  void notifySearchAlertsForPost({
     id: postId,
     title: title || null,
     body,
