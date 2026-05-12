@@ -57,6 +57,7 @@ export type PostCreationFormOptions = {
 };
 
 const ROLE_RANK: Record<UserRole, number> = { USER: 0, COORDINATOR: 1, ADMIN: 2 };
+const DEFAULT_USER_POST_VISIBILITY = CategoryVisibilityMode.NORMAL;
 
 export { ROLE_RANK };
 export const USER_ROLES = Object.values(UserRole) as UserRole[];
@@ -109,7 +110,7 @@ export async function canCreatePost(
     targetCityId !== null &&
     targetCountryId === user.countryId &&
     targetCityId === user.cityId &&
-    category.visibilityMode === 'NORMAL'
+    category.visibilityMode === DEFAULT_USER_POST_VISIBILITY
   ) {
     return true;
   }
@@ -255,7 +256,7 @@ export async function getPostCreationFormOptions(
   } else {
     if (user.role === 'USER' && user.countryId && user.cityId) {
       for (const category of categories) {
-        if (category.visibilityMode === 'NORMAL') {
+        if (category.visibilityMode === DEFAULT_USER_POST_VISIBILITY) {
           addTarget(user.countryId, user.cityId, category.id);
         }
       }
