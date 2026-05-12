@@ -859,7 +859,6 @@ export async function createCountryAction(formData: FormData) {
   await logModerationAction(user.id, 'COUNTRY', country.id, 'CREATE', name);
 
   revalidatePath('/admin/cities');
-  revalidatePath('/admin/countries');
   redirect('/admin/cities');
 }
 
@@ -887,7 +886,6 @@ export async function toggleCountryActiveAction(formData: FormData) {
   );
 
   revalidatePath('/admin/cities');
-  revalidatePath('/admin/countries');
   redirect('/admin/cities');
 }
 

@@ -65,7 +65,7 @@ export default async function AdminCountryCityPage({ searchParams }: AdminCountr
       ) : null}
 
       <details className="group rounded-xl border border-[#e8e8e8] bg-white shadow-sm" open>
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold select-none">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold">
           <span>국가 추가</span>
           <span className="text-sm text-[#aaa] transition-transform group-open:rotate-180" aria-hidden="true">
             ▼
@@ -106,7 +106,7 @@ export default async function AdminCountryCityPage({ searchParams }: AdminCountr
             {countries.map((country) => (
               <li key={country.id}>
                 <details className="group rounded-xl border border-[#e8e8e8]">
-                  <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 select-none">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{country.name}</p>
                       <p className="truncate text-xs text-[#aaa]">
@@ -120,7 +120,9 @@ export default async function AdminCountryCityPage({ searchParams }: AdminCountr
                     >
                       {country.isActive ? '활성' : '비활성'}
                     </span>
-                    <span className="shrink-0 text-sm text-[#aaa] transition-transform group-open:rotate-180">▼</span>
+                    <span className="shrink-0 text-sm text-[#aaa] transition-transform group-open:rotate-180" aria-hidden="true">
+                      ▼
+                    </span>
                   </summary>
 
                   <div className="space-y-4 border-t border-[#f0f0f0] px-3 pb-4 pt-3">
@@ -183,7 +185,7 @@ export default async function AdminCountryCityPage({ searchParams }: AdminCountr
                           type="text"
                           name="name"
                           required
-                          placeholder={`${country.name} 도시 이름 (예: Auckland)`}
+                          placeholder="도시 이름 (예: Auckland)"
                           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                         />
                         <input
@@ -195,7 +197,7 @@ export default async function AdminCountryCityPage({ searchParams }: AdminCountr
                           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
                         />
                         <FormSubmitButton
-                          idleLabel={`${country.name}에 도시 추가`}
+                          idleLabel="도시 추가"
                           pendingLabel="처리 중..."
                           className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
                         />
