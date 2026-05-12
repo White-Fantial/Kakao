@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   validateClientImageFiles,
   uploadImagesToCloudinary,
@@ -10,32 +10,54 @@ import {
 
 const SALE_CATEGORY_TYPE = 'SALE';
 const DISABLED_STATE_CLASSES = 'disabled:cursor-not-allowed disabled:opacity-60';
+const ALL_COUNTRIES_VALUE = '__ALL_COUNTRIES__';
+const ALL_CITIES_VALUE = '__ALL_CITIES__';
 
-type Option = {
+type CountryOption = {
   id: string;
   label: string;
 };
 
-type CategoryOption = Option & {
+type CityOption = {
+  id: string;
+  label: string;
+  countryId: string | null;
+};
+
+type CategoryOption = {
+  id: string;
+  label: string;
   type: string;
-  ignoreCity: boolean;
-  supportsAllCities: boolean;
+  visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN';
+};
+
+type AllowedTarget = {
+  countryId: string | null;
+  cityId: string | null;
+  categoryId: string;
+};
+
+type SelectOption = {
+  value: string;
+  label: string;
 };
 
 type PostFormProps = {
   action: (formData: FormData) => void | Promise<void>;
+  countries: CountryOption[];
+  cities: CityOption[];
   categories: CategoryOption[];
-  cities: { id: string; name: string }[];
-  cityLabel: string;
+  allowedTargets: AllowedTarget[];
+  defaultCountryId: string | null;
   defaultCityId: string | null;
-  canSelectAllCities: boolean;
   submitLabel: string;
   defaultValues?: {
     postId?: string;
     title?: string | null;
     body?: string;
-    categoryId?: string;
+    countryId?: string | null;
     cityId?: string | null;
+    categoryId?: string;
     price?: string | null;
     contactUrl?: string | null;
     images?: {
@@ -46,20 +68,109 @@ type PostFormProps = {
   errorMessage?: string;
 };
 
+function toCountryValue(countryId: string | null) {
+  return countryId ?? ALL_COUNTRIES_VALUE;
+}
+
+function toCityValue(cityId: string | null) {
+  return cityId ?? ALL_CITIES_VALUE;
+}
+
+function fromCountryValue(value: string) {
+  return value === ALL_COUNTRIES_VALUE ? null : value;
+}
+
+function fromCityValue(value: string) {
+  return value === ALL_CITIES_VALUE ? null : value;
+}
+
+function buildCountryOptions(
+  countries: CountryOption[],
+  allowedTargets: AllowedTarget[],
+): SelectOption[] {
+  const allowedCountryIds = new Set(allowedTargets.map((target) => target.countryId));
+  const options: SelectOption[] = [];
+
+  if (allowedCountryIds.has(null)) {
+    options.push({ value: ALL_COUNTRIES_VALUE, label: '전체 국가' });
+  }
+
+  for (const country of countries) {
+    if (allowedCountryIds.has(country.id)) {
+      options.push({ value: country.id, label: country.label });
+    }
+  }
+
+  return options;
+}
+
+function buildCityOptions(
+  cities: CityOption[],
+  allowedTargets: AllowedTarget[],
+  countryId: string | null,
+): SelectOption[] {
+  const matchingTargets = allowedTargets.filter((target) => target.countryId === countryId);
+  const allowedCityIds = new Set(matchingTargets.map((target) => target.cityId));
+  const options: SelectOption[] = [];
+
+  if (allowedCityIds.has(null)) {
+    options.push({ value: ALL_CITIES_VALUE, label: '전체 도시' });
+  }
+
+  for (const city of cities) {
+    if (city.countryId === countryId && allowedCityIds.has(city.id)) {
+      options.push({ value: city.id, label: city.label });
+    }
+  }
+
+  return options;
+}
+
+function buildCategoryOptions(
+  categories: CategoryOption[],
+  allowedTargets: AllowedTarget[],
+  countryId: string | null,
+  cityId: string | null,
+): CategoryOption[] {
+  const allowedCategoryIds = new Set(
+    allowedTargets
+      .filter((target) => target.countryId === countryId && target.cityId === cityId)
+      .map((target) => target.categoryId),
+  );
+
+  return categories.filter((category) => allowedCategoryIds.has(category.id));
+}
+
+function getCategoryLabel(category: CategoryOption) {
+  if (category.visibilityMode === 'ALWAYS_INCLUDED') {
+    return `${category.label} · 항상 포함`;
+  }
+
+  if (category.visibilityMode === 'HIDDEN') {
+    return `${category.label} · 숨김`;
+  }
+
+  return category.label;
+}
+
 export function PostForm({
   action,
-  categories,
+  countries,
   cities,
-  cityLabel,
+  categories,
+  allowedTargets,
+  defaultCountryId,
   defaultCityId,
-  canSelectAllCities,
   submitLabel,
   defaultValues,
   errorMessage,
 }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [countryValue, setCountryValue] = useState(
+    toCountryValue(defaultValues?.countryId ?? defaultCountryId),
+  );
+  const [cityValue, setCityValue] = useState(toCityValue(defaultValues?.cityId ?? defaultCityId));
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? '');
-  const [selectedCityId, setSelectedCityId] = useState(defaultValues?.cityId ?? '');
   const [deletedImageIds, setDeletedImageIds] = useState<Set<string>>(new Set());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -68,6 +179,59 @@ export function PostForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSubmitting = isPending || isUploading;
+  const selectedCountryId = fromCountryValue(countryValue);
+  const selectedCityId = fromCityValue(cityValue);
+
+  const countryOptions = useMemo(
+    () => buildCountryOptions(countries, allowedTargets),
+    [countries, allowedTargets],
+  );
+  const cityOptions = useMemo(
+    () => buildCityOptions(cities, allowedTargets, selectedCountryId),
+    [cities, allowedTargets, selectedCountryId],
+  );
+  const categoryOptions = useMemo(
+    () => buildCategoryOptions(categories, allowedTargets, selectedCountryId, selectedCityId),
+    [categories, allowedTargets, selectedCountryId, selectedCityId],
+  );
+
+  useEffect(() => {
+    if (countryOptions.length === 0) {
+      return;
+    }
+
+    if (!countryOptions.some((option) => option.value === countryValue)) {
+      setCountryValue(countryOptions[0].value);
+    }
+  }, [countryOptions, countryValue]);
+
+  useEffect(() => {
+    if (cityOptions.length === 0) {
+      return;
+    }
+
+    if (!cityOptions.some((option) => option.value === cityValue)) {
+      setCityValue(cityOptions[0].value);
+    }
+  }, [cityOptions, cityValue]);
+
+  useEffect(() => {
+    if (categoryOptions.length === 0) {
+      if (categoryId !== '') {
+        setCategoryId('');
+      }
+      return;
+    }
+
+    if (!categoryOptions.some((category) => category.id === categoryId)) {
+      setCategoryId(categoryOptions[0].id);
+    }
+  }, [categoryId, categoryOptions]);
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === categoryId),
+    [categories, categoryId],
+  );
 
   function toggleDeleteImage(id: string) {
     setDeletedImageIds((prev) => {
@@ -106,8 +270,6 @@ export function PostForm({
     setUploadError(null);
 
     const formData = new FormData(e.currentTarget);
-    // Remove the raw file entries – images are uploaded directly to Cloudinary
-    // from the browser so no file bytes should pass through the Next.js server.
     formData.delete('images');
 
     if (selectedFiles.length > 0) {
@@ -128,17 +290,13 @@ export function PostForm({
     startTransition(() => action(formData));
   }
 
-  const selectedCategory = useMemo(
-    () => categories.find((category) => category.id === categoryId),
-    [categories, categoryId],
-  );
-
   const shouldShowPrice = selectedCategory?.type === SALE_CATEGORY_TYPE;
-  const isCityIgnored = selectedCategory?.ignoreCity ?? false;
-  // Show a city selector only when the category permits all-city posts AND the user
-  // has at least coordinator privileges (coordinators choose the target city per post).
-  const showCitySelector =
-    !isCityIgnored && (selectedCategory?.supportsAllCities ?? false) && canSelectAllCities;
+  const showCountrySelector = countryOptions.length > 1;
+  const showCitySelector = cityOptions.length > 1;
+  const selectedCountryLabel =
+    countryOptions.find((option) => option.value === countryValue)?.label ?? '전체 국가';
+  const selectedCityLabel =
+    cityOptions.find((option) => option.value === cityValue)?.label ?? '전체 도시';
 
   const submitButtonLabel = isUploading
     ? '이미지 업로드 중...'
@@ -202,6 +360,56 @@ export function PostForm({
       </div>
 
       <div className="space-y-1">
+        <label className="text-sm font-medium">국가</label>
+        {showCountrySelector ? (
+          <select
+            value={countryValue}
+            onChange={(event) => setCountryValue(event.target.value)}
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+          >
+            {countryOptions.map((country) => (
+              <option key={country.value} value={country.value}>
+                {country.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
+              {selectedCountryLabel}
+            </div>
+          </>
+        )}
+      </div>
+
+      <input type="hidden" name="countryId" value={selectedCountryId ?? ''} />
+
+      <div className="space-y-1">
+        <label className="text-sm font-medium">도시</label>
+        {showCitySelector ? (
+          <select
+            value={cityValue}
+            onChange={(event) => setCityValue(event.target.value)}
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+          >
+            {cityOptions.map((city) => (
+              <option key={city.value} value={city.value}>
+                {city.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
+              {selectedCityLabel}
+            </div>
+          </>
+        )}
+      </div>
+
+      <input type="hidden" name="cityId" value={selectedCityId ?? ''} />
+
+      <div className="space-y-1">
         <label htmlFor="categoryId" className="text-sm font-medium">
           카테고리 선택
         </label>
@@ -213,44 +421,12 @@ export function PostForm({
           required
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
         >
-          <option value="">카테고리를 선택해 주세요.</option>
-          {categories.map((category) => (
+          {categoryOptions.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.label}
+              {getCategoryLabel(category)}
             </option>
           ))}
         </select>
-      </div>
-
-      <div className="space-y-1">
-        <span className="text-sm font-medium">지역</span>
-        {isCityIgnored ? (
-          <>
-            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm text-[#888]">
-              전 지역 공개
-            </div>
-            <input type="hidden" name="cityId" value="" />
-          </>
-        ) : showCitySelector ? (
-          <select
-            name="cityId"
-            value={selectedCityId}
-            onChange={(e) => setSelectedCityId(e.target.value)}
-            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
-          >
-            <option value="">전 지역</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <>
-            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">{cityLabel}</div>
-            <input type="hidden" name="cityId" value={defaultCityId ?? ''} />
-          </>
-        )}
       </div>
 
       {shouldShowPrice ? (
@@ -352,7 +528,7 @@ export function PostForm({
 
       <button
         type="submit"
-        disabled={isSubmitting || !!fileError}
+        disabled={isSubmitting || !!fileError || categoryOptions.length === 0}
         aria-busy={isSubmitting}
         className={`w-full rounded-xl bg-[#fee500] px-4 py-3 text-base font-bold text-[#3c1e1e] hover:bg-[#f5db00] ${DISABLED_STATE_CLASSES}`}
       >

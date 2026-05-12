@@ -44,6 +44,9 @@ export default async function AdminReportOptionsPage({
           <Link href="/admin/reports" className="font-medium text-[#3c1e1e] underline">
             신고 내역
           </Link>
+          <Link href="/admin/post-permissions" className="font-medium text-[#3c1e1e] underline">
+            게시글 권한
+          </Link>
           <Link href="/admin/posts" className="font-medium text-[#3c1e1e] underline">
             게시글
           </Link>

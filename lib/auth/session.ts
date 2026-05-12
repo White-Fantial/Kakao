@@ -31,6 +31,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
           role: true,
           status: true,
           countryId: true,
+          cityId: true,
         },
       },
     },

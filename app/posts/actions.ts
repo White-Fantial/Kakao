@@ -18,7 +18,6 @@ import {
   canMarkPostAsSold,
   canMarkPostAsReserved,
   canMarkPostAsAvailable,
-  canPostToCategoryAndCountry,
 } from '@/lib/permissions';
 import {
   MAX_UPLOAD_IMAGE_COUNT,
@@ -78,7 +77,7 @@ function getUploadedImages(formData: FormData): PreUploadedImage[] {
 async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
-    select: { id: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
+    select: { id: true, type: true, visibilityMode: true },
   });
 
   if (!category) {
@@ -99,54 +98,54 @@ async function validateCategoryAndPrice(categoryId: string, rawPrice: string) {
   return { ok: true as const, category, price };
 }
 
-function resolvePostCountryId(
-  category: { ignoreCountry: boolean },
-  userCountryId: string | null,
-): string | null {
-  if (category.ignoreCountry) {
-    return null;
-  }
-  return userCountryId ?? null;
-}
-
-async function resolveCityId(
+async function resolvePostScope(
+  rawCountryId: string,
   rawCityId: string,
-  category: { ignoreCity: boolean; supportsAllCities: boolean },
   errorRedirectPath: string,
-): Promise<string | null> {
-  if (category.ignoreCity) {
-    return null;
+): Promise<{ countryId: string | null; cityId: string | null }> {
+  const countryId = rawCountryId || null;
+  const cityId = rawCityId || null;
+
+  if (cityId && !countryId) {
+    redirect(`${errorRedirectPath}?error=${encodeURIComponent('도시를 선택하려면 국가를 먼저 선택해 주세요.')}`);
   }
 
-  if (rawCityId === '') {
-    if (category.supportsAllCities) {
-      return null;
-    }
-    redirect(`${errorRedirectPath}?error=${encodeURIComponent('지역을 선택해 주세요.')}`);
+  const [country, city] = await Promise.all([
+    countryId
+      ? prisma.country.findFirst({
+          where: { id: countryId, isActive: true },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    cityId
+      ? prisma.city.findFirst({
+          where: { id: cityId, isActive: true },
+          select: { id: true, countryId: true },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  if (countryId && !country) {
+    redirect(`${errorRedirectPath}?error=${encodeURIComponent('국가를 올바르게 선택해 주세요.')}`);
   }
 
-  const city = await prisma.city.findUnique({
-    where: { id: rawCityId },
-    select: { id: true },
-  });
-
-  if (!city) {
-    redirect(`${errorRedirectPath}?error=${encodeURIComponent('지역을 선택해 주세요.')}`);
+  if (cityId && (!city || city.countryId !== countryId)) {
+    redirect(`${errorRedirectPath}?error=${encodeURIComponent('도시를 올바르게 선택해 주세요.')}`);
   }
 
-  return city.id;
+  return {
+    countryId,
+    cityId,
+  };
 }
 
 export async function createPostAction(formData: FormData) {
   const user = await requireUser();
 
-  if (!canCreatePost(user)) {
-    redirect('/posts/new?error=권한이 없습니다.');
-  }
-
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
   const categoryId = normalizeText(formData.get('categoryId'));
+  const rawCountryId = normalizeText(formData.get('countryId'));
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
   const contactUrl = normalizeText(formData.get('contactUrl')) || null;
@@ -186,17 +185,18 @@ export async function createPostAction(formData: FormData) {
     redirect(`/posts/new?error=${encodeURIComponent(categoryResult.message)}`);
   }
 
-  const resolvedCityId = await resolveCityId(
+  const { countryId: resolvedCountryId, cityId: resolvedCityId } = await resolvePostScope(
+    rawCountryId,
     rawCityId,
-    categoryResult.category,
     '/posts/new',
   );
 
-  const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
-  const canWriteToScope = await canPostToCategoryAndCountry(user, {
-    categoryId: categoryResult.category.id,
-    countryId: resolvedCountryId,
-  });
+  const canWriteToScope = await canCreatePost(
+    user,
+    resolvedCountryId,
+    resolvedCityId,
+    categoryResult.category.id,
+  );
   if (!canWriteToScope) {
     redirect('/posts/new?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.');
   }
@@ -253,6 +253,7 @@ export async function createPostAction(formData: FormData) {
     userId: user.id,
     postId,
     categoryId,
+    countryId: resolvedCountryId,
     cityId: resolvedCityId,
     imageCount: uploadedImages.length,
     isSaleCategory,
@@ -279,6 +280,7 @@ export async function updatePostAction(formData: FormData) {
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
   const categoryId = normalizeText(formData.get('categoryId'));
+  const rawCountryId = normalizeText(formData.get('countryId'));
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
   const contactUrl = normalizeText(formData.get('contactUrl')) || null;
@@ -301,17 +303,18 @@ export async function updatePostAction(formData: FormData) {
     );
   }
 
-  const resolvedCityId = await resolveCityId(
+  const { countryId: resolvedCountryId, cityId: resolvedCityId } = await resolvePostScope(
+    rawCountryId,
     rawCityId,
-    categoryResult.category,
     `/posts/${postId}/edit`,
   );
 
-  const resolvedCountryId = resolvePostCountryId(categoryResult.category, user.countryId);
-  const canWriteToScope = await canPostToCategoryAndCountry(user, {
-    categoryId: categoryResult.category.id,
-    countryId: resolvedCountryId,
-  });
+  const canWriteToScope = await canCreatePost(
+    user,
+    resolvedCountryId,
+    resolvedCityId,
+    categoryResult.category.id,
+  );
   if (!canWriteToScope) {
     redirect(`/posts/${postId}/edit?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.`);
   }

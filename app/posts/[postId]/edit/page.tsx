@@ -1,26 +1,16 @@
-import type { CategoryType } from '@prisma/client';
 import { notFound } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost, filterPostableCategoriesForUser, ROLE_RANK } from '@/lib/permissions';
+import { canEditPost, getPostCreationFormOptions } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
 type EditPostPageProps = {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ error?: string }>;
-};
-
-type CategoryListItem = {
-  id: string;
-  name: string;
-  type: CategoryType;
-  ignoreCity: boolean;
-  supportsAllCities: boolean;
-  ignoreCountry: boolean;
 };
 
 export default async function EditPostPage({
@@ -31,7 +21,7 @@ export default async function EditPostPage({
   const { postId } = await params;
   const query = await searchParams;
 
-  const [post, allCategories, cities] = await Promise.all([
+  const [post, formOptions] = await Promise.all([
     prisma.post.findUnique({
       where: { id: postId },
       select: {
@@ -39,72 +29,69 @@ export default async function EditPostPage({
         authorId: true,
         title: true,
         body: true,
+        countryId: true,
         cityId: true,
         categoryId: true,
         price: true,
         status: true,
         saleStatus: true,
         contactUrl: true,
-        city: { select: { name: true } },
         images: {
           select: { id: true, url: true },
           orderBy: { sortOrder: 'asc' },
         },
       },
     }),
-    prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
-    }),
-    prisma.city.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true },
-    }),
+    getPostCreationFormOptions(user),
   ]);
 
   if (!post || !canEditPost(user, post)) {
     notFound();
   }
 
-  const categories = await filterPostableCategoriesForUser<CategoryListItem>(
-    user,
-    allCategories,
-    user.countryId,
-  );
-  const canSelectAllCities = ROLE_RANK[user.role] >= ROLE_RANK['COORDINATOR'];
-  const cityLabel = post.city?.name ?? '전 지역';
-
   return (
     <section className="space-y-4">
       <h1 className="text-xl font-semibold">글 수정</h1>
-      <PostForm
-        action={updatePostAction}
-        categories={categories.map((category) => ({
-          id: category.id,
-          label: category.name,
-          type: category.type,
-          ignoreCity: category.ignoreCity,
-          supportsAllCities: category.supportsAllCities,
-        }))}
-        cities={cities}
-        cityLabel={cityLabel}
-        defaultCityId={post.cityId}
-        canSelectAllCities={canSelectAllCities}
-        submitLabel="수정하기"
-        errorMessage={query.error}
-        defaultValues={{
-          postId: post.id,
-          title: post.title,
-          body: post.body,
-          categoryId: post.categoryId,
-          cityId: post.cityId,
-          price: post.price?.toString() ?? '',
-          contactUrl: post.contactUrl,
-          images: post.images,
-        }}
-      />
+      {formOptions.allowedTargets.length === 0 ? (
+        <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 text-sm text-[#666] shadow-sm">
+          현재 글을 수정할 수 있는 작성 권한이 없습니다.
+        </div>
+      ) : (
+        <PostForm
+          action={updatePostAction}
+          countries={formOptions.countries.map((country) => ({
+            id: country.id,
+            label: country.name,
+          }))}
+          cities={formOptions.cities.map((city) => ({
+            id: city.id,
+            label: city.name,
+            countryId: city.countryId,
+          }))}
+          categories={formOptions.categories.map((category) => ({
+            id: category.id,
+            label: category.name,
+            type: category.type,
+            visibilityMode: category.visibilityMode,
+          }))}
+          allowedTargets={formOptions.allowedTargets}
+          defaultCountryId={formOptions.defaultCountryId}
+          defaultCityId={formOptions.defaultCityId}
+          submitLabel="수정하기"
+          errorMessage={query.error}
+          defaultValues={{
+            postId: post.id,
+            title: post.title,
+            body: post.body,
+            countryId: post.countryId,
+            cityId: post.cityId,
+            categoryId: post.categoryId,
+            price: post.price?.toString() ?? '',
+            contactUrl: post.contactUrl,
+            images: post.images,
+          }}
+        />
+      )}
     </section>
   );
 }

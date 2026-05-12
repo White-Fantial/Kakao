@@ -1,5 +1,5 @@
-import { UserRole } from '@prisma/client';
-import type { PermissionEffect, PermissionResourceType, PostStatus, SaleStatus, UserStatus } from '@prisma/client';
+import { CategoryVisibilityMode, UserRole } from '@prisma/client';
+import type { CategoryType, PostStatus, SaleStatus, UserStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 
@@ -7,6 +7,8 @@ type PermissionUser = {
   id: string;
   role: UserRole;
   status: UserStatus;
+  countryId: string | null;
+  cityId: string | null;
 };
 
 type PermissionPost = {
@@ -21,207 +23,283 @@ type PermissionComment = {
   authorId: string;
 };
 
+export type PostFormCountryOption = {
+  id: string;
+  name: string;
+};
+
+export type PostFormCityOption = {
+  id: string;
+  name: string;
+  countryId: string | null;
+};
+
+export type PostFormCategoryOption = {
+  id: string;
+  name: string;
+  type: CategoryType;
+  visibilityMode: CategoryVisibilityMode;
+};
+
+export type PostFormTargetOption = {
+  countryId: string | null;
+  cityId: string | null;
+  categoryId: string;
+};
+
+export type PostCreationFormOptions = {
+  countries: PostFormCountryOption[];
+  cities: PostFormCityOption[];
+  categories: PostFormCategoryOption[];
+  allowedTargets: PostFormTargetOption[];
+  defaultCountryId: string | null;
+  defaultCityId: string | null;
+};
+
 const ROLE_RANK: Record<UserRole, number> = { USER: 0, COORDINATOR: 1, ADMIN: 2 };
 
 export { ROLE_RANK };
 export const USER_ROLES = Object.values(UserRole) as UserRole[];
 
-export const DEFAULT_PERMISSION_EFFECT: Record<UserRole, Record<PermissionResourceType, PermissionEffect>> = {
-  USER: {
-    CATEGORY: 'ALLOW',
-    COUNTRY: 'ALLOW',
-    CITY: 'ALLOW',
-  },
-  COORDINATOR: {
-    CATEGORY: 'ALLOW',
-    COUNTRY: 'ALLOW',
-    CITY: 'ALLOW',
-  },
-  ADMIN: {
-    CATEGORY: 'ALLOW',
-    COUNTRY: 'ALLOW',
-    CITY: 'ALLOW',
-  },
-};
-
-function resolveDefaultEffect(user: PermissionUser, resourceType: PermissionResourceType) {
-  const roleDefaults = DEFAULT_PERMISSION_EFFECT[user.role];
-  if (!roleDefaults) {
-    throw new Error(`Unknown user role for permission defaults: ${String(user.role)}`);
-  }
-
-  const effect = roleDefaults[resourceType];
-  if (!effect) {
-    throw new Error(`Unknown permission resource type: ${String(resourceType)}`);
-  }
-
-  return effect;
-}
-
-async function resolveResourcePermission(
-  user: PermissionUser,
-  resourceType: PermissionResourceType,
-  resourceId: string | null | undefined,
-) {
-  if (!resourceId) {
-    return resolveDefaultEffect(user, resourceType) === 'ALLOW';
-  }
-
-  const [userPolicy, rolePolicy] = await Promise.all([
-    prisma.userWritePermissionPolicy.findUnique({
-      where: {
-        userId_resourceType_resourceId: {
-          userId: user.id,
-          resourceType,
-          resourceId,
-        },
-      },
-      select: { effect: true },
-    }),
-    prisma.roleWritePermissionPolicy.findUnique({
-      where: {
-        role_resourceType_resourceId: {
-          role: user.role,
-          resourceType,
-          resourceId,
-        },
-      },
-      select: { effect: true },
-    }),
-  ]);
-
-  const effect = userPolicy?.effect ?? rolePolicy?.effect ?? resolveDefaultEffect(user, resourceType);
-  return effect === 'ALLOW';
-}
-
 function isActiveWriter(user: PermissionUser | null | undefined) {
   return user?.status === 'ACTIVE';
 }
 
-export function canCreatePost(user: PermissionUser | null | undefined) {
-  return isActiveWriter(user);
+function buildTargetKey(target: PostFormTargetOption) {
+  return `${target.countryId ?? '*'}:${target.cityId ?? '*'}:${target.categoryId}`;
 }
 
-export async function canPostToCategoryAndCountry(
+export async function canCreatePost(
   user: PermissionUser | null | undefined,
-  options: { categoryId: string; countryId: string | null | undefined },
+  targetCountryId: string | null,
+  targetCityId: string | null,
+  targetCategoryId: string,
 ) {
-  if (!user) return false;
-
-  const [canUseCategory, canUseCountry] = await Promise.all([
-    resolveResourcePermission(user, 'CATEGORY', options.categoryId),
-    resolveResourcePermission(user, 'COUNTRY', options.countryId),
-  ]);
-
-  return canUseCategory && canUseCountry;
-}
-
-type PostableCategory = {
-  id: string;
-  ignoreCountry: boolean;
-};
-
-function evaluateResourceEffect(
-  user: PermissionUser,
-  resourceType: PermissionResourceType,
-  resourceId: string | null | undefined,
-  userPolicyMap: Map<string, PermissionEffect>,
-  rolePolicyMap: Map<string, PermissionEffect>,
-) {
-  if (!resourceId) {
-    return resolveDefaultEffect(user, resourceType) === 'ALLOW';
+  if (!user || !isActiveWriter(user)) {
+    return false;
   }
 
-  const key = `${resourceType}:${resourceId}`;
-  const effect =
-    userPolicyMap.get(key) ??
-    rolePolicyMap.get(key) ??
-    resolveDefaultEffect(user, resourceType);
+  if (targetCityId && !targetCountryId) {
+    return false;
+  }
 
-  return effect === 'ALLOW';
+  const category = await prisma.category.findUnique({
+    where: { id: targetCategoryId },
+    select: { visibilityMode: true },
+  });
+
+  if (!category) {
+    return false;
+  }
+
+  if (user.role === 'ADMIN') {
+    return true;
+  }
+
+  if (
+    user.role === 'USER' &&
+    targetCountryId !== null &&
+    targetCityId !== null &&
+    targetCountryId === user.countryId &&
+    targetCityId === user.cityId &&
+    category.visibilityMode === 'NORMAL'
+  ) {
+    return true;
+  }
+
+  const matchingPermission = await prisma.postPermission.findFirst({
+    where: {
+      OR: [
+        {
+          subjectType: 'USER',
+          userId: user.id,
+        },
+        {
+          subjectType: 'ROLE',
+          role: user.role,
+        },
+      ],
+      AND: [
+        {
+          OR:
+            targetCountryId === null
+              ? [{ countryId: null }]
+              : [{ countryId: targetCountryId }, { countryId: null }],
+        },
+        {
+          OR:
+            targetCityId === null
+              ? [{ cityId: null }]
+              : [{ cityId: targetCityId }, { cityId: null }],
+        },
+        {
+          OR: [{ categoryId: targetCategoryId }, { categoryId: null }],
+        },
+      ],
+    },
+    select: { id: true },
+  });
+
+  return Boolean(matchingPermission);
 }
 
-export async function filterPostableCategoriesForUser<T extends PostableCategory>(
+export async function getPostCreationFormOptions(
   user: PermissionUser | null | undefined,
-  categories: T[],
-  userCountryId: string | null | undefined,
-) {
-  if (!user) return [];
-  if (categories.length === 0) return [];
+): Promise<PostCreationFormOptions> {
+  if (!user || !isActiveWriter(user)) {
+    return {
+      countries: [],
+      cities: [],
+      categories: [],
+      allowedTargets: [],
+      defaultCountryId: null,
+      defaultCityId: null,
+    };
+  }
 
-  const categoryIds = [...new Set(categories.map((category) => category.id))];
-  const countryIds =
-    userCountryId && categories.some((category) => !category.ignoreCountry)
-      ? [userCountryId]
-      : [];
-
-  const [userCategoryPolicies, roleCategoryPolicies, userCountryPolicies, roleCountryPolicies] = await Promise.all([
-    prisma.userWritePermissionPolicy.findMany({
-      where: {
-        userId: user.id,
-        resourceType: 'CATEGORY',
-        resourceId: { in: categoryIds },
-      },
-      select: { resourceType: true, resourceId: true, effect: true },
+  const [countries, cities, categories, permissions] = await Promise.all([
+    prisma.country.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true },
     }),
-    prisma.roleWritePermissionPolicy.findMany({
-      where: {
-        role: user.role,
-        resourceType: 'CATEGORY',
-        resourceId: { in: categoryIds },
-      },
-      select: { resourceType: true, resourceId: true, effect: true },
+    prisma.city.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, countryId: true },
     }),
-    prisma.userWritePermissionPolicy.findMany({
-      where: {
-        userId: user.id,
-        resourceType: 'COUNTRY',
-        resourceId: { in: countryIds },
-      },
-      select: { resourceType: true, resourceId: true, effect: true },
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, type: true, visibilityMode: true },
     }),
-    prisma.roleWritePermissionPolicy.findMany({
-      where: {
-        role: user.role,
-        resourceType: 'COUNTRY',
-        resourceId: { in: countryIds },
-      },
-      select: { resourceType: true, resourceId: true, effect: true },
-    }),
+    user.role === 'ADMIN'
+      ? Promise.resolve([])
+      : prisma.postPermission.findMany({
+          where: {
+            OR: [
+              {
+                subjectType: 'USER',
+                userId: user.id,
+              },
+              {
+                subjectType: 'ROLE',
+                role: user.role,
+              },
+            ],
+          },
+          select: { countryId: true, cityId: true, categoryId: true },
+        }),
   ]);
 
-  const userPolicyMap = new Map(
-    [...userCategoryPolicies, ...userCountryPolicies].map((policy) => [
-      `${policy.resourceType}:${policy.resourceId}`,
-      policy.effect,
-    ]),
-  );
-  const rolePolicyMap = new Map(
-    [...roleCategoryPolicies, ...roleCountryPolicies].map((policy) => [
-      `${policy.resourceType}:${policy.resourceId}`,
-      policy.effect,
-    ]),
-  );
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const countryIds = countries.map((country) => country.id);
+  const countryIdSet = new Set(countryIds);
+  const cityById = new Map(cities.map((city) => [city.id, city]));
+  const cityIdsByCountry = new Map<string, string[]>();
 
-  return categories.filter((category) => {
-    const categoryAllowed = evaluateResourceEffect(
-      user,
-      'CATEGORY',
-      category.id,
-      userPolicyMap,
-      rolePolicyMap,
-    );
-    const countryId = category.ignoreCountry ? null : userCountryId;
-    const countryAllowed = evaluateResourceEffect(
-      user,
-      'COUNTRY',
-      countryId,
-      userPolicyMap,
-      rolePolicyMap,
-    );
+  for (const city of cities) {
+    if (!city.countryId) {
+      continue;
+    }
 
-    return categoryAllowed && countryAllowed;
-  });
+    const existing = cityIdsByCountry.get(city.countryId) ?? [];
+    existing.push(city.id);
+    cityIdsByCountry.set(city.countryId, existing);
+  }
+
+  const targets = new Map<string, PostFormTargetOption>();
+
+  const addTarget = (countryId: string | null, cityId: string | null, categoryId: string) => {
+    const category = categoryById.get(categoryId);
+    if (!category) {
+      return;
+    }
+
+    if (cityId && !countryId) {
+      return;
+    }
+
+    if (countryId && !countryIdSet.has(countryId)) {
+      return;
+    }
+
+    if (cityId) {
+      const city = cityById.get(cityId);
+      if (!city || city.countryId !== countryId) {
+        return;
+      }
+    }
+
+    const target = { countryId, cityId, categoryId };
+    targets.set(buildTargetKey(target), target);
+  };
+
+  if (user.role === 'ADMIN') {
+    for (const category of categories) {
+      addTarget(null, null, category.id);
+      for (const country of countries) {
+        addTarget(country.id, null, category.id);
+        for (const cityId of cityIdsByCountry.get(country.id) ?? []) {
+          addTarget(country.id, cityId, category.id);
+        }
+      }
+    }
+  } else {
+    if (user.role === 'USER' && user.countryId && user.cityId) {
+      for (const category of categories) {
+        if (category.visibilityMode === 'NORMAL') {
+          addTarget(user.countryId, user.cityId, category.id);
+        }
+      }
+    }
+
+    for (const permission of permissions) {
+      const allowedCountryIds = permission.countryId ? [permission.countryId] : [null, ...countryIds];
+      const allowedCategoryIds = permission.categoryId ? [permission.categoryId] : categories.map((category) => category.id);
+
+      for (const countryId of allowedCountryIds) {
+        const allowedCityIds = permission.cityId
+          ? [permission.cityId]
+          : countryId
+            ? [null, ...(cityIdsByCountry.get(countryId) ?? [])]
+            : [null];
+
+        for (const categoryId of allowedCategoryIds) {
+          for (const cityId of allowedCityIds) {
+            addTarget(countryId, cityId, categoryId);
+          }
+        }
+      }
+    }
+  }
+
+  const allowedTargets = [...targets.values()];
+  const allowedCategoryIds = new Set(allowedTargets.map((target) => target.categoryId));
+
+  const defaultCountryId =
+    user.countryId && allowedTargets.some((target) => target.countryId === user.countryId)
+      ? user.countryId
+      : allowedTargets.some((target) => target.countryId === null)
+        ? null
+        : countries[0]?.id ?? null;
+
+  const defaultCityId =
+    user.cityId &&
+    allowedTargets.some(
+      (target) => target.countryId === (user.countryId ?? null) && target.cityId === user.cityId,
+    )
+      ? user.cityId
+      : null;
+
+  return {
+    countries,
+    cities,
+    categories: categories.filter((category) => allowedCategoryIds.has(category.id)),
+    allowedTargets,
+    defaultCountryId,
+    defaultCityId,
+  };
 }
 
 export function canCreateComment(user: PermissionUser | null | undefined) {

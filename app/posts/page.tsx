@@ -59,8 +59,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       : Promise.resolve(null),
   ]);
 
-  const alwaysIncludedCategories = categories.filter((category) => category.isAlwaysIncluded);
-  const filterCategories = categories.filter((category) => !category.isAlwaysIncluded);
+  const alwaysIncludedCategories = categories.filter(
+    (category) => category.visibilityMode === 'ALWAYS_INCLUDED',
+  );
+  const filterCategories = categories.filter(
+    (category) => category.visibilityMode === 'NORMAL',
+  );
   const filterCategoryIds = new Set(filterCategories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
   const profileCityId = dbUser?.cityId;
@@ -130,7 +134,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const postWhere = {
     status: 'PUBLISHED' as const,
-    categoryId: shouldFilterByCategory ? { in: selectedCategoryIds } : undefined,
+    categoryId: { in: selectedCategoryIds },
     AND: andConditions.length > 0 ? andConditions : undefined,
   };
 
