@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -9,25 +10,15 @@ import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
 const POST_PREVIEW_LENGTH = 40;
+const PAGE_SIZE = 20;
 
 type UserProfilePageProps = {
   params: Promise<{ userId: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
-export async function generateMetadata({ params }: UserProfilePageProps): Promise<Metadata> {
-  const { userId } = await params;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { displayName: true },
-  });
-  if (!user) return { title: '사용자를 찾을 수 없어요' };
-  return { title: `${user.displayName} 님의 프로필` };
-}
-
-export default async function UserProfilePage({ params }: UserProfilePageProps) {
-  const { userId } = await params;
-
-  const user = await prisma.user.findUnique({
+const getUserProfile = cache(async (userId: string) => {
+  return prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -45,6 +36,21 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       },
     },
   });
+});
+
+export async function generateMetadata({ params }: Pick<UserProfilePageProps, 'params'>): Promise<Metadata> {
+  const { userId } = await params;
+  const user = await getUserProfile(userId);
+  if (!user) return { title: '사용자를 찾을 수 없어요' };
+  return { title: `${user.displayName} 님의 프로필` };
+}
+
+export default async function UserProfilePage({ params, searchParams }: UserProfilePageProps) {
+  const { userId } = await params;
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1);
+
+  const user = await getUserProfile(userId);
 
   if (!user) {
     notFound();
@@ -56,6 +62,8 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       status: { not: 'DELETED' },
     },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE + 1,
     include: {
       city: { select: { name: true } },
       category: {
@@ -86,6 +94,9 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       },
     },
   });
+
+  const hasNextPage = posts.length > PAGE_SIZE;
+  const visiblePosts = hasNextPage ? posts.slice(0, PAGE_SIZE) : posts;
 
   return (
     <section className="space-y-4">
@@ -120,13 +131,13 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
       <h2 className="px-1 text-base font-bold">게시물 목록</h2>
 
-      {posts.length === 0 ? (
+      {visiblePosts.length === 0 ? (
         <p className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-sm text-[#888]">
           아직 게시물이 없어요.
         </p>
       ) : (
         <ul className="space-y-3">
-          {posts.map((post) => {
+          {visiblePosts.map((post) => {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, POST_PREVIEW_LENGTH);
             const postHeading = titleText || bodyPreview;
@@ -176,6 +187,29 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
           })}
         </ul>
       )}
+
+      {(page > 1 || hasNextPage) ? (
+        <div className="flex justify-between gap-2 pt-1">
+          {page > 1 ? (
+            <Link
+              href={`/users/${userId}?page=${page - 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              이전
+            </Link>
+          ) : (
+            <span />
+          )}
+          {hasNextPage ? (
+            <Link
+              href={`/users/${userId}?page=${page + 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              다음
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -174,7 +174,7 @@ async function resolvePostScope(
 
 export async function createPostAction(formData: FormData) {
   const user = await requireUser();
-  const hasCity = await hasValidProfileCity(user.id);
+  const hasCity = await hasValidProfileCity(user.cityId, user.countryId);
 
   if (!hasCity) {
     redirect(getProfileCityRequiredHref('/posts/new'));
@@ -318,7 +318,7 @@ export async function createPostAction(formData: FormData) {
 
 export async function updatePostAction(formData: FormData) {
   const user = await requireUser();
-  const hasCity = await hasValidProfileCity(user.id);
+  const hasCity = await hasValidProfileCity(user.cityId, user.countryId);
   if (!hasCity) {
     redirect(getProfileCityRequiredHref('/posts'));
   }

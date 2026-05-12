@@ -17,32 +17,28 @@ export function getProfileCityRequiredHref(returnTo: string, message = PROFILE_C
  * - user has a selected country and city
  * - city exists and is active
  * - city belongs to the user's selected country
+ *
+ * Accepts the city/country IDs already present in the session user, so only
+ * one DB query (the city lookup) is needed instead of two.
  */
-export async function hasValidProfileCity(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      countryId: true,
-      cityId: true,
-      city: {
-        select: {
-          id: true,
-          countryId: true,
-          isActive: true,
-        },
-      },
-    },
+export async function hasValidProfileCity(
+  cityId: string | null | undefined,
+  countryId: string | null | undefined,
+) {
+  if (!cityId || !countryId) {
+    return false;
+  }
+
+  const city = await prisma.city.findUnique({
+    where: { id: cityId },
+    select: { countryId: true, isActive: true },
   });
 
-  if (!user || !user.countryId || !user.cityId || !user.city) {
+  if (!city || !city.isActive) {
     return false;
   }
 
-  if (!user.city.isActive) {
-    return false;
-  }
-
-  return user.city.countryId === user.countryId;
+  return city.countryId === countryId;
 }
 
 export function normalizeInternalPath(value: string) {

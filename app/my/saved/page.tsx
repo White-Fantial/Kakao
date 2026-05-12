@@ -10,18 +10,20 @@ import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
 const BODY_PREVIEW_LENGTH = 40;
+const PAGE_SIZE = 20;
 export const metadata: Metadata = {
   title: '저장한 글',
   description: '저장해 둔 게시글을 모아볼 수 있어요.',
 };
 
 type MySavedPostsPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; page?: string }>;
 };
 
 export default async function MySavedPostsPage({ searchParams }: MySavedPostsPageProps) {
   const user = await requireUser();
   const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1);
 
   const savedPosts = await prisma.savedPost.findMany({
     where: {
@@ -33,6 +35,8 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
       },
     },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE + 1,
     select: {
       postId: true,
       post: {
@@ -72,19 +76,22 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
     },
   });
 
+  const hasNextPage = savedPosts.length > PAGE_SIZE;
+  const visibleSavedPosts = hasNextPage ? savedPosts.slice(0, PAGE_SIZE) : savedPosts;
+
   return (
     <section className="space-y-4">
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
-      {savedPosts.length === 0 ? (
+      {visibleSavedPosts.length === 0 ? (
         <p className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-sm text-[#888]">
           아직 저장한 글이 없어요.
         </p>
       ) : (
         <ul className="space-y-3">
-          {savedPosts.map(({ postId, post }) => {
+          {visibleSavedPosts.map(({ postId, post }) => {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, BODY_PREVIEW_LENGTH);
             const postHeading = titleText || bodyPreview;
@@ -151,6 +158,29 @@ export default async function MySavedPostsPage({ searchParams }: MySavedPostsPag
           })}
         </ul>
       )}
+
+      {(page > 1 || hasNextPage) ? (
+        <div className="flex justify-between gap-2 pt-1">
+          {page > 1 ? (
+            <Link
+              href={`/my/saved?page=${page - 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              이전
+            </Link>
+          ) : (
+            <span />
+          )}
+          {hasNextPage ? (
+            <Link
+              href={`/my/saved?page=${page + 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              다음
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

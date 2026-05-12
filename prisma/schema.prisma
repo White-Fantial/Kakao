@@ -207,6 +207,8 @@ model Post {
 
   @@index([cityId, categoryId, status, createdAt])
   @@index([authorId, createdAt])
+  @@index([status, createdAt])
+  @@index([authorId, status, createdAt])
 }
 
 model PostTag {
@@ -284,7 +286,7 @@ model Comment {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  @@index([postId, createdAt])
+  @@index([postId, status, createdAt])
 }
 
 model ModerationAction {

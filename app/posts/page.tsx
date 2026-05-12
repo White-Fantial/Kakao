@@ -48,18 +48,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const userCountryId = currentUser?.countryId ?? null;
 
-  const [categories, cities, dbUser, allTagOptions] = await Promise.all([
+  const [categories, cities, allTagOptions] = await Promise.all([
     getActiveCategories(),
     userCountryId ? getActiveCitiesByCountry(userCountryId) : getActiveCities(),
-    currentUser
-      ? prisma.user.findUnique({
-          where: { id: currentUser.id },
-          select: {
-            cityId: true,
-            countryId: true,
-          },
-        })
-      : Promise.resolve(null),
     getActivePostTagOptions(),
   ]);
 
@@ -74,7 +65,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   );
   const filterCategoryIds = new Set(filterCategories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
-  const profileCityId = dbUser?.cityId ?? null;
+  const profileCityId = currentUser?.cityId ?? null;
   const activeProfileCityId =
     profileCityId && cityIds.has(profileCityId) ? profileCityId : null;
   const hasActiveProfileCity = activeProfileCityId !== null;
