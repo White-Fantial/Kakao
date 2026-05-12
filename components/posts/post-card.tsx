@@ -36,10 +36,10 @@ export function PostCard({ post, href }: PostCardProps) {
     >
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
-        <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
         {post.postTags.map((tag) => (
           <PostTagBadge key={tag.id} label={tag.label} categoryColor={post.category.color} />
         ))}
+        <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
         {typeof post.reportCount === 'number' ? (
           <span
             className={`rounded-full px-2 py-1 ${
