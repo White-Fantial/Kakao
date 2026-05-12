@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 
-import { extractKakaoOpenLink, isValidKakaoOpenLink } from '@/lib/kakao-open-link';
+import {
+  extractKakaoOpenLink,
+  isValidKakaoOpenLink,
+  KAKAO_OPEN_LINK_PATTERN_STRING,
+} from '@/lib/kakao-open-link';
 
 type KakaoOpenLinkInputProps = {
   id: string;
@@ -30,7 +34,7 @@ export function KakaoOpenLinkInput({
       type="url"
       value={value}
       placeholder={placeholder}
-      pattern="https://open\\.kakao\\.com/o/[A-Za-z0-9_-]+"
+      pattern={KAKAO_OPEN_LINK_PATTERN_STRING}
       onChange={(event) => {
         setValue(event.target.value);
       }}
