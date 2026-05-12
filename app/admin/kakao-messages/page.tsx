@@ -13,6 +13,10 @@ type AdminKakaoMessagesPageProps = {
   searchParams: Promise<{ status?: string; error?: string; success?: string }>;
 };
 
+function formatDateTime(value: Date) {
+  return value.toLocaleString('ko-KR');
+}
+
 export default async function AdminKakaoMessagesPage({ searchParams }: AdminKakaoMessagesPageProps) {
   const currentUser = await getCurrentUser();
 
@@ -130,11 +134,11 @@ export default async function AdminKakaoMessagesPage({ searchParams }: AdminKaka
                 </div>
 
                 <p className="text-xs text-[#888]">
-                  생성: {new Date(delivery.createdAt).toLocaleString('ko-KR')}
+                  생성: {formatDateTime(delivery.createdAt)}
                   {delivery.lastAttemptAt
-                    ? ` · 최근 시도: ${new Date(delivery.lastAttemptAt).toLocaleString('ko-KR')}`
+                    ? ` · 최근 시도: ${formatDateTime(delivery.lastAttemptAt)}`
                     : ''}
-                  {delivery.sentAt ? ` · 성공 시각: ${new Date(delivery.sentAt).toLocaleString('ko-KR')}` : ''}
+                  {delivery.sentAt ? ` · 성공 시각: ${formatDateTime(delivery.sentAt)}` : ''}
                 </p>
                 {delivery.relatedPostId ? (
                   <p className="text-xs text-[#666]">게시글 ID: {delivery.relatedPostId}</p>

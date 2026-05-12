@@ -5,6 +5,7 @@ const KAKAO_MEMO_SEND_URL = 'https://kapi.kakao.com/v2/api/talk/memo/default/sen
 const PREVIEW_LENGTH = 80;
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
 const MAX_ERROR_MESSAGE_LENGTH = 500;
+const MAX_RESPONSE_ERROR_LENGTH = 200;
 
 type NotifyPostInput = {
   id: string;
@@ -49,7 +50,7 @@ function formatErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return truncateText(error.message, MAX_ERROR_MESSAGE_LENGTH);
   }
-  return truncateText('알 수 없는 카카오 전송 오류가 발생했습니다.', MAX_ERROR_MESSAGE_LENGTH);
+  return '알 수 없는 카카오 전송 오류가 발생했습니다.';
 }
 
 function getSiteBaseUrl() {
@@ -148,7 +149,7 @@ async function sendKakaoMemo(accessToken: string, text: string, url: string) {
   });
 
   if (!response.ok) {
-    const responseText = truncateText(await response.text(), 200);
+    const responseText = truncateText(await response.text(), MAX_RESPONSE_ERROR_LENGTH);
     throw new Error(
       `Kakao memo send failed: ${response.status}${responseText ? ` (${responseText})` : ''}`,
     );
@@ -165,7 +166,8 @@ async function attemptKakaoMessageDelivery(params: {
   const attemptedAt = new Date();
 
   if (!params.targetUrl) {
-    const errorMessage = '사이트 URL이 설정되지 않아 카카오 메시지를 전송할 수 없습니다.';
+    const errorMessage =
+      '사이트 URL이 설정되지 않아 카카오 메시지를 전송할 수 없습니다. 환경 변수를 확인해주세요.';
     await prisma.kakaoMessageDelivery.update({
       where: { id: params.deliveryId },
       data: {
@@ -173,7 +175,7 @@ async function attemptKakaoMessageDelivery(params: {
         errorMessage,
         attemptCount: { increment: 1 },
         lastAttemptAt: attemptedAt,
-        ...(params.retriedByAdminId ? { retriedByAdminId: params.retriedByAdminId } : {}),
+        retriedByAdminId: params.retriedByAdminId,
       },
     });
     return { ok: false, errorMessage };
@@ -182,7 +184,9 @@ async function attemptKakaoMessageDelivery(params: {
   try {
     const accessToken = await ensureValidAccessToken(params.recipient);
     if (!accessToken) {
-      throw new Error('카카오 액세스 토큰이 없어 메시지를 전송할 수 없습니다.');
+      throw new Error(
+        '카카오 액세스 토큰이 없거나 만료되어 메시지를 전송할 수 없습니다. 사용자의 카카오 연동 상태를 확인해주세요.',
+      );
     }
 
     await sendKakaoMemo(accessToken, params.messageText, params.targetUrl);
@@ -195,7 +199,7 @@ async function attemptKakaoMessageDelivery(params: {
         attemptCount: { increment: 1 },
         lastAttemptAt: attemptedAt,
         sentAt: attemptedAt,
-        ...(params.retriedByAdminId ? { retriedByAdminId: params.retriedByAdminId } : {}),
+        retriedByAdminId: params.retriedByAdminId,
       },
     });
     return { ok: true };
@@ -208,7 +212,7 @@ async function attemptKakaoMessageDelivery(params: {
         errorMessage,
         attemptCount: { increment: 1 },
         lastAttemptAt: attemptedAt,
-        ...(params.retriedByAdminId ? { retriedByAdminId: params.retriedByAdminId } : {}),
+        retriedByAdminId: params.retriedByAdminId,
       },
     });
     return { ok: false, errorMessage };
@@ -284,7 +288,7 @@ export async function notifySearchAlertsForPost(post: NotifyPostInput) {
 
   for (const result of results) {
     if (result.status === 'rejected') {
-      console.error('[kakao/message] failed to process search alert delivery log', result.reason);
+      console.error('[kakao/message] failed to create or attempt search alert delivery', result.reason);
     }
   }
 }

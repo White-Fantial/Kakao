@@ -369,7 +369,7 @@ model KakaoMessageDelivery {
   updatedAt        DateTime                   @updatedAt
   recipientUser    User                       @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
 
-  @@index([status, createdAt])
-  @@index([recipientUserId, createdAt])
-  @@index([deliveryType, createdAt])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([recipientUserId, createdAt(sort: Desc)])
+  @@index([deliveryType, createdAt(sort: Desc)])
 }
