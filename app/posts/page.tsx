@@ -20,10 +20,14 @@ type PostsPageProps = {
     type?: string | string[];
     tag?: string | string[];
     q?: string | string[];
+    page?: string | string[];
     success?: string;
     error?: string;
   }>;
 };
+
+const PAGE_SIZE = 20;
+const MAX_PAGE = 500;
 
 function toArray(value: string | string[] | undefined) {
   if (!value) {
@@ -45,6 +49,13 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = await searchParams;
   const currentUser = await getCurrentUser();
   const keyword = toSingle(params.q);
+  const pageParam = toSingle(params.page) || '1';
+  const rawPage = Number.parseInt(pageParam, 10);
+  const currentPage =
+    Number.isFinite(rawPage) && rawPage > 0
+      ? Math.min(rawPage, MAX_PAGE)
+      : 1;
+  const skip = (currentPage - 1) * PAGE_SIZE;
 
   const userCountryId = currentUser?.countryId ?? null;
 
@@ -145,6 +156,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
   const returnTo = `/posts${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`;
   const canViewReportStats = currentUser ? canMakeFinalUserDecision(currentUser) : false;
+  const paginationBaseParams = new URLSearchParams(returnToParams);
+  const createPageHref = (page: number) => {
+    const query = new URLSearchParams(paginationBaseParams);
+    if (page > 1) {
+      query.set('page', String(page));
+    } else {
+      query.delete('page');
+    }
+
+    const queryString = query.toString();
+    return `/posts${queryString ? `?${queryString}` : ''}`;
+  };
 
   const andConditions: object[] = [];
 
@@ -198,12 +221,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     city: { name: string } | null;
     author: { displayName: string; profileImageUrl: string | null };
   }> = [];
+  let hasNextPage = false;
 
   if (canViewReportStats) {
     const posts = await prisma.post.findMany({
       where: postWhere,
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      skip,
+      take: PAGE_SIZE + 1,
       select: {
         id: true,
         title: true,
@@ -241,7 +266,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       },
     });
 
-    normalizedPosts = posts.map((post) => ({
+    hasNextPage = posts.length > PAGE_SIZE;
+    const pagePosts = hasNextPage ? posts.slice(0, PAGE_SIZE) : posts;
+
+    normalizedPosts = pagePosts.map((post) => ({
       id: post.id,
       title: post.title,
       body: post.body,
@@ -259,7 +287,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     const posts = await prisma.post.findMany({
       where: postWhere,
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      skip,
+      take: PAGE_SIZE + 1,
       select: {
         id: true,
         title: true,
@@ -296,7 +325,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       },
     });
 
-    normalizedPosts = posts.map((post) => ({
+    hasNextPage = posts.length > PAGE_SIZE;
+    const pagePosts = hasNextPage ? posts.slice(0, PAGE_SIZE) : posts;
+
+    normalizedPosts = pagePosts.map((post) => ({
       id: post.id,
       title: post.title,
       body: post.body,
@@ -312,6 +344,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
 
   const hasFilters = shouldFilterByCategory || shouldFilterByCategoryType || shouldFilterByTag || shouldFilterByCity || hasKeyword;
+  const hasPrevPage = currentPage > 1;
 
   return (
     <section className="space-y-4">
@@ -490,22 +523,59 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ) : null}
 
       {normalizedPosts.length === 0 ? (
-        <div className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-center text-sm text-[#888]">
-          {hasFilters
-            ? '선택한 조건에 맞는 글이 없어요.'
-            : '아직 올라온 글이 없어요. 첫 글을 남겨보세요.'}
+        <div className="space-y-3">
+          <div className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-center text-sm text-[#888]">
+            {hasFilters
+              ? '선택한 조건에 맞는 글이 없어요.'
+              : '아직 올라온 글이 없어요. 첫 글을 남겨보세요.'}
+          </div>
+          {hasPrevPage ? (
+            <div className="flex justify-center">
+              <Link
+                href={createPageHref(currentPage - 1)}
+                className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
+              >
+                이전 페이지로 이동
+              </Link>
+            </div>
+          ) : null}
         </div>
       ) : (
-        <div className="space-y-3">
-          {normalizedPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={{
-                ...post,
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-3">
+            {normalizedPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={{
+                  ...post,
+                }}
+              />
+            ))}
+          </div>
+          {hasPrevPage || hasNextPage ? (
+            <nav className="flex items-center justify-center gap-2" aria-label="게시글 목록 페이지 이동">
+              {hasPrevPage ? (
+                <Link
+                  href={createPageHref(currentPage - 1)}
+                  className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
+                >
+                  이전
+                </Link>
+              ) : null}
+              <span aria-label={`현재 페이지 ${currentPage}`} className="text-sm text-[#666]">
+                {currentPage}페이지
+              </span>
+              {hasNextPage ? (
+                <Link
+                  href={createPageHref(currentPage + 1)}
+                  className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
+                >
+                  다음
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
+        </>
       )}
     </section>
   );
