@@ -442,6 +442,12 @@ export default async function PostDetailPage({
   }
 
   const isOwner = currentUser?.id === post.authorId;
+  const previousPostTitle = previousPost
+    ? withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)
+    : null;
+  const nextPostTitle = nextPost
+    ? withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)
+    : null;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -653,11 +659,11 @@ export default async function PostDetailPage({
           <Link
             href={createPostHref(previousPost.id)}
             className={outlineActionButtonClass}
-            aria-label={`이전 글로 이동: ${withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}`}
+            aria-label={`이전 글로 이동: ${previousPostTitle}`}
           >
             <span className="mr-1 shrink-0">← 이전 글:</span>
             <span className="line-clamp-1 min-w-0">
-              {withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}
+              {previousPostTitle}
             </span>
           </Link>
         ) : (
@@ -669,11 +675,11 @@ export default async function PostDetailPage({
           <Link
             href={createPostHref(nextPost.id)}
             className={outlineActionButtonClass}
-            aria-label={`다음 글로 이동: ${withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)}`}
+            aria-label={`다음 글로 이동: ${nextPostTitle}`}
           >
             <span className="mr-1 shrink-0">다음 글:</span>
             <span className="line-clamp-1 min-w-0">
-              {withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)}
+              {nextPostTitle}
             </span>
             <span className="ml-1 shrink-0">→</span>
           </Link>
