@@ -650,7 +650,11 @@ export default async function PostDetailPage({
 
       <section className="grid grid-cols-1 gap-2 border-t border-[#e8e8e8] pt-4 sm:grid-cols-2">
         {previousPost ? (
-          <Link href={createPostHref(previousPost.id)} className={outlineActionButtonClass}>
+          <Link
+            href={createPostHref(previousPost.id)}
+            className={outlineActionButtonClass}
+            aria-label={`이전 글로 이동: ${withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}`}
+          >
             <span className="mr-1 shrink-0">← 이전 글:</span>
             <span className="line-clamp-1 min-w-0">
               {withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}
@@ -662,7 +666,11 @@ export default async function PostDetailPage({
           </span>
         )}
         {nextPost ? (
-          <Link href={createPostHref(nextPost.id)} className={outlineActionButtonClass}>
+          <Link
+            href={createPostHref(nextPost.id)}
+            className={outlineActionButtonClass}
+            aria-label={`다음 글로 이동: ${withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)}`}
+          >
             <span className="mr-1 shrink-0">다음 글:</span>
             <span className="line-clamp-1 min-w-0">
               {withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)}
