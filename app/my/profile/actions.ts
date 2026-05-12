@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { extractKakaoOpenLink, isValidKakaoOpenLink } from '@/lib/kakao-open-link';
 import {
   getProfileCityRequiredHref,
   normalizeInternalPath,
@@ -24,7 +25,11 @@ function normalizeReturnTo(value: FormDataEntryValue | null) {
 
 export async function updateProfileAction(formData: FormData) {
   const user = await requireUser();
-  const openChatUrl = normalizeText(formData.get('openChatUrl')) || null;
+  const normalizedOpenChatUrl = extractKakaoOpenLink(normalizeText(formData.get('openChatUrl')));
+  if (normalizedOpenChatUrl && !isValidKakaoOpenLink(normalizedOpenChatUrl)) {
+    redirect('/my/profile?error=올바른 카카오 오픈채팅 링크를 입력해주세요.');
+  }
+  const openChatUrl = normalizedOpenChatUrl || null;
   const countryId = normalizeText(formData.get('countryId')) || null;
   const submittedCityValue = formData.get('cityId');
   const cityId = normalizeText(submittedCityValue) || null;

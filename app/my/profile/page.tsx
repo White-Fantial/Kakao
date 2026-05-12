@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
+import { KakaoOpenLinkInput } from '@/components/ui/kakao-open-link-input';
 import { updateProfileAction } from './actions';
 import {
   deleteSearchAlertAction,
@@ -137,12 +138,12 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
           <label htmlFor="openChatUrl" className="text-sm font-medium">
             카카오 오픈채팅 링크
           </label>
-          <input
+          <KakaoOpenLinkInput
             id="openChatUrl"
             name="openChatUrl"
-            type="url"
             defaultValue={dbUser?.openChatUrl ?? ''}
             placeholder="https://open.kakao.com/o/..."
+            invalidMessage="올바른 카카오 오픈채팅 링크를 입력해주세요."
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           />
           <p className="text-xs text-[#888]">

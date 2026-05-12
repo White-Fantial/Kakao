@@ -7,6 +7,7 @@ import {
   uploadImagesToCloudinary,
   MAX_CLIENT_IMAGES,
 } from '@/lib/upload/cloudinary-client';
+import { KakaoOpenLinkInput } from '@/components/ui/kakao-open-link-input';
 
 const SALE_CATEGORY_TYPE = 'SALE';
 const DISABLED_STATE_CLASSES = 'disabled:cursor-not-allowed disabled:opacity-60';
@@ -508,12 +509,12 @@ export function PostForm({
         <label htmlFor="contactUrl" className="text-sm font-medium">
           연락처 링크 (선택)
         </label>
-        <input
+        <KakaoOpenLinkInput
           id="contactUrl"
           name="contactUrl"
-          type="url"
           defaultValue={defaultValues?.contactUrl ?? ''}
           placeholder="https://open.kakao.com/o/..."
+          invalidMessage="올바른 카카오 오픈채팅 링크를 입력해주세요."
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
         />
         <p className="text-xs text-[#888]">

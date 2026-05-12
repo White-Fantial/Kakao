@@ -10,6 +10,7 @@ import { trackServerEvent } from '@/lib/analytics/server';
 import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { prisma } from '@/lib/db/prisma';
 import { notifySearchAlertsForPost } from '@/lib/kakao/message';
+import { extractKakaoOpenLink, isValidKakaoOpenLink } from '@/lib/kakao-open-link';
 import {
   canCreatePost,
   canDeletePost,
@@ -182,7 +183,11 @@ export async function createPostAction(formData: FormData) {
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
   const rawPostTagOptionIds = normalizeTextArray(formData.getAll('postTagOptionIds'));
-  const contactUrl = normalizeText(formData.get('contactUrl')) || null;
+  const normalizedContactUrl = extractKakaoOpenLink(normalizeText(formData.get('contactUrl')));
+  if (normalizedContactUrl && !isValidKakaoOpenLink(normalizedContactUrl)) {
+    redirect('/posts/new?error=올바른 카카오 오픈채팅 링크를 입력해주세요.');
+  }
+  const contactUrl = normalizedContactUrl || null;
   const uploadedImages = getUploadedImages(formData);
 
   try {
@@ -334,7 +339,11 @@ export async function updatePostAction(formData: FormData) {
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
   const rawPostTagOptionIds = normalizeTextArray(formData.getAll('postTagOptionIds'));
-  const contactUrl = normalizeText(formData.get('contactUrl')) || null;
+  const normalizedContactUrl = extractKakaoOpenLink(normalizeText(formData.get('contactUrl')));
+  if (normalizedContactUrl && !isValidKakaoOpenLink(normalizedContactUrl)) {
+    redirect(`/posts/${postId}/edit?error=${encodeURIComponent('올바른 카카오 오픈채팅 링크를 입력해주세요.')}`);
+  }
+  const contactUrl = normalizedContactUrl || null;
   const uploadedImages = getUploadedImages(formData);
   const deleteImageIds = formData.getAll('deleteImageIds').filter((v): v is string => typeof v === 'string');
 
