@@ -39,7 +39,11 @@ export default async function EditPostPage({
         countryId: true,
         cityId: true,
         categoryId: true,
-        postTagOptionId: true,
+        tags: {
+          select: {
+            postTagOptionId: true,
+          },
+        },
         price: true,
         status: true,
         contactUrl: true,
@@ -94,7 +98,7 @@ export default async function EditPostPage({
             countryId: post.countryId,
             cityId: post.cityId,
             categoryId: post.categoryId,
-            postTagOptionId: post.postTagOptionId,
+            postTagOptionIds: post.tags.map((tag) => tag.postTagOptionId),
             price: post.price?.toString() ?? '',
             contactUrl: post.contactUrl,
             images: post.images,

@@ -20,74 +20,166 @@ const cities = [
 
 const categories = [
   {
-    name: '공지사항',
-    slug: 'notice',
+    name: '자유게시판',
+    slug: 'general',
     type: CategoryType.GENERAL,
-    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
-  },
-  {
-    name: '광고',
-    slug: 'ad',
-    type: CategoryType.GENERAL,
-    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
-  },
-  {
-    name: '사고팔아요',
-    slug: 'buy-sell',
-    type: CategoryType.SALE,
     visibilityMode: CategoryVisibilityMode.NORMAL,
   },
   {
-    name: '무료나눔',
-    slug: 'free-share',
-    type: CategoryType.GIVEAWAY,
-    visibilityMode: CategoryVisibilityMode.NORMAL,
-  },
-  {
-    name: '궁금해요',
+    name: '질문답변',
     slug: 'question',
     type: CategoryType.QUESTION,
     visibilityMode: CategoryVisibilityMode.NORMAL,
   },
   {
-    name: '도와주세요',
-    slug: 'help',
-    type: CategoryType.HELP,
+    name: '중고거래',
+    slug: 'sale',
+    type: CategoryType.SALE,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '무료나눔',
+    slug: 'giveaway',
+    type: CategoryType.GIVEAWAY,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '구인구직',
+    slug: 'recruit',
+    type: CategoryType.RECRUIT,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '주거',
+    slug: 'housing',
+    type: CategoryType.HOUSING,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '업체/서비스',
+    slug: 'service',
+    type: CategoryType.SERVICE,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '모임/이벤트',
+    slug: 'event',
+    type: CategoryType.EVENT,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '공지사항',
+    slug: 'notice',
+    type: CategoryType.NOTICE,
     visibilityMode: CategoryVisibilityMode.NORMAL,
   },
 ];
 
-const defaultTagOptionsByCategorySlug = {
-  'buy-sell': [
-    { label: '판매중', slug: 'selling', color: '#1A56DB', isDefault: true },
-    { label: '예약중', slug: 'reserved', color: '#2563EB' },
-    { label: '완료', slug: 'completed', color: '#3C1E1E' },
+const recommendedTagsByCategoryType = {
+  [CategoryType.GENERAL]: [
+    '정보공유',
+    '일상',
+    '잡담',
+    '후기',
+    '추천',
+    '주의',
+    '생활팁',
+    '새소식',
   ],
-  'free-share': [
-    { label: '나눔중', slug: 'sharing', color: '#1D4ED8', isDefault: true },
-    { label: '나눔완료', slug: 'shared', color: '#3C1E1E' },
+  [CategoryType.QUESTION]: [
+    '생활질문',
+    '학교',
+    '비자/이민',
+    '병원/의료',
+    '자동차',
+    '렌트/집',
+    '세금/회계',
+    '추천요청',
+    '급해요',
+    '해결됨',
   ],
-  'job': [
-    { label: '구인', slug: 'hiring', color: '#15803D', isDefault: true },
-    { label: '구직', slug: 'looking-for-job', color: '#0EA5E9' },
-    { label: '완료', slug: 'completed', color: '#3C1E1E' },
+  [CategoryType.SALE]: [
+    '판매중',
+    '예약중',
+    '가격인하',
+    '거래완료',
+    '자동차',
+    '가구',
+    '가전',
+    '유아/키즈',
+    '의류',
+    '기타',
   ],
-  question: [
-    { label: '질문중', slug: 'asking', color: '#7C3AED', isDefault: true },
-    { label: '해결됨', slug: 'resolved', color: '#166534' },
+  [CategoryType.GIVEAWAY]: [
+    '나눔중',
+    '예약중',
+    '나눔완료',
+    '픽업필수',
+    '빠른픽업',
+    '가구',
+    '가전',
+    '유아/키즈',
+    '식품',
+    '기타',
   ],
-  help: [
-    { label: '질문중', slug: 'asking', color: '#7C3AED', isDefault: true },
-    { label: '해결됨', slug: 'resolved', color: '#166534' },
+  [CategoryType.RECRUIT]: [
+    '구인',
+    '구직',
+    '풀타임',
+    '파트타임',
+    '캐주얼',
+    '단기',
+    '시급',
+    '경력무관',
+    '채용완료',
+    '구직완료',
   ],
-};
-
-const defaultTagOptionsByCategoryType = {
-  [CategoryType.SALE]: defaultTagOptionsByCategorySlug['buy-sell'],
-  [CategoryType.RECRUIT]: defaultTagOptionsByCategorySlug.job,
-  [CategoryType.GIVEAWAY]: defaultTagOptionsByCategorySlug['free-share'],
-  [CategoryType.QUESTION]: defaultTagOptionsByCategorySlug.question,
-  [CategoryType.HELP]: defaultTagOptionsByCategorySlug.help,
+  [CategoryType.HOUSING]: [
+    '방있음',
+    '방구함',
+    '렌트',
+    '플랫',
+    '홈스테이',
+    '단기',
+    '장기',
+    '즉시입주',
+    '가족가능',
+    '완료',
+  ],
+  [CategoryType.SERVICE]: [
+    '업체홍보',
+    '청소',
+    '이사',
+    '자동차정비',
+    '미용',
+    '레슨',
+    '회계/세무',
+    '통번역',
+    '사진/영상',
+    '추천업체',
+  ],
+  [CategoryType.EVENT]: [
+    '모임',
+    '행사',
+    '동호회',
+    '가족/키즈',
+    '스포츠',
+    '종교',
+    '무료',
+    '유료',
+    '모집중',
+    '마감',
+  ],
+  [CategoryType.NOTICE]: [
+    '공지',
+    '운영안내',
+    '업데이트',
+    '점검',
+    '규칙',
+    '사기주의',
+    '긴급',
+    '관리자공지',
+  ],
 };
 
 const reportOptions = [
@@ -160,48 +252,28 @@ async function main() {
     ),
   );
 
-  const categoryRecords = await prisma.category.findMany({
-    where: {
-      slug: {
-        in: categories.map((category) => category.slug),
-      },
-    },
-    select: {
-      id: true,
-      slug: true,
-      type: true,
-    },
-  });
-
-  for (const category of categoryRecords) {
-    const options =
-      defaultTagOptionsByCategorySlug[category.slug] ??
-      defaultTagOptionsByCategoryType[category.type] ??
-      [];
-
-    for (const [index, option] of options.entries()) {
+  for (const [categoryType, labels] of Object.entries(recommendedTagsByCategoryType)) {
+    for (const [index, label] of labels.entries()) {
+      const slug = `tag-${index + 1}`;
       await prisma.postTagOption.upsert({
         where: {
-          categoryId_slug: {
-            categoryId: category.id,
-            slug: option.slug,
+          categoryType_slug: {
+            categoryType,
+            slug,
           },
         },
         update: {
-          label: option.label,
-          color: option.color,
+          label,
           sortOrder: index,
           isActive: true,
-          isDefault: Boolean(option.isDefault),
         },
         create: {
-          categoryId: category.id,
-          label: option.label,
-          slug: option.slug,
-          color: option.color,
+          categoryType,
+          label,
+          slug,
+          color: null,
           sortOrder: index,
           isActive: true,
-          isDefault: Boolean(option.isDefault),
         },
       });
     }

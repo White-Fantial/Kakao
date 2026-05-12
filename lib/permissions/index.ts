@@ -43,7 +43,6 @@ export type PostFormCategoryOption = {
     label: string;
     slug: string;
     color: string | null;
-    isDefault: boolean;
   }[];
 };
 
@@ -171,7 +170,7 @@ export async function getPostCreationFormOptions(
     };
   }
 
-  const [countries, cities, categories, permissions] = await Promise.all([
+  const [countries, cities, categories, tagOptions, permissions] = await Promise.all([
     prisma.country.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
@@ -190,17 +189,17 @@ export async function getPostCreationFormOptions(
         name: true,
         type: true,
         visibilityMode: true,
-        postTagOptions: {
-          where: { isActive: true },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          select: {
-            id: true,
-            label: true,
-            slug: true,
-            color: true,
-            isDefault: true,
-          },
-        },
+      },
+    }),
+    prisma.postTagOption.findMany({
+      where: { isActive: true },
+      orderBy: [{ categoryType: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        categoryType: true,
+        label: true,
+        slug: true,
+        color: true,
       },
     }),
     user.role === 'ADMIN'
@@ -222,7 +221,30 @@ export async function getPostCreationFormOptions(
         }),
   ]);
 
-  const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const optionsByCategoryType = new Map<
+    CategoryType,
+    { id: string; label: string; slug: string; color: string | null }[]
+  >();
+  for (const option of tagOptions) {
+    const existing = optionsByCategoryType.get(option.categoryType) ?? [];
+    existing.push({
+      id: option.id,
+      label: option.label,
+      slug: option.slug,
+      color: option.color,
+    });
+    optionsByCategoryType.set(option.categoryType, existing);
+  }
+
+  const categoryById = new Map(
+    categories.map((category) => [
+      category.id,
+      {
+        ...category,
+        postTagOptions: optionsByCategoryType.get(category.type) ?? [],
+      },
+    ]),
+  );
   const countryIds = countries.map((country) => country.id);
   const countryIdSet = new Set(countryIds);
   const wildcardCountryIds = [null, ...countryIds];
@@ -331,7 +353,7 @@ export async function getPostCreationFormOptions(
   return {
     countries,
     cities,
-    categories: categories.filter((category) => allowedCategoryIds.has(category.id)),
+    categories: [...categoryById.values()].filter((category) => allowedCategoryIds.has(category.id)),
     allowedTargets,
     defaultCountryId,
     defaultCityId,

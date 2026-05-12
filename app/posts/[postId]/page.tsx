@@ -53,7 +53,14 @@ export async function generateMetadata({
       body: true,
       status: true,
       category: { select: { name: true } },
-      postTagOption: { select: { label: true } },
+      tags: {
+        select: {
+          postTagOption: {
+            select: { label: true },
+          },
+        },
+        take: 1,
+      },
       city: { select: { name: true } },
     },
   });
@@ -67,7 +74,7 @@ export async function generateMetadata({
 
   const title = withPostTagPrefix(
     post.title ?? post.body.slice(0, TITLE_PREVIEW_LENGTH),
-    post.postTagOption?.label,
+    post.tags[0]?.postTagOption.label,
   );
   const description = `${post.category.name} · ${post.city?.name ?? '전 지역'} · ${post.body.slice(0, DESCRIPTION_PREVIEW_LENGTH)}`;
 
@@ -105,14 +112,16 @@ export default async function PostDetailPage({
         select: {
           id: true,
           name: true,
-          postTagOptions: {
-            where: { isActive: true },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: { id: true, label: true },
+          type: true,
+        },
+      },
+      tags: {
+        select: {
+          postTagOption: {
+            select: { id: true, label: true, color: true, isActive: true },
           },
         },
       },
-      postTagOption: { select: { id: true, label: true, color: true, isActive: true } },
       city: { select: { name: true } },
       images: {
         select: { id: true, url: true },
@@ -142,6 +151,14 @@ export default async function PostDetailPage({
   }
 
   const isCoordinator = currentUser ? canHoldPost(currentUser) : false;
+  const categoryTagOptions = await prisma.postTagOption.findMany({
+    where: {
+      categoryType: post.category.type,
+      isActive: true,
+    },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true, label: true },
+  });
 
   // Non-coordinators cannot view HELD posts
   if (post.status === 'HELD' && !isCoordinator) {
@@ -194,10 +211,10 @@ export default async function PostDetailPage({
 
   const isOwner = currentUser?.id === post.authorId;
   const canChangeTag = currentUser ? canEditPost(currentUser, post) : false;
-  const activeTagOptionIds = new Set(post.category.postTagOptions.map((option) => option.id));
-  const selectedTagOptionId = activeTagOptionIds.has(post.postTagOption?.id ?? '')
-    ? post.postTagOption?.id
-    : post.category.postTagOptions[0]?.id;
+  const selectedTagIds = post.tags.map((tag) => tag.postTagOption.id);
+  const activeTagOptionIds = new Set(categoryTagOptions.map((option) => option.id));
+  const selectedTagOptionId = selectedTagIds.find((id) => activeTagOptionIds.has(id))
+    ?? categoryTagOptions[0]?.id;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -223,14 +240,19 @@ export default async function PostDetailPage({
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
+        <span className="rounded-full bg-[#eef2ff] px-2 py-1 text-[#3730a3]">{post.category.type}</span>
         <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
-        {post.postTagOption ? (
-          <PostTagBadge label={post.postTagOption.label} color={post.postTagOption.color} />
-        ) : null}
+        {post.tags.map((tag) => (
+          <PostTagBadge
+            key={tag.postTagOption.id}
+            label={tag.postTagOption.label}
+            color={tag.postTagOption.color}
+          />
+        ))}
       </div>
 
       {post.title ? (
-        <h1 className="text-xl font-bold">{withPostTagPrefix(post.title, post.postTagOption?.label)}</h1>
+        <h1 className="text-xl font-bold">{withPostTagPrefix(post.title, post.tags[0]?.postTagOption.label)}</h1>
       ) : null}
       <PostMarkdown body={post.body} />
 
@@ -288,7 +310,7 @@ export default async function PostDetailPage({
       ) : (
         <p className="text-sm text-[#888]">작성자가 연락 링크를 등록하지 않았어요.</p>
       )}
-      {canChangeTag && post.category.postTagOptions.length > 0 ? (
+      {canChangeTag && categoryTagOptions.length > 0 ? (
         <form action={changePostTagOptionAction} className="flex items-center gap-2 border-t border-[#e8e8e8] pt-4">
           <input type="hidden" name="postId" value={post.id} />
           <select
@@ -296,7 +318,7 @@ export default async function PostDetailPage({
             defaultValue={selectedTagOptionId}
             className="w-full rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
           >
-            {post.category.postTagOptions.map((option) => (
+            {categoryTagOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>

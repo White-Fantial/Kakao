@@ -34,7 +34,6 @@ type CategoryOption = {
     label: string;
     slug: string;
     color: string | null;
-    isDefault: boolean;
   }[];
 };
 
@@ -65,7 +64,7 @@ type PostFormProps = {
     countryId?: string | null;
     cityId?: string | null;
       categoryId?: string;
-      postTagOptionId?: string | null;
+      postTagOptionIds?: string[];
       price?: string | null;
       contactUrl?: string | null;
     images?: {
@@ -161,18 +160,6 @@ function getCategoryLabel(category: CategoryOption) {
   return category.label;
 }
 
-function getDefaultPostTagOptionId(category: CategoryOption | undefined) {
-  if (!category || category.postTagOptions.length === 0) {
-    return '';
-  }
-
-  return (
-    category.postTagOptions.find((option) => option.isDefault)?.id ??
-    category.postTagOptions[0]?.id ??
-    ''
-  );
-}
-
 // Keep the current selection when it is still valid for the filtered option set.
 function getValidatedSelection<T extends { value?: string; id?: string }>(
   options: T[],
@@ -209,7 +196,9 @@ export function PostForm({
   );
   const [cityValue, setCityValue] = useState(toCityValue(defaultValues?.cityId ?? defaultCityId));
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? '');
-  const [postTagOptionId, setPostTagOptionId] = useState(defaultValues?.postTagOptionId ?? '');
+  const [selectedPostTagOptionIds, setSelectedPostTagOptionIds] = useState<string[]>(
+    defaultValues?.postTagOptionIds ?? [],
+  );
   const [deletedImageIds, setDeletedImageIds] = useState<Set<string>>(new Set());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -250,11 +239,19 @@ export function PostForm({
     [categories, selectedCategoryId],
   );
   const selectedCategoryTagOptions = selectedCategory?.postTagOptions ?? [];
-  const selectedPostTagOptionId = getValidatedSelection(
-    selectedCategoryTagOptions,
-    postTagOptionId,
-    getDefaultPostTagOptionId(selectedCategory),
+  const selectedCategoryTagOptionIdSet = useMemo(
+    () => new Set(selectedCategoryTagOptions.map((option) => option.id)),
+    [selectedCategoryTagOptions],
   );
+  const validatedSelectedPostTagOptionIds = selectedPostTagOptionIds.filter((optionId) =>
+    selectedCategoryTagOptionIdSet.has(optionId),
+  );
+
+  function togglePostTagOption(optionId: string) {
+    setSelectedPostTagOptionIds((prev) =>
+      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId],
+    );
+  }
 
   function toggleDeleteImage(id: string) {
     setDeletedImageIds((prev) => {
@@ -436,7 +433,13 @@ export function PostForm({
           id="categoryId"
           name="categoryId"
           value={selectedCategoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
+          onChange={(event) => {
+            const nextCategoryId = event.target.value;
+            setCategoryId(nextCategoryId);
+            const nextCategory = categories.find((category) => category.id === nextCategoryId);
+            const validIds = new Set((nextCategory?.postTagOptions ?? []).map((option) => option.id));
+            setSelectedPostTagOptionIds((prev) => prev.filter((id) => validIds.has(id)));
+          }}
           required
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
         >
@@ -450,25 +453,35 @@ export function PostForm({
 
       {selectedCategoryTagOptions.length > 0 ? (
         <div className="space-y-1">
-          <label htmlFor="postTagOptionId" className="text-sm font-medium">
-            말머리/상태
-          </label>
-          <select
-            id="postTagOptionId"
-            name="postTagOptionId"
-            value={selectedPostTagOptionId}
-            onChange={(event) => setPostTagOptionId(event.target.value)}
-            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
-          >
-            {selectedCategoryTagOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <p className="text-sm font-medium">태그 (선택, 0개 이상)</p>
+          <div className="flex flex-wrap gap-2 rounded-lg border border-[#e8e8e8] p-3">
+            {selectedCategoryTagOptions.map((option) => {
+              const checked = validatedSelectedPostTagOptionIds.includes(option.id);
+              return (
+                <label
+                  key={option.id}
+                  className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
+                    checked
+                      ? 'border-[#fee500] bg-[#fffde7]'
+                      : 'border-[#e8e8e8] hover:border-[#fee500] hover:bg-[#fffde7]'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    name="postTagOptionIds"
+                    value={option.id}
+                    checked={checked}
+                    onChange={() => togglePostTagOption(option.id)}
+                    className="accent-[#fee500]"
+                  />
+                  <span>{option.label}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
       ) : (
-        <input type="hidden" name="postTagOptionId" value="" />
+        <input type="hidden" name="postTagOptionIds" value="" />
       )}
 
       {shouldShowPrice ? (
