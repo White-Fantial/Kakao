@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
+import { CountryOnboardingSuggestion } from '@/components/location/country-onboarding-suggestion';
 import { selectCountryAction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -44,8 +45,10 @@ export default async function SelectCountryPage({ searchParams }: SelectCountryP
       </div>
 
       <p className="text-sm text-[#555]">
-        서비스를 이용할 국가를 선택해 주세요. 한 번 설정하면 변경할 수 없습니다.
+        서비스를 이용할 국가를 선택해 주세요. 위치 기반 추천은 참고용이며 자동으로 변경되지 않습니다.
       </p>
+
+      <CountryOnboardingSuggestion action={selectCountryAction} returnTo={params.returnTo ?? ''} />
 
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>

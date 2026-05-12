@@ -7,7 +7,12 @@ import { saveSearchAlertAction } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { CountrySwitchSuggestionBanner } from '@/components/location/country-switch-suggestion-banner';
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
+import {
+  dismissCountrySuggestionAction,
+  switchCountryBySuggestionAction,
+} from './country-suggestion-actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -54,7 +59,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     currentUser
       ? prisma.user.findUnique({
           where: { id: currentUser.id },
-          select: { cityId: true },
+          select: {
+            cityId: true,
+            countryId: true,
+            country: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            countrySuggestionDismissedCountryId: true,
+            countrySuggestionDismissedUntil: true,
+          },
         })
       : Promise.resolve(null),
   ]);
@@ -67,7 +83,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   );
   const filterCategoryIds = new Set(filterCategories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
-  const profileCityId = dbUser?.cityId;
+  const profileCityId = dbUser?.cityId ?? null;
+  const activeProfileCityId =
+    profileCityId && cityIds.has(profileCityId) ? profileCityId : null;
+  const hasActiveProfileCity = activeProfileCityId !== null;
   const selectedFilterCategoryIdsFromParams = Array.from(
     new Set(toArray(params.category).filter((id) => filterCategoryIds.has(id))),
   );
@@ -88,17 +107,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     selectedCityIdsFromParams.length > 0
       ? selectedCityIdsFromParams
       : cities.map((city) => city.id);
+  const shouldIncludeProfileCity = hasActiveProfileCity
+    ? !selectedCityIdsBase.includes(activeProfileCityId)
+    : false;
   const selectedCityIds =
-    profileCityId &&
-    cityIds.has(profileCityId) &&
-    !selectedCityIdsBase.includes(profileCityId)
-      ? [...selectedCityIdsBase, profileCityId]
+    shouldIncludeProfileCity
+      ? [...selectedCityIdsBase, activeProfileCityId]
       : selectedCityIdsBase;
 
   const shouldFilterByCountry = Boolean(userCountryId);
   const shouldFilterByCategory =
     selectedFilterCategoryIds.length !== filterCategories.length;
-  const shouldFilterByCity = selectedCityIds.length !== cities.length;
+  const shouldFilterByCity = hasActiveProfileCity && selectedCityIds.length !== cities.length;
   const hasKeyword = Boolean(keyword);
 
   const returnToParams = new URLSearchParams();
@@ -265,6 +285,23 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
+
+      {currentUser ? (
+        <CountrySwitchSuggestionBanner
+          selectedCountry={dbUser?.country ?? null}
+          dismissedCountryId={dbUser?.countrySuggestionDismissedCountryId ?? null}
+          dismissedUntil={dbUser?.countrySuggestionDismissedUntil?.toISOString() ?? null}
+          nowIso={new Date().toISOString()}
+          switchAction={switchCountryBySuggestionAction}
+          dismissAction={dismissCountrySuggestionAction}
+        />
+      ) : null}
+
+      {currentUser && !hasActiveProfileCity ? (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          도시 기반 필터와 글쓰기를 위해 <Link href="/my/profile" className="underline">기본 지역</Link>을 선택해 주세요.
+        </p>
+      ) : null}
       <form key={returnToParams.toString()}>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           <input
@@ -327,7 +364,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                         name="city"
                         value={city.id}
                         defaultChecked={selectedCityIds.includes(city.id)}
-                        disabled={isProfileCity}
+                        disabled={isProfileCity || !hasActiveProfileCity}
                         aria-label={
                           isProfileCity
                             ? `${city.name} (프로필 기본 지역으로 항상 선택됨)`
