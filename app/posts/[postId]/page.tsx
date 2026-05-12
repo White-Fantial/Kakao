@@ -661,14 +661,14 @@ export default async function PostDetailPage({
             className={outlineActionButtonClass}
             aria-label={`이전 글로 이동: ${previousPostTitle}`}
           >
-            <span className="mr-1 shrink-0">← 이전 글:</span>
+            <span className="mr-1 shrink-0">이전 글:</span>
             <span className="line-clamp-1 min-w-0">
               {previousPostTitle}
             </span>
           </Link>
         ) : (
           <button type="button" disabled className={`${outlineActionButtonClass} text-[#888]`}>
-            ← 이전 글이 없어요
+            이전 글이 없어요
           </button>
         )}
         {nextPost ? (
@@ -681,11 +681,10 @@ export default async function PostDetailPage({
             <span className="line-clamp-1 min-w-0">
               {nextPostTitle}
             </span>
-            <span className="ml-1 shrink-0">→</span>
           </Link>
         ) : (
           <button type="button" disabled className={`${outlineActionButtonClass} text-[#888]`}>
-            다음 글이 없어요 →
+            다음 글이 없어요
           </button>
         )}
       </section>
