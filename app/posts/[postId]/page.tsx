@@ -275,7 +275,11 @@ export default async function PostDetailPage({
           sizes="28px"
         />
         <span>
-          작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}
+          작성자:{' '}
+          <Link href={`/users/${post.author.id}`} className="font-medium text-[#3c1e1e] hover:underline">
+            {post.author.displayName}
+          </Link>
+          {' '}· {new Date(post.createdAt).toLocaleString('ko-KR')}
         </span>
       </div>
 
