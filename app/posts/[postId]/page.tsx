@@ -37,6 +37,7 @@ import {
   getActiveCitiesByCountry,
   getActivePostTagOptions,
 } from '@/lib/posts/reference-data';
+import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { measureServerTiming } from '@/lib/performance/server';
 
 const TITLE_PREVIEW_LENGTH = 40;
@@ -125,42 +126,12 @@ const getPostWithDetails = cache(async (postId: string) => {
 
 const COMMENT_PAGE_SIZE = 20;
 
-function decodeCommentsCursor(cursorToken: string) {
-  try {
-    const parsed = JSON.parse(Buffer.from(cursorToken, 'base64url').toString('utf8')) as {
-      id: string;
-      createdAt: string;
-    };
-    if (!parsed?.id || !parsed?.createdAt) {
-      return null;
-    }
-
-    const createdAt = new Date(parsed.createdAt);
-    if (Number.isNaN(createdAt.getTime())) {
-      return null;
-    }
-
-    return { id: parsed.id, createdAt };
-  } catch {
-    return null;
-  }
-}
-
-function encodeCommentsCursor(comment: { id: string; createdAt: Date }) {
-  return Buffer.from(
-    JSON.stringify({
-      id: comment.id,
-      createdAt: comment.createdAt.toISOString(),
-    }),
-  ).toString('base64url');
-}
-
 const getPostComments = cache(async (
   postId: string,
   cursorToken: string,
   direction: 'next' | 'prev',
 ) => {
-  const cursor = cursorToken ? decodeCommentsCursor(cursorToken) : null;
+  const cursor = cursorToken ? decodeCursor(cursorToken) : null;
   const comments = await measureServerTiming('post-detail:comments', () =>
     prisma.comment.findMany({
       where: {
@@ -170,14 +141,14 @@ const getPostComments = cache(async (
           ? direction === 'prev'
             ? {
                 OR: [
-                  { createdAt: { gt: cursor.createdAt } },
-                  { AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }] },
+                  { createdAt: { lt: cursor.createdAt } },
+                  { AND: [{ createdAt: cursor.createdAt }, { id: { lt: cursor.id } }] },
                 ],
               }
             : {
                 OR: [
-                  { createdAt: { lt: cursor.createdAt } },
-                  { AND: [{ createdAt: cursor.createdAt }, { id: { lt: cursor.id } }] },
+                  { createdAt: { gt: cursor.createdAt } },
+                  { AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }] },
                 ],
               }
           : {}),
@@ -983,7 +954,7 @@ async function CommentsSection({
         <nav className="flex items-center justify-between gap-2 pt-1" aria-label="댓글 페이지 이동">
           {hasPrevPage && firstComment ? (
             <Link
-              href={createCommentPageHref(encodeCommentsCursor(firstComment), 'prev')}
+              href={createCommentPageHref(encodeCursor(firstComment), 'prev')}
               className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
             >
               이전 댓글
@@ -993,7 +964,7 @@ async function CommentsSection({
           )}
           {hasNextPage && lastComment ? (
             <Link
-              href={createCommentPageHref(encodeCommentsCursor(lastComment), 'next')}
+              href={createCommentPageHref(encodeCursor(lastComment), 'next')}
               className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
             >
               다음 댓글
