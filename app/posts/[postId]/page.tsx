@@ -33,6 +33,9 @@ import {
 export const dynamic = 'force-dynamic';
 const TITLE_PREVIEW_LENGTH = 40;
 const DESCRIPTION_PREVIEW_LENGTH = 80;
+const COMMUNITY_NAME = '한인 커뮤니티';
+const TWITTER_CARD_SUMMARY = 'summary';
+const TWITTER_CARD_LARGE_IMAGE = 'summary_large_image';
 
 type PostDetailPageProps = {
   params: Promise<{ postId: string }>;
@@ -50,6 +53,11 @@ export async function generateMetadata({
       title: true,
       body: true,
       status: true,
+      images: {
+        select: { url: true },
+        orderBy: { sortOrder: 'asc' },
+        take: 1,
+      },
       category: { select: { name: true } },
       tags: {
         select: {
@@ -74,15 +82,25 @@ export async function generateMetadata({
     post.title ?? post.body.slice(0, TITLE_PREVIEW_LENGTH),
     post.tags[0]?.postTagOption.label,
   );
+  const socialTitle = `${title} | ${COMMUNITY_NAME}`;
   const description = `${post.category.name} · ${post.city?.name ?? '전 지역'} · ${post.body.slice(0, DESCRIPTION_PREVIEW_LENGTH)}`;
+  const primaryImageUrl = post.images?.[0]?.url;
+  const twitterCard = primaryImageUrl ? TWITTER_CARD_LARGE_IMAGE : TWITTER_CARD_SUMMARY;
 
   return {
     title,
     description,
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       type: 'article',
+      images: primaryImageUrl ? [primaryImageUrl] : undefined,
+    },
+    twitter: {
+      card: twitterCard,
+      title: socialTitle,
+      description,
+      images: primaryImageUrl ? [primaryImageUrl] : undefined,
     },
   };
 }
