@@ -91,11 +91,12 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, 40);
             const postTagOptions = tagOptionsByType.get(post.category.type) ?? [];
-            const selectedTagIds = post.tags.map((tag) => tag.postTagOption.id);
+            const firstTagOptionId = post.tags[0]?.postTagOption.id;
             const postHeading = titleText || bodyPreview;
             const activeTagOptionIds = new Set(postTagOptions.map((option) => option.id));
-            const selectedTagOptionId = selectedTagIds.find((id) => activeTagOptionIds.has(id))
-              ?? postTagOptions[0]?.id;
+            const selectedTagOptionId = firstTagOptionId && activeTagOptionIds.has(firstTagOptionId)
+              ? firstTagOptionId
+              : postTagOptions[0]?.id;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
               : '게시글 썸네일: 제목 없는 게시글';
