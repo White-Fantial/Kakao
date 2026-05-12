@@ -48,15 +48,15 @@ enum CategoryType {
   QUESTION
 }
 
-enum PermissionResourceType {
-  CATEGORY
-  COUNTRY
-  CITY
+enum CategoryVisibilityMode {
+  NORMAL
+  ALWAYS_INCLUDED
+  HIDDEN
 }
 
-enum PermissionEffect {
-  ALLOW
-  DENY
+enum PermissionSubjectType {
+  USER
+  ROLE
 }
 
 model User {
@@ -86,7 +86,7 @@ model User {
   searchAlerts         SearchAlert[]
   postReports          PostReport[]
   savedPosts           SavedPost[]
-  writePolicies        UserWritePermissionPolicy[]
+  postPermissions      PostPermission[]
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -111,6 +111,7 @@ model Country {
   users     User[]
   cities    City[]
   posts     Post[]
+  permissions PostPermission[]
 }
 
 model City {
@@ -123,47 +124,41 @@ model City {
   country   Country? @relation(fields: [countryId], references: [id])
   users     User[]
   posts     Post[]
+  permissions PostPermission[]
 }
 
 model Category {
-  id                String       @id @default(cuid())
-  name              String
-  slug              String       @unique
-  type              CategoryType @default(GENERAL)
-  isActive          Boolean      @default(true)
-  isAlwaysIncluded  Boolean      @default(false)
-  sortOrder         Int          @default(0)
-  ignoreCity        Boolean      @default(false)
-  supportsAllCities Boolean      @default(false)
-  ignoreCountry     Boolean      @default(false)
-  posts             Post[]
+  id             String                 @id @default(cuid())
+  name           String
+  slug           String                 @unique
+  type           CategoryType           @default(GENERAL)
+  visibilityMode CategoryVisibilityMode @default(NORMAL)
+  isActive       Boolean                @default(true)
+  sortOrder      Int                    @default(0)
+  posts          Post[]
+  permissions    PostPermission[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 }
 
-model RoleWritePermissionPolicy {
-  id           String                 @id @default(cuid())
-  role         UserRole
-  resourceType PermissionResourceType
-  resourceId   String
-  effect       PermissionEffect
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+model PostPermission {
+  id          String                @id @default(cuid())
+  subjectType PermissionSubjectType
+  userId      String?
+  role        UserRole?
+  countryId   String?
+  cityId      String?
+  categoryId  String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  user        User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  country     Country?              @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  city        City?                 @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  category    Category?             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  @@unique([role, resourceType, resourceId])
-  @@index([resourceType, resourceId])
-}
-
-model UserWritePermissionPolicy {
-  id           String                 @id @default(cuid())
-  userId       String
-  resourceType PermissionResourceType
-  resourceId   String
-  effect       PermissionEffect
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, resourceType, resourceId])
-  @@index([resourceType, resourceId])
+  @@index([subjectType, userId])
+  @@index([subjectType, role])
+  @@index([countryId, cityId, categoryId])
 }
 
 model Post {

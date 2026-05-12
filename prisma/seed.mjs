@@ -1,10 +1,8 @@
-import { PrismaClient, CategoryType, UserRole, PermissionEffect, PermissionResourceType } from '@prisma/client';
+import { PrismaClient, CategoryType, CategoryVisibilityMode, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const countries = [
-  { name: 'New Zealand', slug: 'new-zealand' },
-];
+const countries = [{ name: 'New Zealand', slug: 'new-zealand' }];
 
 const cities = [
   'Auckland',
@@ -21,13 +19,42 @@ const cities = [
 ];
 
 const categories = [
-  { name: '공지사항', slug: 'notice', type: CategoryType.GENERAL, allowedRoles: [UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: true, ignoreCity: true, supportsAllCities: false, ignoreCountry: true },
-  { name: '피쳐드', slug: 'featured', type: CategoryType.GENERAL, allowedRoles: [UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: true, ignoreCity: false, supportsAllCities: true, ignoreCountry: false },
-  { name: '궁금해요', slug: 'question', type: CategoryType.QUESTION, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '도와주세요', slug: 'help', type: CategoryType.HELP, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '팔아요', slug: 'sale', type: CategoryType.SALE, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '구인구직', slug: 'recruit', type: CategoryType.RECRUIT, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
-  { name: '무료나눔', slug: 'giveaway', type: CategoryType.GIVEAWAY, allowedRoles: [UserRole.USER, UserRole.COORDINATOR, UserRole.ADMIN], isAlwaysIncluded: false, ignoreCity: false, supportsAllCities: false, ignoreCountry: false },
+  {
+    name: '공지사항',
+    slug: 'notice',
+    type: CategoryType.GENERAL,
+    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
+  },
+  {
+    name: '광고',
+    slug: 'ad',
+    type: CategoryType.GENERAL,
+    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
+  },
+  {
+    name: '사고팔아요',
+    slug: 'buy-sell',
+    type: CategoryType.SALE,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '무료나눔',
+    slug: 'free-share',
+    type: CategoryType.GIVEAWAY,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '궁금해요',
+    slug: 'question',
+    type: CategoryType.QUESTION,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
+  {
+    name: '도와주세요',
+    slug: 'help',
+    type: CategoryType.HELP,
+    visibilityMode: CategoryVisibilityMode.NORMAL,
+  },
 ];
 
 const reportOptions = [
@@ -44,7 +71,6 @@ function slugifyCity(city) {
 }
 
 async function main() {
-  // Upsert countries
   const countryRecords = {};
   for (const [index, country] of countries.entries()) {
     const record = await prisma.country.upsert({
@@ -62,7 +88,6 @@ async function main() {
 
   const nzId = countryRecords['new-zealand'].id;
 
-  // Upsert cities and assign to New Zealand
   await Promise.all(
     cities.map((name, index) =>
       prisma.city.upsert({
@@ -79,60 +104,28 @@ async function main() {
     ),
   );
 
-  const categoryRecords = await Promise.all(
+  await Promise.all(
     categories.map((category, index) =>
       prisma.category.upsert({
         where: { slug: category.slug },
         update: {
           name: category.name,
           type: category.type,
+          visibilityMode: category.visibilityMode,
           isActive: true,
           sortOrder: index,
-          isAlwaysIncluded: category.isAlwaysIncluded,
-          ignoreCity: category.ignoreCity,
-          supportsAllCities: category.supportsAllCities,
-          ignoreCountry: category.ignoreCountry,
         },
         create: {
           name: category.name,
           slug: category.slug,
           type: category.type,
-          isAlwaysIncluded: category.isAlwaysIncluded,
-          ignoreCity: category.ignoreCity,
-          supportsAllCities: category.supportsAllCities,
-          ignoreCountry: category.ignoreCountry,
+          visibilityMode: category.visibilityMode,
           isActive: true,
           sortOrder: index,
         },
       }),
     ),
   );
-
-  const allUserRoles = Object.values(UserRole);
-  const rolePolicyRows = categoryRecords.flatMap((categoryRecord) => {
-    const category = categories.find((entry) => entry.slug === categoryRecord.slug);
-    if (!category) {
-      throw new Error(`Missing seed policy definition for category slug: ${categoryRecord.slug}`);
-    }
-
-    return allUserRoles.map((role) => ({
-      role,
-      resourceType: PermissionResourceType.CATEGORY,
-      resourceId: categoryRecord.id,
-      effect: category.allowedRoles.includes(role) ? PermissionEffect.ALLOW : PermissionEffect.DENY,
-    }));
-  });
-
-  await prisma.roleWritePermissionPolicy.deleteMany({
-    where: {
-      resourceType: PermissionResourceType.CATEGORY,
-      resourceId: { in: categoryRecords.map((category) => category.id) },
-    },
-  });
-  await prisma.roleWritePermissionPolicy.createMany({
-    data: rolePolicyRows,
-    skipDuplicates: true,
-  });
 
   await Promise.all(
     reportOptions.map((label, index) =>
@@ -144,10 +137,6 @@ async function main() {
     ),
   );
 
-  // Admin user seed — for local / staging use only.
-  // kakaoId is a dev placeholder; replace it with the real Kakao numeric ID
-  // (via prisma studio or a one-off query) after the admin first logs in via Kakao OAuth.
-  // Set ADMIN_KAKAO_ID env var to override the placeholder in other environments.
   const adminKakaoId = process.env.ADMIN_KAKAO_ID ?? 'seed-admin-placeholder';
   const adminDisplayName = process.env.ADMIN_DISPLAY_NAME ?? 'nomadongho';
   const profileImageUrl = process.env.ADMIN_PROFILE_IMAGE_URL ?? null;
@@ -157,7 +146,7 @@ async function main() {
     create: {
       kakaoId: adminKakaoId,
       displayName: adminDisplayName,
-      profileImageUrl: profileImageUrl,
+      profileImageUrl,
       role: UserRole.ADMIN,
     },
   });

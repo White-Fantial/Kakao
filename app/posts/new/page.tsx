@@ -1,13 +1,9 @@
 import type { Metadata } from 'next';
-import type { CategoryType } from '@prisma/client';
-import { redirect } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
 import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
-import { prisma } from '@/lib/db/prisma';
-import { getProfileCityRequiredHref } from '@/lib/posts/profile-city';
-import { filterPostableCategoriesForUser, ROLE_RANK } from '@/lib/permissions';
+import { getPostCreationFormOptions } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -19,77 +15,43 @@ type NewPostPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-type CategoryListItem = {
-  id: string;
-  name: string;
-  type: CategoryType;
-  ignoreCity: boolean;
-  supportsAllCities: boolean;
-  ignoreCountry: boolean;
-};
-
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const user = await requireUser();
   const params = await searchParams;
-
-  const [allCategories, cities, dbUser] = await Promise.all([
-    prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, type: true, ignoreCity: true, supportsAllCities: true, ignoreCountry: true },
-    }),
-    prisma.city.findMany({
-      where: {
-        isActive: true,
-        ...(user.countryId ? { countryId: user.countryId } : {}),
-      },
-      orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        cityId: true,
-        city: { select: { id: true, name: true } },
-      },
-    }),
-  ]);
-
-  const categories = await filterPostableCategoriesForUser<CategoryListItem>(
-    user,
-    allCategories,
-    user.countryId,
-  );
-
-  // Normal-category posts still require a profile city
-  const hasRestrictedOnly = categories.every((cat) => cat.ignoreCity || cat.supportsAllCities);
-  if (!hasRestrictedOnly && (!dbUser?.cityId || !dbUser.city)) {
-    redirect(getProfileCityRequiredHref('/posts/new'));
-  }
-
-  const cityLabel = dbUser?.city?.name ?? '';
-  const defaultCityId = dbUser?.cityId ?? null;
-  const canSelectAllCities = ROLE_RANK[user.role] >= ROLE_RANK['COORDINATOR'];
+  const formOptions = await getPostCreationFormOptions(user);
 
   return (
     <section className="space-y-4">
       <h1 className="text-xl font-semibold">글쓰기</h1>
-      <PostForm
-        action={createPostAction}
-        categories={categories.map((category) => ({
-          id: category.id,
-          label: category.name,
-          type: category.type,
-          ignoreCity: category.ignoreCity,
-          supportsAllCities: category.supportsAllCities,
-        }))}
-        cities={cities}
-        cityLabel={cityLabel}
-        defaultCityId={defaultCityId}
-        canSelectAllCities={canSelectAllCities}
-        submitLabel="올리기"
-        errorMessage={params.error}
-      />
+      {formOptions.allowedTargets.length === 0 ? (
+        <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 text-sm text-[#666] shadow-sm">
+          현재 글을 작성할 수 있는 권한이 없습니다.
+        </div>
+      ) : (
+        <PostForm
+          action={createPostAction}
+          countries={formOptions.countries.map((country) => ({
+            id: country.id,
+            label: country.name,
+          }))}
+          cities={formOptions.cities.map((city) => ({
+            id: city.id,
+            label: city.name,
+            countryId: city.countryId,
+          }))}
+          categories={formOptions.categories.map((category) => ({
+            id: category.id,
+            label: category.name,
+            type: category.type,
+            visibilityMode: category.visibilityMode,
+          }))}
+          allowedTargets={formOptions.allowedTargets}
+          defaultCountryId={formOptions.defaultCountryId}
+          defaultCityId={formOptions.defaultCityId}
+          submitLabel="올리기"
+          errorMessage={params.error}
+        />
+      )}
     </section>
   );
 }

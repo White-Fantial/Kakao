@@ -7,4 +7,5 @@ export type SessionUser = {
   role: UserRole;
   status: UserStatus;
   countryId: string | null;
+  cityId: string | null;
 };

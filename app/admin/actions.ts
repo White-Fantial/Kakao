@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { CategoryType, PermissionEffect, PermissionResourceType } from '@prisma/client';
+import {
+  CategoryType,
+  CategoryVisibilityMode,
+  PermissionSubjectType,
+} from '@prisma/client';
 
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -11,6 +15,9 @@ import type { SessionUser } from '@/lib/auth/types';
 import type { UserRole, UserStatus } from '@prisma/client';
 
 const VALID_CATEGORY_TYPES = Object.values(CategoryType) as CategoryType[];
+const VALID_CATEGORY_VISIBILITY_MODES = Object.values(
+  CategoryVisibilityMode,
+) as CategoryVisibilityMode[];
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -232,13 +239,18 @@ export async function createCategoryAction(formData: FormData) {
   const name = normalizeText(formData.get('name'));
   const slug = normalizeText(formData.get('slug'));
   const type = normalizeText(formData.get('type')) as CategoryType;
+  const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
 
-  if (!name || !slug || !type) {
-    redirect('/admin/categories?error=이름, 슬러그, 타입을 입력해 주세요.');
+  if (!name || !slug || !type || !visibilityMode) {
+    redirect('/admin/categories?error=이름, 슬러그, 타입, 노출 방식을 입력해 주세요.');
   }
 
   if (!VALID_CATEGORY_TYPES.includes(type)) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
+  }
+
+  if (!VALID_CATEGORY_VISIBILITY_MODES.includes(visibilityMode)) {
+    redirect('/admin/categories?error=유효하지 않은 카테고리 노출 방식입니다.');
   }
 
   const existing = await prisma.category.findUnique({ where: { slug } });
@@ -247,7 +259,7 @@ export async function createCategoryAction(formData: FormData) {
   }
 
   await prisma.category.create({
-    data: { name, slug, type },
+    data: { name, slug, type, visibilityMode },
   });
 
   revalidatePath('/admin/categories');
@@ -287,10 +299,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
 
   const categoryId = normalizeText(formData.get('categoryId'));
   const type = normalizeText(formData.get('type')) as CategoryType;
-  const isAlwaysIncluded = formData.get('isAlwaysIncluded') === 'true';
-  const ignoreCity = formData.get('ignoreCity') === 'true';
-  const supportsAllCities = formData.get('supportsAllCities') === 'true';
-  const ignoreCountry = formData.get('ignoreCountry') === 'true';
+  const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
 
   if (!categoryId) {
     redirect('/admin/categories?error=카테고리 ID가 없습니다.');
@@ -300,9 +309,13 @@ export async function updateCategorySettingsAction(formData: FormData) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
+  if (!VALID_CATEGORY_VISIBILITY_MODES.includes(visibilityMode)) {
+    redirect('/admin/categories?error=유효하지 않은 카테고리 노출 방식입니다.');
+  }
+
   await prisma.category.update({
     where: { id: categoryId },
-    data: { type, isAlwaysIncluded, ignoreCity, supportsAllCities, ignoreCountry },
+    data: { type, visibilityMode },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
@@ -311,48 +324,148 @@ export async function updateCategorySettingsAction(formData: FormData) {
   redirect('/admin/categories');
 }
 
-export async function updateCategoryRolePolicyAction(formData: FormData) {
+export async function createPostPermissionAction(formData: FormData) {
   const user = await requireUser();
   requireAdmin(user);
 
-  const categoryId = normalizeText(formData.get('categoryId'));
-  const role = normalizeText(formData.get('role')) as UserRole;
-  const effect = normalizeText(formData.get('effect')) as PermissionEffect;
+  const subjectType = normalizeText(formData.get('subjectType')) as PermissionSubjectType;
+  const userId = normalizeText(formData.get('userId')) || null;
+  const rawRole = normalizeText(formData.get('role'));
+  const role = USER_ROLES.find((candidate) => candidate === rawRole) ?? null;
+  const countryId = normalizeText(formData.get('countryId')) || null;
+  const cityId = normalizeText(formData.get('cityId')) || null;
+  const categoryId = normalizeText(formData.get('categoryId')) || null;
 
-  if (!categoryId) {
-    redirect('/admin/categories?error=카테고리 ID가 없습니다.');
+  if (!Object.values(PermissionSubjectType).includes(subjectType)) {
+    redirect('/admin/post-permissions?error=유효하지 않은 권한 주체입니다.');
   }
 
-  if (!USER_ROLES.includes(role)) {
-    redirect('/admin/categories?error=유효하지 않은 역할입니다.');
+  if (subjectType === 'USER' && !userId) {
+    redirect('/admin/post-permissions?error=사용자를 선택해 주세요.');
   }
 
-  const validEffects = Object.values(PermissionEffect) as PermissionEffect[];
-  if (!validEffects.includes(effect)) {
-    redirect('/admin/categories?error=유효하지 않은 권한 효과입니다.');
+  if (subjectType === 'ROLE' && !role) {
+    redirect('/admin/post-permissions?error=유효하지 않은 역할입니다.');
   }
 
-  await prisma.roleWritePermissionPolicy.upsert({
-    where: {
-      role_resourceType_resourceId: {
-        role,
-        resourceType: PermissionResourceType.CATEGORY,
-        resourceId: categoryId,
+  if (cityId && !countryId) {
+    redirect('/admin/post-permissions?error=도시를 지정하려면 국가를 함께 선택해 주세요.');
+  }
+
+  const [targetUser, country, city, category, existingPermission] = await Promise.all([
+    userId
+      ? prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    countryId
+      ? prisma.country.findFirst({
+          where: { id: countryId, isActive: true },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    cityId
+      ? prisma.city.findFirst({
+          where: { id: cityId, isActive: true },
+          select: { id: true, countryId: true },
+        })
+      : Promise.resolve(null),
+    categoryId
+      ? prisma.category.findFirst({
+          where: { id: categoryId, isActive: true },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    prisma.postPermission.findFirst({
+      where: {
+        subjectType,
+        userId: subjectType === 'USER' ? userId : null,
+        role: subjectType === 'ROLE' ? role : null,
+        countryId,
+        cityId,
+        categoryId,
       },
-    },
-    update: { effect },
-    create: {
-      role,
-      resourceType: PermissionResourceType.CATEGORY,
-      resourceId: categoryId,
-      effect,
+      select: { id: true },
+    }),
+  ]);
+
+  if (subjectType === 'USER' && !targetUser) {
+    redirect('/admin/post-permissions?error=사용자를 찾을 수 없습니다.');
+  }
+
+  if (countryId && !country) {
+    redirect('/admin/post-permissions?error=국가를 찾을 수 없습니다.');
+  }
+
+  if (cityId && (!city || city.countryId !== countryId)) {
+    redirect('/admin/post-permissions?error=도시를 올바르게 선택해 주세요.');
+  }
+
+  if (categoryId && !category) {
+    redirect('/admin/post-permissions?error=카테고리를 찾을 수 없습니다.');
+  }
+
+  if (existingPermission) {
+    redirect('/admin/post-permissions?error=동일한 권한이 이미 존재합니다.');
+  }
+
+  await prisma.postPermission.create({
+    data: {
+      subjectType,
+      userId: subjectType === 'USER' ? userId : null,
+      role: subjectType === 'ROLE' ? role : null,
+      countryId,
+      cityId,
+      categoryId,
     },
   });
 
-  await logModerationAction(user.id, 'CATEGORY', categoryId, `ROLE_POLICY_${role}_${effect}`);
+  await logModerationAction(user.id, 'POST_PERMISSION', userId ?? role ?? 'UNKNOWN', `CREATE_${subjectType}`);
 
-  revalidatePath('/admin/categories');
-  redirect('/admin/categories');
+  revalidatePath('/admin/post-permissions');
+  revalidatePath('/posts/new');
+  redirect('/admin/post-permissions');
+}
+
+export async function deletePostPermissionAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const permissionId = normalizeText(formData.get('permissionId'));
+
+  if (!permissionId) {
+    redirect('/admin/post-permissions?error=권한 ID가 없습니다.');
+  }
+
+  const permission = await prisma.postPermission.findUnique({
+    where: { id: permissionId },
+    select: {
+      id: true,
+      subjectType: true,
+      userId: true,
+      role: true,
+    },
+  });
+
+  if (!permission) {
+    redirect('/admin/post-permissions?error=권한을 찾을 수 없습니다.');
+  }
+
+  await prisma.postPermission.delete({
+    where: { id: permissionId },
+  });
+
+  await logModerationAction(
+    user.id,
+    'POST_PERMISSION',
+    permission.id,
+    `DELETE_${permission.subjectType}_${permission.userId ?? permission.role ?? 'UNKNOWN'}`,
+  );
+
+  revalidatePath('/admin/post-permissions');
+  revalidatePath('/posts/new');
+  redirect('/admin/post-permissions');
 }
 
 export async function createCityAction(formData: FormData) {
