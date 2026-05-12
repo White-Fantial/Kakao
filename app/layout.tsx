@@ -66,13 +66,16 @@ export default async function RootLayout({
           <header className="sticky top-0 z-10 border-b border-[#e8e8e8] bg-white/95 px-4 py-3 backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
               <Link href="/posts" className="flex items-center gap-2 text-lg font-bold">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#fee500] text-base font-black text-[#3c1e1e]">
+                  K
+                </span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://github.com/user-attachments/assets/ea3c202e-ee31-4622-bf82-c9b93f3d0d67"
-                  alt="Kormmunity"
-                  width={28}
-                  height={28}
-                  className="rounded-md"
+                  alt="Kormmunity logo"
+                  width={108}
+                  height={24}
+                  className="h-6 w-auto"
                 />
                 <span>한인 커뮤니티</span>
               </Link>
