@@ -8,13 +8,10 @@ CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'LIMITED', 'SUSPENDED', 'DELETED');
 CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'HELD', 'DELETED');
 
 -- CreateEnum
-CREATE TYPE "SaleStatus" AS ENUM ('AVAILABLE', 'RESERVED', 'SOLD');
-
--- CreateEnum
 CREATE TYPE "CommentStatus" AS ENUM ('PUBLISHED', 'HELD', 'DELETED');
 
 -- CreateEnum
-CREATE TYPE "CategoryType" AS ENUM ('GENERAL', 'SALE', 'RECRUIT', 'GIVEAWAY', 'HELP', 'QUESTION');
+CREATE TYPE "CategoryType" AS ENUM ('GENERAL', 'QUESTION', 'SALE', 'GIVEAWAY', 'RECRUIT', 'HOUSING', 'SERVICE', 'EVENT', 'NOTICE');
 
 -- CreateEnum
 CREATE TYPE "CategoryVisibilityMode" AS ENUM ('NORMAL', 'ALWAYS_INCLUDED', 'HIDDEN');
@@ -96,6 +93,21 @@ CREATE TABLE "Category" (
 );
 
 -- CreateTable
+CREATE TABLE "PostTagOption" (
+    "id" TEXT NOT NULL,
+    "categoryType" "CategoryType" NOT NULL,
+    "label" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "color" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PostTagOption_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PostPermission" (
     "id" TEXT NOT NULL,
     "subjectType" "PermissionSubjectType" NOT NULL,
@@ -121,7 +133,6 @@ CREATE TABLE "Post" (
     "body" TEXT NOT NULL,
     "price" DECIMAL(10,2),
     "status" "PostStatus" NOT NULL DEFAULT 'PUBLISHED',
-    "saleStatus" "SaleStatus",
     "heldReason" TEXT,
     "deletedReason" TEXT,
     "contactUrl" TEXT,
@@ -132,6 +143,15 @@ CREATE TABLE "Post" (
     "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PostTag" (
+    "postId" TEXT NOT NULL,
+    "postTagOptionId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PostTag_pkey" PRIMARY KEY ("postId","postTagOptionId")
 );
 
 -- CreateTable
@@ -256,6 +276,15 @@ CREATE UNIQUE INDEX "City_slug_key" ON "City"("slug");
 CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
 
 -- CreateIndex
+CREATE INDEX "PostTagOption_categoryType_isActive_sortOrder_idx" ON "PostTagOption"("categoryType", "isActive", "sortOrder");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PostTagOption_categoryType_label_key" ON "PostTagOption"("categoryType", "label");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PostTagOption_categoryType_slug_key" ON "PostTagOption"("categoryType", "slug");
+
+-- CreateIndex
 CREATE INDEX "PostPermission_subjectType_userId_idx" ON "PostPermission"("subjectType", "userId");
 
 -- CreateIndex
@@ -269,6 +298,9 @@ CREATE INDEX "Post_cityId_categoryId_status_createdAt_idx" ON "Post"("cityId", "
 
 -- CreateIndex
 CREATE INDEX "Post_authorId_createdAt_idx" ON "Post"("authorId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PostTag_postTagOptionId_createdAt_idx" ON "PostTag"("postTagOptionId", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "SavedPost_userId_createdAt_idx" ON "SavedPost"("userId", "createdAt");
@@ -341,6 +373,12 @@ ALTER TABLE "Post" ADD CONSTRAINT "Post_countryId_fkey" FOREIGN KEY ("countryId"
 
 -- AddForeignKey
 ALTER TABLE "Post" ADD CONSTRAINT "Post_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PostTag" ADD CONSTRAINT "PostTag_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PostTag" ADD CONSTRAINT "PostTag_postTagOptionId_fkey" FOREIGN KEY ("postTagOptionId") REFERENCES "PostTagOption"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SavedPost" ADD CONSTRAINT "SavedPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
