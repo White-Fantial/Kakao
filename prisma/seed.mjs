@@ -104,7 +104,7 @@ const countries = [
     cities: ['Tokyo', 'Osaka', 'Yokohama', 'Nagoya', 'Sapporo', 'Fukuoka', 'Kyoto', 'Other'],
   },
   {
-    name: 'Korea',
+    name: 'South Korea',
     slug: 'south-korea',
     cities: ['Seoul', 'Busan', 'Incheon', 'Daegu', 'Daejeon', 'Gwangju', 'Ulsan', 'Other'],
   },
