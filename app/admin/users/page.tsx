@@ -8,6 +8,10 @@ import { canMakeFinalUserDecision } from '@/lib/permissions';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
+const MAX_REVIEW_REQUESTS_PER_USER = 5;
+const MIN_REVIEW_REQUEST_LOOKUP = 20;
+const MAX_REVIEW_REQUEST_LOOKUP = 200;
+const MAX_RECENT_USER_MODERATION_ACTIONS = 30;
 
 type AdminUsersPageProps = {
   searchParams: Promise<{ error?: string }>;
@@ -36,7 +40,10 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     },
   });
   const userIds = users.map((user) => user.id);
-  const reviewRequestTake = Math.min(Math.max(userIds.length * 5, 20), 200);
+  const reviewRequestTake = Math.min(
+    Math.max(userIds.length * MAX_REVIEW_REQUESTS_PER_USER, MIN_REVIEW_REQUEST_LOOKUP),
+    MAX_REVIEW_REQUEST_LOOKUP,
+  );
 
   const userReviewRequests = await prisma.moderationAction.findMany({
     where: {
@@ -61,7 +68,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
     },
     orderBy: { createdAt: 'desc' },
-    take: 30,
+    take: MAX_RECENT_USER_MODERATION_ACTIONS,
     select: {
       id: true,
       targetId: true,
@@ -140,7 +147,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         ) : (
           <ul className="space-y-4">
             {users.map((u) => {
-              const reviewRequests = userReviewRequestsByTargetId[u.id]?.slice(0, 5) ?? [];
+              const reviewRequests =
+                userReviewRequestsByTargetId[u.id]?.slice(0, MAX_REVIEW_REQUESTS_PER_USER) ?? [];
 
               return (
                 <li key={u.id} className="space-y-2 rounded-xl border border-[#e8e8e8] p-3">
