@@ -350,11 +350,9 @@ export function PostForm({
             ))}
           </select>
         ) : (
-          <>
-            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
-              {selectedCountryLabel}
-            </div>
-          </>
+          <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
+            {selectedCountryLabel}
+          </div>
         )}
       </div>
 
@@ -375,11 +373,9 @@ export function PostForm({
             ))}
           </select>
         ) : (
-          <>
-            <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
-              {selectedCityLabel}
-            </div>
-          </>
+          <div className="rounded-lg border border-[#e8e8e8] bg-[#f9f9f9] px-3 py-2 text-sm">
+            {selectedCityLabel}
+          </div>
         )}
       </div>
 
