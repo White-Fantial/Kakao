@@ -81,7 +81,8 @@ export async function generateMetadata({
   );
   const socialTitle = `${title} | 한인 커뮤니티`;
   const description = `${post.category.name} · ${post.city?.name ?? '전 지역'} · ${post.body.slice(0, DESCRIPTION_PREVIEW_LENGTH)}`;
-  const primaryImageUrl = post.images[0]?.url;
+  const primaryImageUrl = post.images?.[0]?.url;
+  const twitterCard = primaryImageUrl ? 'summary_large_image' : 'summary';
 
   return {
     title,
@@ -93,7 +94,7 @@ export async function generateMetadata({
       images: primaryImageUrl ? [primaryImageUrl] : undefined,
     },
     twitter: {
-      card: primaryImageUrl ? 'summary_large_image' : 'summary',
+      card: twitterCard,
       title: socialTitle,
       description,
       images: primaryImageUrl ? [primaryImageUrl] : undefined,
