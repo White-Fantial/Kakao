@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { buildCountryDetectionUrl } from '@/lib/location/browser-country';
+import { GEOLOCATION_TIMEOUT_MS } from '@/lib/location/constants';
 
 type CountryInfo = {
   id: string;
@@ -74,7 +75,7 @@ export function CountrySwitchSuggestionBanner({
         }
       },
       () => undefined,
-      { timeout: 10_000 },
+      { timeout: GEOLOCATION_TIMEOUT_MS },
     );
 
     return () => {

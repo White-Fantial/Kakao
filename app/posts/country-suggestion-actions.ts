@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
 const DEFAULT_SNOOZE_DAYS = 30;
+// Number of milliseconds in one day.
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function normalizeText(value: FormDataEntryValue | null) {

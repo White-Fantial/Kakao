@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { buildCountryDetectionUrl } from '@/lib/location/browser-country';
+import { GEOLOCATION_TIMEOUT_MS } from '@/lib/location/constants';
 
 type DetectedCountry = {
   id: string;
@@ -64,7 +65,7 @@ export function CountryOnboardingSuggestion({
         }
       },
       {
-        timeout: 10_000,
+        timeout: GEOLOCATION_TIMEOUT_MS,
       },
     );
 
