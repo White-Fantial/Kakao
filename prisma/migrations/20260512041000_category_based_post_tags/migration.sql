@@ -91,9 +91,16 @@ ON CONFLICT ("categoryId", "slug") DO NOTHING;
 UPDATE "Post" p
 SET "postTagOptionId" = pto.id
 FROM "PostTagOption" pto
+JOIN "Category" c ON c.id = pto."categoryId"
 WHERE p."categoryId" = pto."categoryId"
   AND (
-    (p."saleStatus" = 'AVAILABLE' AND pto.slug IN ('selling', 'hiring'))
+    (
+      p."saleStatus" = 'AVAILABLE'
+      AND (
+        (c.type = 'SALE' AND pto.slug = 'selling')
+        OR (c.type = 'RECRUIT' AND pto.slug = 'hiring')
+      )
+    )
     OR (p."saleStatus" = 'RESERVED' AND pto.slug = 'reserved')
     OR (p."saleStatus" = 'SOLD' AND pto.slug = 'completed')
   );

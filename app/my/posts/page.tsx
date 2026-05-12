@@ -75,6 +75,10 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, 40);
             const postHeading = withPostTagPrefix(titleText || bodyPreview, post.postTagOption?.label);
+            const activeTagOptionIds = new Set(post.category.postTagOptions.map((option) => option.id));
+            const selectedTagOptionId = activeTagOptionIds.has(post.postTagOption?.id ?? '')
+              ? post.postTagOption?.id
+              : post.category.postTagOptions[0]?.id;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
               : '게시글 썸네일: 제목 없는 게시글';
@@ -125,7 +129,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                       <input type="hidden" name="postId" value={post.id} />
                       <select
                         name="postTagOptionId"
-                        defaultValue={post.postTagOption?.id ?? post.category.postTagOptions[0]?.id}
+                        defaultValue={selectedTagOptionId}
                         className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
                       >
                         {post.category.postTagOptions.map((option) => (

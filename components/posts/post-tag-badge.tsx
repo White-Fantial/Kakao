@@ -6,8 +6,10 @@ type PostTagBadgeProps = {
   className?: string;
 };
 
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
 function isHexColor(value: string) {
-  return /^#[0-9a-fA-F]{6}$/.test(value);
+  return HEX_COLOR_REGEX.test(value);
 }
 
 function getStyle(color?: string | null): CSSProperties | undefined {

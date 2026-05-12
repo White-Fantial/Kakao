@@ -20,6 +20,12 @@ const VALID_CATEGORY_VISIBILITY_MODES = Object.values(
 ) as CategoryVisibilityMode[];
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
+function normalizeHexColor(value: string) {
+  if (!value) return null;
+  const normalized = value.startsWith('#') ? value : `#${value}`;
+  return HEX_COLOR_PATTERN.test(normalized) ? normalized : null;
+}
+
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -333,7 +339,7 @@ export async function createPostTagOptionAction(formData: FormData) {
   const label = normalizeText(formData.get('label'));
   const slug = normalizeText(formData.get('slug')).toLowerCase();
   const colorValue = normalizeText(formData.get('color'));
-  const color = colorValue ? (colorValue.startsWith('#') ? colorValue : `#${colorValue}`) : null;
+  const color = normalizeHexColor(colorValue);
   const sortOrderRaw = normalizeText(formData.get('sortOrder'));
   const sortOrder = sortOrderRaw ? Number.parseInt(sortOrderRaw, 10) : 0;
   const isDefault = formData.get('isDefault') === 'true';
@@ -346,7 +352,7 @@ export async function createPostTagOptionAction(formData: FormData) {
     redirect('/admin/categories?error=태그 슬러그는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.');
   }
 
-  if (color && !HEX_COLOR_PATTERN.test(color)) {
+  if (colorValue && !color) {
     redirect('/admin/categories?error=태그 색상은 #RRGGBB 형식이어야 합니다.');
   }
 
@@ -381,6 +387,7 @@ export async function createPostTagOptionAction(formData: FormData) {
     where: { categoryId, isActive: true, isDefault: true },
     select: { id: true },
   });
+  // Ensure each category always has a selectable default among active options.
   const shouldBeDefault = isDefault || !hasDefault;
 
   await prisma.$transaction(async (tx) => {
@@ -420,7 +427,7 @@ export async function updatePostTagOptionAction(formData: FormData) {
   const label = normalizeText(formData.get('label'));
   const slug = normalizeText(formData.get('slug')).toLowerCase();
   const colorValue = normalizeText(formData.get('color'));
-  const color = colorValue ? (colorValue.startsWith('#') ? colorValue : `#${colorValue}`) : null;
+  const color = normalizeHexColor(colorValue);
   const sortOrderRaw = normalizeText(formData.get('sortOrder'));
   const sortOrder = sortOrderRaw ? Number.parseInt(sortOrderRaw, 10) : 0;
   const isDefault = formData.get('isDefault') === 'true';
@@ -433,7 +440,7 @@ export async function updatePostTagOptionAction(formData: FormData) {
     redirect('/admin/categories?error=태그 슬러그는 영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.');
   }
 
-  if (color && !HEX_COLOR_PATTERN.test(color)) {
+  if (colorValue && !color) {
     redirect('/admin/categories?error=태그 색상은 #RRGGBB 형식이어야 합니다.');
   }
 
@@ -461,10 +468,6 @@ export async function updatePostTagOptionAction(formData: FormData) {
 
   if (duplicate) {
     redirect('/admin/categories?error=동일한 슬러그 태그가 이미 존재합니다.');
-  }
-
-  if (isDefault && !option.isActive) {
-    redirect('/admin/categories?error=비활성 태그는 기본 태그로 지정할 수 없습니다.');
   }
 
   await prisma.$transaction(async (tx) => {
@@ -520,6 +523,7 @@ export async function togglePostTagOptionActiveAction(formData: FormData) {
       where: { id: option.id },
       data: {
         isActive: !isActive,
+        // Deactivation always removes default flag; reactivation keeps current non-default state.
         isDefault: isActive ? false : option.isDefault,
       },
     });

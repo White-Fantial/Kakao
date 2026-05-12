@@ -194,6 +194,10 @@ export default async function PostDetailPage({
 
   const isOwner = currentUser?.id === post.authorId;
   const canChangeTag = currentUser ? canEditPost(currentUser, post) : false;
+  const activeTagOptionIds = new Set(post.category.postTagOptions.map((option) => option.id));
+  const selectedTagOptionId = activeTagOptionIds.has(post.postTagOption?.id ?? '')
+    ? post.postTagOption?.id
+    : post.category.postTagOptions[0]?.id;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -289,7 +293,7 @@ export default async function PostDetailPage({
           <input type="hidden" name="postId" value={post.id} />
           <select
             name="postTagOptionId"
-            defaultValue={post.postTagOption?.id ?? post.category.postTagOptions[0]?.id}
+            defaultValue={selectedTagOptionId}
             className="w-full rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
           >
             {post.category.postTagOptions.map((option) => (
