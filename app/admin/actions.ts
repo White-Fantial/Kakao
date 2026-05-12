@@ -330,7 +330,8 @@ export async function createPostPermissionAction(formData: FormData) {
 
   const subjectType = normalizeText(formData.get('subjectType')) as PermissionSubjectType;
   const userId = normalizeText(formData.get('userId')) || null;
-  const role = normalizeText(formData.get('role')) as UserRole;
+  const rawRole = normalizeText(formData.get('role'));
+  const role = USER_ROLES.find((candidate) => candidate === rawRole) ?? null;
   const countryId = normalizeText(formData.get('countryId')) || null;
   const cityId = normalizeText(formData.get('cityId')) || null;
   const categoryId = normalizeText(formData.get('categoryId')) || null;
@@ -343,7 +344,7 @@ export async function createPostPermissionAction(formData: FormData) {
     redirect('/admin/post-permissions?error=사용자를 선택해 주세요.');
   }
 
-  if (subjectType === 'ROLE' && !USER_ROLES.includes(role)) {
+  if (subjectType === 'ROLE' && !role) {
     redirect('/admin/post-permissions?error=유효하지 않은 역할입니다.');
   }
 
@@ -420,7 +421,7 @@ export async function createPostPermissionAction(formData: FormData) {
     },
   });
 
-  await logModerationAction(user.id, 'POST_PERMISSION', userId ?? role, `CREATE_${subjectType}`);
+  await logModerationAction(user.id, 'POST_PERMISSION', userId ?? role ?? 'UNKNOWN', `CREATE_${subjectType}`);
 
   revalidatePath('/admin/post-permissions');
   revalidatePath('/posts/new');

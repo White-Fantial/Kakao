@@ -203,6 +203,8 @@ export async function getPostCreationFormOptions(
   const categoryById = new Map(categories.map((category) => [category.id, category]));
   const countryIds = countries.map((country) => country.id);
   const countryIdSet = new Set(countryIds);
+  const wildcardCountryIds = [null, ...countryIds];
+  const allCategoryIds = categories.map((category) => category.id);
   const cityById = new Map(cities.map((city) => [city.id, city]));
   const cityIdsByCountry = new Map<string, string[]>();
 
@@ -263,8 +265,12 @@ export async function getPostCreationFormOptions(
     }
 
     for (const permission of permissions) {
-      const allowedCountryIds = permission.countryId ? [permission.countryId] : [null, ...countryIds];
-      const allowedCategoryIds = permission.categoryId ? [permission.categoryId] : categories.map((category) => category.id);
+      const allowedCountryIds = permission.countryId
+        ? [permission.countryId]
+        : wildcardCountryIds;
+      const allowedCategoryIds = permission.categoryId
+        ? [permission.categoryId]
+        : allCategoryIds;
 
       for (const countryId of allowedCountryIds) {
         const allowedCityIds = permission.cityId

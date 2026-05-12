@@ -153,6 +153,7 @@ function getCategoryLabel(category: CategoryOption) {
   return category.label;
 }
 
+// Keep the current selection when it is still valid for the filtered option set.
 function getValidatedSelection<T extends { value?: string; id?: string }>(
   options: T[],
   currentValue: string,

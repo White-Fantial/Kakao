@@ -202,7 +202,7 @@ export async function createPostAction(formData: FormData) {
     redirect('/posts/new?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.');
   }
 
-  const isSalePost = categoryResult.category.type === CategoryType.SALE;
+  const isPostInSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
 
   if (uploadedImages.length > MAX_UPLOAD_IMAGE_COUNT) {
@@ -257,7 +257,7 @@ export async function createPostAction(formData: FormData) {
     countryId: resolvedCountryId,
     cityId: resolvedCityId,
     imageCount: uploadedImages.length,
-    isSalePost,
+    isPostInSaleCategory,
   });
 
   revalidatePath('/posts');
@@ -319,7 +319,7 @@ export async function updatePostAction(formData: FormData) {
   if (!canWriteToScope) {
     redirect(`/posts/${postId}/edit?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.`);
   }
-  const isSalePost = categoryResult.category.type === CategoryType.SALE;
+  const isPostInSaleCategory = categoryResult.category.type === CategoryType.SALE;
   const isProgressTrackCategory = isProgressTrackCategoryType(categoryResult.category.type);
 
   const existingImageCount = await prisma.postImage.count({
@@ -361,7 +361,7 @@ export async function updatePostAction(formData: FormData) {
         categoryId,
         cityId: resolvedCityId,
         countryId: resolvedCountryId,
-        price: isSalePost ? categoryResult.price : null,
+        price: isPostInSaleCategory ? categoryResult.price : null,
         saleStatus: isProgressTrackCategory
           ? post.saleStatus === 'SOLD'
             ? 'SOLD'
