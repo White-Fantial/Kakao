@@ -132,6 +132,7 @@ model Category {
   slug           String                 @unique
   type           CategoryType           @default(GENERAL)
   visibilityMode CategoryVisibilityMode @default(NORMAL)
+  color          String?
   isActive       Boolean                @default(true)
   sortOrder      Int                    @default(0)
   posts          Post[]

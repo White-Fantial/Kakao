@@ -247,6 +247,8 @@ export async function createCategoryAction(formData: FormData) {
   const slug = normalizeText(formData.get('slug'));
   const type = normalizeText(formData.get('type')) as CategoryType;
   const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
+  const colorValue = normalizeText(formData.get('color'));
+  const color = normalizeHexColor(colorValue);
 
   if (!name || !slug || !type || !visibilityMode) {
     redirect('/admin/categories?error=이름, 슬러그, 타입, 노출 방식을 입력해 주세요.');
@@ -260,13 +262,17 @@ export async function createCategoryAction(formData: FormData) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 노출 방식입니다.');
   }
 
+  if (colorValue && !color) {
+    redirect('/admin/categories?error=카테고리 색상은 #RRGGBB 형식이어야 합니다.');
+  }
+
   const existing = await prisma.category.findUnique({ where: { slug } });
   if (existing) {
     redirect('/admin/categories?error=이미 존재하는 슬러그입니다.');
   }
 
   await prisma.category.create({
-    data: { name, slug, type, visibilityMode },
+    data: { name, slug, type, visibilityMode, color },
   });
 
   revalidatePath('/admin/categories');
@@ -307,6 +313,8 @@ export async function updateCategorySettingsAction(formData: FormData) {
   const categoryId = normalizeText(formData.get('categoryId'));
   const type = normalizeText(formData.get('type')) as CategoryType;
   const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
+  const colorValue = normalizeText(formData.get('color'));
+  const color = normalizeHexColor(colorValue);
 
   if (!categoryId) {
     redirect('/admin/categories?error=카테고리 ID가 없습니다.');
@@ -320,9 +328,13 @@ export async function updateCategorySettingsAction(formData: FormData) {
     redirect('/admin/categories?error=유효하지 않은 카테고리 노출 방식입니다.');
   }
 
+  if (colorValue && !color) {
+    redirect('/admin/categories?error=카테고리 색상은 #RRGGBB 형식이어야 합니다.');
+  }
+
   await prisma.category.update({
     where: { id: categoryId },
-    data: { type, visibilityMode },
+    data: { type, visibilityMode, color },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
@@ -527,6 +539,30 @@ export async function togglePostTagOptionActiveAction(formData: FormData) {
   revalidatePath('/posts');
   revalidatePath('/posts/new');
   redirect('/admin/categories');
+}
+
+export async function reorderPostTagOptionsAction(ids: string[]): Promise<void> {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+    return;
+  }
+
+  await Promise.all(
+    ids.map((id, index) =>
+      prisma.postTagOption.update({
+        where: { id },
+        data: { sortOrder: index },
+      }),
+    ),
+  );
+
+  await logModerationAction(user.id, 'POST_TAG_OPTION', ids.join(','), 'REORDER');
+
+  revalidatePath('/admin/categories');
+  revalidatePath('/posts');
+  revalidatePath('/posts/new');
 }
 
 export async function createPostPermissionAction(formData: FormData) {
