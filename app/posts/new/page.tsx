@@ -4,6 +4,8 @@ import { PostForm } from '@/components/posts/post-form';
 import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { getPostCreationFormOptions } from '@/lib/permissions';
+import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -17,6 +19,12 @@ type NewPostPageProps = {
 
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const user = await requireUser();
+  const hasCity = await hasValidProfileCity(user.id);
+
+  if (!hasCity) {
+    redirect(getProfileCityRequiredHref('/posts/new'));
+  }
+
   const params = await searchParams;
   const formOptions = await getPostCreationFormOptions(user);
 

@@ -1,10 +1,11 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canEditPost, getPostCreationFormOptions } from '@/lib/permissions';
+import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,12 @@ export default async function EditPostPage({
   searchParams,
 }: EditPostPageProps) {
   const user = await requireUser();
+  const hasCity = await hasValidProfileCity(user.id);
+
+  if (!hasCity) {
+    redirect(getProfileCityRequiredHref('/posts'));
+  }
+
   const { postId } = await params;
   const query = await searchParams;
 

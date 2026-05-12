@@ -25,6 +25,7 @@ import {
   deleteImageFromCloudinary,
   type PreUploadedImage,
 } from '@/lib/upload/cloudinary';
+import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 
 const CREATE_POST_RATE_LIMIT = {
   limit: 5,
@@ -142,6 +143,11 @@ async function resolvePostScope(
 
 export async function createPostAction(formData: FormData) {
   const user = await requireUser();
+  const hasCity = await hasValidProfileCity(user.id);
+
+  if (!hasCity) {
+    redirect(getProfileCityRequiredHref('/posts/new'));
+  }
 
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
@@ -267,6 +273,11 @@ export async function createPostAction(formData: FormData) {
 
 export async function updatePostAction(formData: FormData) {
   const user = await requireUser();
+  const hasCity = await hasValidProfileCity(user.id);
+  if (!hasCity) {
+    redirect(getProfileCityRequiredHref('/posts'));
+  }
+
   const postId = normalizeText(formData.get('postId'));
 
   const post = await prisma.post.findUnique({

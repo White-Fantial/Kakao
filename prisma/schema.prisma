@@ -87,6 +87,8 @@ model User {
   postReports          PostReport[]
   savedPosts           SavedPost[]
   postPermissions      PostPermission[]
+  countrySuggestionDismissedCountryId String?
+  countrySuggestionDismissedUntil     DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }

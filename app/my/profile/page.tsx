@@ -18,7 +18,7 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
   const user = await requireUser();
   const params = await searchParams;
 
-  const [dbUser, cities, searchAlerts] = await Promise.all([
+  const [dbUser, countries, cities, searchAlerts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -29,6 +29,11 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
         notifyOnKakaoForSearchAlert: true,
         notifyOnKakaoForComment: true,
       },
+    }),
+    prisma.country.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true },
     }),
     prisma.city.findMany({
       where: {
@@ -70,12 +75,39 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
         </p>
       ) : null}
 
+      {!dbUser?.cityId ? (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          국가 변경 후에는 기본 지역을 다시 선택해야 글쓰기를 할 수 있어요.
+        </p>
+      ) : null}
+
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
       <form action={updateProfileAction} className="space-y-3 border-t border-[#e8e8e8] pt-4">
         <input type="hidden" name="returnTo" value={params.returnTo ?? ''} />
+        <div className="space-y-1">
+          <label htmlFor="countryId" className="text-sm font-medium">
+            서비스 국가
+          </label>
+          <select
+            id="countryId"
+            name="countryId"
+            defaultValue={dbUser?.countryId ?? ''}
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+          >
+            <option value="">국가를 선택해 주세요.</option>
+            {countries.map((country) => (
+              <option key={country.id} value={country.id}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-[#888]">
+            국가를 바꾸면 기본 지역이 초기화되고 다시 선택해야 합니다.
+          </p>
+        </div>
         <div className="space-y-1">
           <label htmlFor="cityId" className="text-sm font-medium">
             기본 지역

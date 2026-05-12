@@ -1,13 +1,42 @@
+import { prisma } from '@/lib/db/prisma';
+
 export const PROFILE_CITY_REQUIRED_MESSAGE = '글을 쓰기 전에 지역을 먼저 설정해 주세요.';
 
-export function getProfileCityRequiredHref(returnTo: string) {
+export function getProfileCityRequiredHref(returnTo: string, message = PROFILE_CITY_REQUIRED_MESSAGE) {
   const safeReturnTo = normalizeInternalPath(returnTo);
 
   if (!safeReturnTo) {
-    return `/my/profile?error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`;
+    return `/my/profile?error=${encodeURIComponent(message)}`;
   }
 
-  return `/my/profile?returnTo=${encodeURIComponent(safeReturnTo)}&error=${encodeURIComponent(PROFILE_CITY_REQUIRED_MESSAGE)}`;
+  return `/my/profile?returnTo=${encodeURIComponent(safeReturnTo)}&error=${encodeURIComponent(message)}`;
+}
+
+export async function hasValidProfileCity(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      countryId: true,
+      cityId: true,
+      city: {
+        select: {
+          id: true,
+          countryId: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+
+  if (!user || !user.countryId || !user.cityId || !user.city) {
+    return false;
+  }
+
+  if (!user.city.isActive) {
+    return false;
+  }
+
+  return user.city.countryId === user.countryId;
 }
 
 export function normalizeInternalPath(value: string) {
