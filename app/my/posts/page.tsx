@@ -2,9 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 
-import { changePostTagOptionAction } from '@/app/posts/actions';
 import { DeletePostButton } from '@/components/posts/delete-post-button';
-import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { PostTagBadge } from '@/components/posts/post-tag-badge';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -23,8 +21,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
   const user = await requireUser();
   const params = await searchParams;
 
-  const [posts, tagOptions] = await Promise.all([
-    prisma.post.findMany({
+  const posts = await prisma.post.findMany({
     where: {
       authorId: user.id,
       status: {
@@ -60,20 +57,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
         },
       },
     },
-    }),
-    prisma.postTagOption.findMany({
-      where: { isActive: true },
-      orderBy: [{ categoryType: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { id: true, label: true, categoryType: true },
-    }),
-  ]);
-
-  const tagOptionsByType = new Map<string, { id: string; label: string }[]>();
-  for (const option of tagOptions) {
-    const existing = tagOptionsByType.get(option.categoryType) ?? [];
-    existing.push({ id: option.id, label: option.label });
-    tagOptionsByType.set(option.categoryType, existing);
-  }
+  });
 
   return (
     <section className="space-y-4">
@@ -90,13 +74,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
           {posts.map((post) => {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, 40);
-            const postTagOptions = tagOptionsByType.get(post.category.type) ?? [];
-            const firstTagOptionId = post.tags[0]?.postTagOption.id;
             const postHeading = titleText || bodyPreview;
-            const activeTagOptionIds = new Set(postTagOptions.map((option) => option.id));
-            const selectedTagOptionId = firstTagOptionId && activeTagOptionIds.has(firstTagOptionId)
-              ? firstTagOptionId
-              : postTagOptions[0]?.id;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
               : '게시글 썸네일: 제목 없는 게시글';
@@ -146,27 +124,6 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   <Link href={`/posts/${post.id}/edit`} className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
                     수정
                   </Link>
-                  {postTagOptions.length > 0 ? (
-                    <form action={changePostTagOptionAction} className="flex items-center gap-2">
-                      <input type="hidden" name="postId" value={post.id} />
-                      <select
-                        name="postTagOptionId"
-                        defaultValue={selectedTagOptionId}
-                        className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
-                      >
-                        {postTagOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <FormSubmitButton
-                        idleLabel="태그 변경"
-                        pendingLabel="처리 중..."
-                        className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
-                      />
-                    </form>
-                  ) : null}
                   <DeletePostButton
                     postId={post.id}
                     className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"

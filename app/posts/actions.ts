@@ -119,10 +119,6 @@ async function validateCategoryPriceAndTags(
   const availableTagOptionIds = new Set(availableTagOptions.map((option) => option.id));
   const selectedTagOptionIds = Array.from(new Set(rawPostTagOptionIds));
 
-  if (selectedTagOptionIds.length > 1) {
-    return { ok: false as const, message: '태그는 최대 1개만 선택할 수 있어요.' };
-  }
-
   if (selectedTagOptionIds.some((optionId) => !availableTagOptionIds.has(optionId))) {
     return { ok: false as const, message: '카테고리 타입에 맞는 활성 태그만 선택해 주세요.' };
   }
@@ -573,70 +569,4 @@ export async function reportPostAction(formData: FormData) {
   revalidatePath(`/posts/${postId}`);
   revalidatePath('/admin/reports');
   redirect(`/posts/${postId}?success=${encodeURIComponent('신고가 접수되었어요.')}`);
-}
-
-export async function changePostTagOptionAction(formData: FormData) {
-  const user = await requireUser();
-  const postId = normalizeText(formData.get('postId'));
-  const postTagOptionId = normalizeText(formData.get('postTagOptionId'));
-
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    select: {
-      id: true,
-      authorId: true,
-      status: true,
-      category: {
-        select: {
-          type: true,
-        },
-      },
-    },
-  });
-
-  if (!post || !canEditPost(user, post)) {
-    redirect(`/posts/${postId}?error=권한이 없습니다.`);
-  }
-
-  const selectedOption = await prisma.postTagOption.findFirst({
-    where: {
-      id: postTagOptionId,
-      categoryType: post.category.type,
-      isActive: true,
-    },
-    select: { id: true, label: true },
-  });
-
-  if (!selectedOption) {
-    redirect(`/posts/${postId}?error=${encodeURIComponent('유효한 활성 태그를 선택해 주세요.')}`);
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.postTag.deleteMany({
-      where: { postId },
-    });
-    await tx.postTag.create({
-      data: {
-        postId,
-        postTagOptionId: selectedOption.id,
-      },
-    });
-  });
-
-  if (user.role === 'ADMIN' && user.id !== post.authorId) {
-    await prisma.moderationAction.create({
-      data: {
-        actorId: user.id,
-        targetType: 'POST',
-        targetId: post.id,
-        actionType: 'POST_TAG_CHANGED',
-        reason: selectedOption.label,
-      },
-    });
-  }
-
-  revalidatePath('/posts');
-  revalidatePath('/my/posts');
-  revalidatePath(`/posts/${postId}`);
-  redirect(`/posts/${postId}?success=${encodeURIComponent('태그가 변경되었어요.')}`);
 }
