@@ -35,14 +35,16 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       },
     },
   });
+  const userIds = users.map((user) => user.id);
 
   const userReviewRequests = await prisma.moderationAction.findMany({
     where: {
       targetType: 'USER',
       actionType: 'REVIEW_REQUEST',
+      ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
     },
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    take: 60,
     select: {
       id: true,
       targetId: true,
