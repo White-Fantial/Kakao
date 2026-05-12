@@ -651,7 +651,10 @@ export default async function PostDetailPage({
       <section className="grid grid-cols-1 gap-2 border-t border-[#e8e8e8] pt-4 sm:grid-cols-2">
         {previousPost ? (
           <Link href={createPostHref(previousPost.id)} className={outlineActionButtonClass}>
-            ← 이전 글: {withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}
+            <span className="mr-1 shrink-0">← 이전 글:</span>
+            <span className="line-clamp-1 min-w-0">
+              {withPostTagPrefix(previousPost.title ?? '제목 없음', previousPost.tags[0]?.postTagOption.label)}
+            </span>
           </Link>
         ) : (
           <span className={`${outlineActionButtonClass} cursor-default text-[#888]`}>
@@ -660,7 +663,11 @@ export default async function PostDetailPage({
         )}
         {nextPost ? (
           <Link href={createPostHref(nextPost.id)} className={outlineActionButtonClass}>
-            다음 글: {withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)} →
+            <span className="mr-1 shrink-0">다음 글:</span>
+            <span className="line-clamp-1 min-w-0">
+              {withPostTagPrefix(nextPost.title ?? '제목 없음', nextPost.tags[0]?.postTagOption.label)}
+            </span>
+            <span className="ml-1 shrink-0">→</span>
           </Link>
         ) : (
           <span className={`${outlineActionButtonClass} cursor-default text-[#888]`}>
