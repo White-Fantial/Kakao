@@ -11,6 +11,7 @@ type CountrySwitchSuggestionBannerProps = {
   selectedCountry: CountryInfo | null;
   dismissedCountryId: string | null;
   dismissedUntil: string | null;
+  nowIso: string;
   switchAction: (formData: FormData) => void | Promise<void>;
   dismissAction: (formData: FormData) => void | Promise<void>;
 };
@@ -23,23 +24,19 @@ export function CountrySwitchSuggestionBanner({
   selectedCountry,
   dismissedCountryId,
   dismissedUntil,
+  nowIso,
   switchAction,
   dismissAction,
 }: CountrySwitchSuggestionBannerProps) {
   const [detectedCountry, setDetectedCountry] = useState<CountryInfo | null>(null);
   const [dismissedLocally, setDismissedLocally] = useState(false);
-
-  const isDismissed = useMemo(() => {
-    if (!detectedCountry) {
-      return true;
-    }
-
-    if (!dismissedCountryId || dismissedCountryId !== detectedCountry.id || !dismissedUntil) {
+  const isDismissedBySnooze = useMemo(() => {
+    if (!detectedCountry || !dismissedCountryId || dismissedCountryId !== detectedCountry.id || !dismissedUntil) {
       return false;
     }
 
-    return new Date(dismissedUntil).getTime() > Date.now();
-  }, [detectedCountry, dismissedCountryId, dismissedUntil]);
+    return dismissedUntil > nowIso;
+  }, [detectedCountry, dismissedCountryId, dismissedUntil, nowIso]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +81,7 @@ export function CountrySwitchSuggestionBanner({
     return null;
   }
 
-  if (detectedCountry.id === selectedCountry.id || isDismissed) {
+  if (detectedCountry.id === selectedCountry.id || isDismissedBySnooze) {
     return null;
   }
 

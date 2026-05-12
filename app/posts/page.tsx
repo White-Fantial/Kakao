@@ -288,6 +288,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           selectedCountry={dbUser?.country ?? null}
           dismissedCountryId={dbUser?.countrySuggestionDismissedCountryId ?? null}
           dismissedUntil={dbUser?.countrySuggestionDismissedUntil?.toISOString() ?? null}
+          nowIso={new Date().toISOString()}
           switchAction={switchCountryBySuggestionAction}
           dismissAction={dismissCountrySuggestionAction}
         />
