@@ -58,6 +58,17 @@ enum PermissionSubjectType {
   ROLE
 }
 
+enum KakaoMessageDeliveryType {
+  SEARCH_ALERT
+  COMMENT_NOTIFICATION
+}
+
+enum KakaoMessageDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 model User {
   id                   String             @id @default(cuid())
   kakaoId              String             @unique
@@ -86,6 +97,7 @@ model User {
   postReports          PostReport[]
   savedPosts           SavedPost[]
   postPermissions      PostPermission[]
+  kakaoMessageDeliveries KakaoMessageDelivery[]
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -337,4 +349,27 @@ model SearchAlert {
 
   @@unique([userId, query])
   @@index([userId, createdAt])
+}
+
+model KakaoMessageDelivery {
+  id               String                     @id @default(cuid())
+  deliveryType     KakaoMessageDeliveryType
+  recipientUserId  String
+  messageText      String
+  targetUrl        String?
+  status           KakaoMessageDeliveryStatus @default(PENDING)
+  attemptCount     Int                        @default(0)
+  lastAttemptAt    DateTime?
+  sentAt           DateTime?
+  errorMessage     String?
+  relatedPostId    String?
+  searchQuery      String?
+  retriedByAdminId String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  recipientUser    User                       @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([recipientUserId, createdAt])
+  @@index([deliveryType, createdAt])
 }

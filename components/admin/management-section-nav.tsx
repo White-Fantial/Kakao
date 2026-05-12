@@ -13,6 +13,7 @@ export const coordinatorManagementNavItems = [
 export const adminManagementNavItems = [
   { href: '/admin/users', label: '사용자' },
   { href: '/admin/posts', label: '게시글' },
+  { href: '/admin/kakao-messages', label: '카카오 알림 로그' },
   { href: '/admin/post-permissions', label: '게시글 권한' },
   { href: '/admin/report-options', label: '신고 옵션' },
   { href: '/admin/categories', label: '카테고리' },

@@ -10,6 +10,7 @@ import {
 
 import { requireUser, invalidateSessionCache } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { retryKakaoMessageDelivery } from '@/lib/kakao/message';
 import { canMakeFinalUserDecision, USER_ROLES } from '@/lib/permissions';
 import type { SessionUser } from '@/lib/auth/types';
 import type { UserRole, UserStatus } from '@prisma/client';
@@ -914,4 +915,24 @@ export async function assignCityCountryAction(formData: FormData) {
 
   revalidatePath('/admin/cities');
   redirect('/admin/cities');
+}
+
+export async function retryKakaoMessageDeliveryAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const deliveryId = normalizeText(formData.get('deliveryId'));
+
+  if (!deliveryId) {
+    redirect('/admin/kakao-messages?error=카카오 전송 로그 ID가 없습니다.');
+  }
+
+  const result = await retryKakaoMessageDelivery(deliveryId, user.id);
+
+  revalidatePath('/admin/kakao-messages');
+  if (!result.ok) {
+    redirect(`/admin/kakao-messages?error=${encodeURIComponent(result.message)}`);
+  }
+
+  redirect(`/admin/kakao-messages?success=${encodeURIComponent(result.message)}`);
 }
