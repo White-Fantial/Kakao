@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import {
   validateClientImageFiles,
   uploadImagesToCloudinary,
@@ -179,58 +179,34 @@ export function PostForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSubmitting = isPending || isUploading;
-  const selectedCountryId = fromCountryValue(countryValue);
-  const selectedCityId = fromCityValue(cityValue);
 
   const countryOptions = useMemo(
     () => buildCountryOptions(countries, allowedTargets),
     [countries, allowedTargets],
   );
+  const selectedCountryValue = countryOptions.some((option) => option.value === countryValue)
+    ? countryValue
+    : (countryOptions[0]?.value ?? ALL_COUNTRIES_VALUE);
+  const selectedCountryId = fromCountryValue(selectedCountryValue);
   const cityOptions = useMemo(
     () => buildCityOptions(cities, allowedTargets, selectedCountryId),
     [cities, allowedTargets, selectedCountryId],
   );
+  const selectedCityValue = cityOptions.some((option) => option.value === cityValue)
+    ? cityValue
+    : (cityOptions[0]?.value ?? ALL_CITIES_VALUE);
+  const selectedCityId = fromCityValue(selectedCityValue);
   const categoryOptions = useMemo(
     () => buildCategoryOptions(categories, allowedTargets, selectedCountryId, selectedCityId),
     [categories, allowedTargets, selectedCountryId, selectedCityId],
   );
-
-  useEffect(() => {
-    if (countryOptions.length === 0) {
-      return;
-    }
-
-    if (!countryOptions.some((option) => option.value === countryValue)) {
-      setCountryValue(countryOptions[0].value);
-    }
-  }, [countryOptions, countryValue]);
-
-  useEffect(() => {
-    if (cityOptions.length === 0) {
-      return;
-    }
-
-    if (!cityOptions.some((option) => option.value === cityValue)) {
-      setCityValue(cityOptions[0].value);
-    }
-  }, [cityOptions, cityValue]);
-
-  useEffect(() => {
-    if (categoryOptions.length === 0) {
-      if (categoryId !== '') {
-        setCategoryId('');
-      }
-      return;
-    }
-
-    if (!categoryOptions.some((category) => category.id === categoryId)) {
-      setCategoryId(categoryOptions[0].id);
-    }
-  }, [categoryId, categoryOptions]);
+  const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
+    ? categoryId
+    : (categoryOptions[0]?.id ?? '');
 
   const selectedCategory = useMemo(
-    () => categories.find((category) => category.id === categoryId),
-    [categories, categoryId],
+    () => categories.find((category) => category.id === selectedCategoryId),
+    [categories, selectedCategoryId],
   );
 
   function toggleDeleteImage(id: string) {
@@ -294,9 +270,9 @@ export function PostForm({
   const showCountrySelector = countryOptions.length > 1;
   const showCitySelector = cityOptions.length > 1;
   const selectedCountryLabel =
-    countryOptions.find((option) => option.value === countryValue)?.label ?? '전체 국가';
+    countryOptions.find((option) => option.value === selectedCountryValue)?.label ?? '전체 국가';
   const selectedCityLabel =
-    cityOptions.find((option) => option.value === cityValue)?.label ?? '전체 도시';
+    cityOptions.find((option) => option.value === selectedCityValue)?.label ?? '전체 도시';
 
   const submitButtonLabel = isUploading
     ? '이미지 업로드 중...'
@@ -363,7 +339,7 @@ export function PostForm({
         <label className="text-sm font-medium">국가</label>
         {showCountrySelector ? (
           <select
-            value={countryValue}
+            value={selectedCountryValue}
             onChange={(event) => setCountryValue(event.target.value)}
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           >
@@ -388,7 +364,7 @@ export function PostForm({
         <label className="text-sm font-medium">도시</label>
         {showCitySelector ? (
           <select
-            value={cityValue}
+            value={selectedCityValue}
             onChange={(event) => setCityValue(event.target.value)}
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           >
@@ -416,7 +392,7 @@ export function PostForm({
         <select
           id="categoryId"
           name="categoryId"
-          value={categoryId}
+          value={selectedCategoryId}
           onChange={(event) => setCategoryId(event.target.value)}
           required
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
