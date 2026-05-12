@@ -342,7 +342,6 @@ export default async function PostDetailPage({
       new Set(toArray(query.tag).filter((id) => selectableTagIds.has(id))),
     );
     const shouldFilterByCountry = Boolean(userCountryId);
-    const shouldFilterByCategory = selectedFilterCategoryIds.length !== filterCategories.length;
     const shouldFilterByCategoryType = selectedFilterCategoryTypes.length !== categoryTypes.length;
     const shouldFilterByTag = selectedTagIds.length > 0;
     const shouldFilterByCity = hasActiveProfileCity && selectedCityIds.length !== cities.length;
