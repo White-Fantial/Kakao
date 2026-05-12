@@ -51,7 +51,7 @@ export async function switchCountryBySuggestionAction(formData: FormData) {
   revalidatePath('/posts');
   revalidatePath('/my/profile');
   revalidatePath('/posts/new');
-  redirect('/my/profile?error=국가가 변경되어 기본 지역을 다시 선택해 주세요.');
+  redirect('/my/profile?notice=국가가 변경되어 기본 지역을 다시 선택해 주세요.');
 }
 
 export async function dismissCountrySuggestionAction(formData: FormData) {

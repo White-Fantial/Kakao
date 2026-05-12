@@ -11,7 +11,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 type MyProfilePageProps = {
-  searchParams: Promise<{ success?: string; error?: string; returnTo?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; notice?: string; returnTo?: string }>;
 };
 
 export default async function MyProfilePage({ searchParams }: MyProfilePageProps) {
@@ -73,6 +73,10 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
         <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
           프로필이 저장되었어요.
         </p>
+      ) : null}
+
+      {params.notice ? (
+        <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{params.notice}</p>
       ) : null}
 
       {!dbUser?.cityId ? (

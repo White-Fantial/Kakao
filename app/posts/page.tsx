@@ -84,7 +84,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const filterCategoryIds = new Set(filterCategories.map((category) => category.id));
   const cityIds = new Set(cities.map((city) => city.id));
   const profileCityId = dbUser?.cityId;
-  const hasValidProfileCity = Boolean(profileCityId && cityIds.has(profileCityId));
+  const hasActiveProfileCity = Boolean(profileCityId && cityIds.has(profileCityId));
   const selectedFilterCategoryIdsFromParams = Array.from(
     new Set(toArray(params.category).filter((id) => filterCategoryIds.has(id))),
   );
@@ -106,7 +106,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ? selectedCityIdsFromParams
       : cities.map((city) => city.id);
   const selectedCityIds =
-    hasValidProfileCity &&
+    hasActiveProfileCity &&
     profileCityId &&
     !selectedCityIdsBase.includes(profileCityId)
       ? [...selectedCityIdsBase, profileCityId]
@@ -115,7 +115,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const shouldFilterByCountry = Boolean(userCountryId);
   const shouldFilterByCategory =
     selectedFilterCategoryIds.length !== filterCategories.length;
-  const shouldFilterByCity = hasValidProfileCity && selectedCityIds.length !== cities.length;
+  const shouldFilterByCity = hasActiveProfileCity && selectedCityIds.length !== cities.length;
   const hasKeyword = Boolean(keyword);
 
   const returnToParams = new URLSearchParams();
@@ -294,7 +294,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         />
       ) : null}
 
-      {currentUser && !hasValidProfileCity ? (
+      {currentUser && !hasActiveProfileCity ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           도시 기반 필터와 글쓰기를 위해 <Link href="/my/profile" className="underline">기본 지역</Link>을 선택해 주세요.
         </p>
@@ -361,7 +361,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                         name="city"
                         value={city.id}
                         defaultChecked={selectedCityIds.includes(city.id)}
-                        disabled={isProfileCity || !hasValidProfileCity}
+                        disabled={isProfileCity || !hasActiveProfileCity}
                         aria-label={
                           isProfileCity
                             ? `${city.name} (프로필 기본 지역으로 항상 선택됨)`
