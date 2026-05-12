@@ -667,9 +667,9 @@ export default async function PostDetailPage({
             </span>
           </Link>
         ) : (
-          <span className={`${outlineActionButtonClass} cursor-default text-[#888]`}>
+          <button type="button" disabled className={`${outlineActionButtonClass} text-[#888]`}>
             ← 이전 글이 없어요
-          </span>
+          </button>
         )}
         {nextPost ? (
           <Link
@@ -684,9 +684,9 @@ export default async function PostDetailPage({
             <span className="ml-1 shrink-0">→</span>
           </Link>
         ) : (
-          <span className={`${outlineActionButtonClass} cursor-default text-[#888]`}>
+          <button type="button" disabled className={`${outlineActionButtonClass} text-[#888]`}>
             다음 글이 없어요 →
-          </span>
+          </button>
         )}
       </section>
 
