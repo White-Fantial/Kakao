@@ -37,9 +37,9 @@ CREATE INDEX "PostPermission_countryId_cityId_categoryId_idx" ON "PostPermission
 
 ALTER TABLE "PostPermission"
   ADD CONSTRAINT "PostPermission_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT "PostPermission_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT "PostPermission_cityId_fkey" FOREIGN KEY ("cityId") REFERENCES "City"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT "PostPermission_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT "PostPermission_countryId_fkey" FOREIGN KEY ("countryId") REFERENCES "Country"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT "PostPermission_cityId_fkey" FOREIGN KEY ("cityId") REFERENCES "City"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT "PostPermission_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "Post"
   ADD CONSTRAINT "Post_city_requires_country" CHECK ("cityId" IS NULL OR "countryId" IS NOT NULL);

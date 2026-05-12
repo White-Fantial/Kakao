@@ -14,6 +14,7 @@ import {
   canCreatePost,
   canDeletePost,
   canEditPost,
+  isPostScopeValid,
   canReportPost,
   canMarkPostAsSold,
   canMarkPostAsReserved,
@@ -106,7 +107,7 @@ async function resolvePostScope(
   const countryId = rawCountryId || null;
   const cityId = rawCityId || null;
 
-  if (cityId && !countryId) {
+  if (!isPostScopeValid(countryId, cityId)) {
     redirect(`${errorRedirectPath}?error=${encodeURIComponent('도시를 선택하려면 국가를 먼저 선택해 주세요.')}`);
   }
 

@@ -153,6 +153,23 @@ function getCategoryLabel(category: CategoryOption) {
   return category.label;
 }
 
+function getValidatedSelection<T extends { value?: string; id?: string }>(
+  options: T[],
+  currentValue: string,
+  fallbackValue: string,
+) {
+  const optionExists = options.some((option) => (option.value ?? option.id) === currentValue);
+  if (optionExists) {
+    return currentValue;
+  }
+
+  if (options.length === 0) {
+    return fallbackValue;
+  }
+
+  return options[0].value ?? options[0].id ?? fallbackValue;
+}
+
 export function PostForm({
   action,
   countries,
@@ -184,25 +201,27 @@ export function PostForm({
     () => buildCountryOptions(countries, allowedTargets),
     [countries, allowedTargets],
   );
-  const selectedCountryValue = countryOptions.some((option) => option.value === countryValue)
-    ? countryValue
-    : (countryOptions[0]?.value ?? ALL_COUNTRIES_VALUE);
+  const selectedCountryValue = getValidatedSelection(
+    countryOptions,
+    countryValue,
+    ALL_COUNTRIES_VALUE,
+  );
   const selectedCountryId = fromCountryValue(selectedCountryValue);
   const cityOptions = useMemo(
     () => buildCityOptions(cities, allowedTargets, selectedCountryId),
     [cities, allowedTargets, selectedCountryId],
   );
-  const selectedCityValue = cityOptions.some((option) => option.value === cityValue)
-    ? cityValue
-    : (cityOptions[0]?.value ?? ALL_CITIES_VALUE);
+  const selectedCityValue = getValidatedSelection(
+    cityOptions,
+    cityValue,
+    ALL_CITIES_VALUE,
+  );
   const selectedCityId = fromCityValue(selectedCityValue);
   const categoryOptions = useMemo(
     () => buildCategoryOptions(categories, allowedTargets, selectedCountryId, selectedCityId),
     [categories, allowedTargets, selectedCountryId, selectedCityId],
   );
-  const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
-    ? categoryId
-    : (categoryOptions[0]?.id ?? '');
+  const selectedCategoryId = getValidatedSelection(categoryOptions, categoryId, '');
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === selectedCategoryId),

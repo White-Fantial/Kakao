@@ -65,6 +65,13 @@ function isActiveWriter(user: PermissionUser | null | undefined) {
   return user?.status === 'ACTIVE';
 }
 
+export function isPostScopeValid(
+  countryId: string | null,
+  cityId: string | null,
+) {
+  return !cityId || Boolean(countryId);
+}
+
 function buildTargetKey(target: PostFormTargetOption) {
   return `${target.countryId ?? '*'}:${target.cityId ?? '*'}:${target.categoryId}`;
 }
@@ -79,7 +86,7 @@ export async function canCreatePost(
     return false;
   }
 
-  if (targetCityId && !targetCountryId) {
+  if (!isPostScopeValid(targetCountryId, targetCityId)) {
     return false;
   }
 
@@ -216,7 +223,7 @@ export async function getPostCreationFormOptions(
       return;
     }
 
-    if (cityId && !countryId) {
+    if (!isPostScopeValid(countryId, cityId)) {
       return;
     }
 
