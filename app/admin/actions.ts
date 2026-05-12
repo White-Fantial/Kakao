@@ -335,17 +335,20 @@ export async function createPostTagOptionAction(formData: FormData) {
   const user = await requireUser();
   requireAdmin(user);
 
-  const categoryId = normalizeText(formData.get('categoryId'));
+  const categoryType = normalizeText(formData.get('categoryType')) as CategoryType;
   const label = normalizeText(formData.get('label'));
   const slug = normalizeText(formData.get('slug')).toLowerCase();
   const colorValue = normalizeText(formData.get('color'));
   const color = normalizeHexColor(colorValue);
   const sortOrderRaw = normalizeText(formData.get('sortOrder'));
   const sortOrder = sortOrderRaw ? Number.parseInt(sortOrderRaw, 10) : 0;
-  const isDefault = formData.get('isDefault') === 'true';
 
-  if (!categoryId || !label || !slug) {
-    redirect('/admin/categories?error=카테고리, 태그명, 슬러그를 입력해 주세요.');
+  if (!categoryType || !label || !slug) {
+    redirect('/admin/categories?error=카테고리 타입, 태그명, 슬러그를 입력해 주세요.');
+  }
+
+  if (!VALID_CATEGORY_TYPES.includes(categoryType)) {
+    redirect('/admin/categories?error=유효하지 않은 카테고리 타입입니다.');
   }
 
   if (!/^[a-z0-9-]+$/.test(slug)) {
@@ -360,19 +363,10 @@ export async function createPostTagOptionAction(formData: FormData) {
     redirect('/admin/categories?error=정렬 순서는 숫자로 입력해 주세요.');
   }
 
-  const category = await prisma.category.findUnique({
-    where: { id: categoryId },
-    select: { id: true },
-  });
-
-  if (!category) {
-    redirect('/admin/categories?error=카테고리를 찾을 수 없습니다.');
-  }
-
   const existing = await prisma.postTagOption.findUnique({
     where: {
-      categoryId_slug: {
-        categoryId,
+      categoryType_slug: {
+        categoryType,
         slug,
       },
     },
@@ -383,35 +377,30 @@ export async function createPostTagOptionAction(formData: FormData) {
     redirect('/admin/categories?error=동일한 슬러그 태그가 이미 존재합니다.');
   }
 
-  const hasDefault = await prisma.postTagOption.findFirst({
-    where: { categoryId, isActive: true, isDefault: true },
+  const existingLabel = await prisma.postTagOption.findFirst({
+    where: {
+      categoryType,
+      label,
+    },
     select: { id: true },
   });
-  // Ensure each category always has a selectable default among active options.
-  const shouldBeDefault = isDefault || !hasDefault;
 
-  await prisma.$transaction(async (tx) => {
-    if (shouldBeDefault) {
-      await tx.postTagOption.updateMany({
-        where: { categoryId },
-        data: { isDefault: false },
-      });
-    }
+  if (existingLabel) {
+    redirect('/admin/categories?error=동일한 이름 태그가 이미 존재합니다.');
+  }
 
-    await tx.postTagOption.create({
-      data: {
-        categoryId,
-        label,
-        slug,
-        color,
-        sortOrder,
-        isActive: true,
-        isDefault: shouldBeDefault,
-      },
-    });
+  await prisma.postTagOption.create({
+    data: {
+      categoryType,
+      label,
+      slug,
+      color,
+      sortOrder,
+      isActive: true,
+    },
   });
 
-  await logModerationAction(user.id, 'POST_TAG_OPTION', categoryId, 'CREATE');
+  await logModerationAction(user.id, 'POST_TAG_OPTION', categoryType, 'CREATE');
 
   revalidatePath('/admin/categories');
   revalidatePath('/posts');
@@ -430,7 +419,6 @@ export async function updatePostTagOptionAction(formData: FormData) {
   const color = normalizeHexColor(colorValue);
   const sortOrderRaw = normalizeText(formData.get('sortOrder'));
   const sortOrder = sortOrderRaw ? Number.parseInt(sortOrderRaw, 10) : 0;
-  const isDefault = formData.get('isDefault') === 'true';
 
   if (!optionId || !label || !slug) {
     redirect('/admin/categories?error=태그 정보가 올바르지 않습니다.');
@@ -450,7 +438,7 @@ export async function updatePostTagOptionAction(formData: FormData) {
 
   const option = await prisma.postTagOption.findUnique({
     where: { id: optionId },
-    select: { id: true, categoryId: true, isActive: true },
+    select: { id: true, categoryType: true, isActive: true },
   });
 
   if (!option) {
@@ -459,7 +447,7 @@ export async function updatePostTagOptionAction(formData: FormData) {
 
   const duplicate = await prisma.postTagOption.findFirst({
     where: {
-      categoryId: option.categoryId,
+      categoryType: option.categoryType,
       slug,
       NOT: { id: option.id },
     },
@@ -470,24 +458,27 @@ export async function updatePostTagOptionAction(formData: FormData) {
     redirect('/admin/categories?error=동일한 슬러그 태그가 이미 존재합니다.');
   }
 
-  await prisma.$transaction(async (tx) => {
-    if (isDefault) {
-      await tx.postTagOption.updateMany({
-        where: { categoryId: option.categoryId },
-        data: { isDefault: false },
-      });
-    }
+  const duplicateLabel = await prisma.postTagOption.findFirst({
+    where: {
+      categoryType: option.categoryType,
+      label,
+      NOT: { id: option.id },
+    },
+    select: { id: true },
+  });
 
-    await tx.postTagOption.update({
-      where: { id: option.id },
-      data: {
-        label,
-        slug,
-        color,
-        sortOrder,
-        isDefault,
-      },
-    });
+  if (duplicateLabel) {
+    redirect('/admin/categories?error=동일한 이름 태그가 이미 존재합니다.');
+  }
+
+  await prisma.postTagOption.update({
+    where: { id: option.id },
+    data: {
+      label,
+      slug,
+      color,
+      sortOrder,
+    },
   });
 
   await logModerationAction(user.id, 'POST_TAG_OPTION', option.id, 'UPDATE');
@@ -511,41 +502,18 @@ export async function togglePostTagOptionActiveAction(formData: FormData) {
 
   const option = await prisma.postTagOption.findUnique({
     where: { id: optionId },
-    select: { id: true, categoryId: true, isDefault: true },
+    select: { id: true },
   });
 
   if (!option) {
     redirect('/admin/categories?error=태그를 찾을 수 없습니다.');
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.postTagOption.update({
-      where: { id: option.id },
-      data: {
-        isActive: !isActive,
-        // Deactivation always removes default flag; reactivation keeps current non-default state.
-        isDefault: isActive ? false : option.isDefault,
-      },
-    });
-
-    if (isActive && option.isDefault) {
-      const fallback = await tx.postTagOption.findFirst({
-        where: {
-          categoryId: option.categoryId,
-          isActive: true,
-          id: { not: option.id },
-        },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        select: { id: true },
-      });
-
-      if (fallback) {
-        await tx.postTagOption.update({
-          where: { id: fallback.id },
-          data: { isDefault: true },
-        });
-      }
-    }
+  await prisma.postTagOption.update({
+    where: { id: option.id },
+    data: {
+      isActive: !isActive,
+    },
   });
 
   await logModerationAction(

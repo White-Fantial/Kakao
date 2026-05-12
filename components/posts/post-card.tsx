@@ -13,8 +13,8 @@ type PostCardProps = {
     thumbnailUrl: string | null;
     commentCount: number;
     reportCount?: number;
-    postTagOption: { label: string; color: string | null } | null;
-    category: { name: string };
+    postTags: { id: string; label: string; color: string | null }[];
+    category: { name: string; type: string };
     city: { name: string } | null;
     author: {
       displayName: string;
@@ -26,7 +26,7 @@ type PostCardProps = {
 export function PostCard({ post }: PostCardProps) {
   const hasTitle = Boolean(post.title?.trim());
   const previewBase = post.title?.trim() || post.body.split('\n')[0] || '내용 없음';
-  const preview = withPostTagPrefix(previewBase, post.postTagOption?.label);
+  const preview = withPostTagPrefix(previewBase, post.postTags[0]?.label);
 
   return (
     <Link
@@ -35,10 +35,11 @@ export function PostCard({ post }: PostCardProps) {
     >
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
+        <span className="rounded-full bg-[#eef2ff] px-2 py-1 text-[#3730a3]">{post.category.type}</span>
         <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
-        {post.postTagOption ? (
-          <PostTagBadge label={post.postTagOption.label} color={post.postTagOption.color} />
-        ) : null}
+        {post.postTags.map((tag) => (
+          <PostTagBadge key={tag.id} label={tag.label} color={tag.color} />
+        ))}
         {typeof post.reportCount === 'number' ? (
           <span
             className={`rounded-full px-2 py-1 ${

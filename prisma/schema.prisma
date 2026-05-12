@@ -35,11 +35,14 @@ enum CommentStatus {
 
 enum CategoryType {
   GENERAL
-  SALE
-  RECRUIT
-  GIVEAWAY
-  HELP
   QUESTION
+  SALE
+  GIVEAWAY
+  RECRUIT
+  HOUSING
+  SERVICE
+  EVENT
+  NOTICE
 }
 
 enum CategoryVisibilityMode {
@@ -132,28 +135,26 @@ model Category {
   isActive       Boolean                @default(true)
   sortOrder      Int                    @default(0)
   posts          Post[]
-  postTagOptions PostTagOption[]
   permissions    PostPermission[]
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 }
 
 model PostTagOption {
-  id         String   @id @default(cuid())
-  categoryId String
-  label      String
-  slug       String
-  color      String?
-  sortOrder  Int      @default(0)
-  isActive   Boolean  @default(true)
-  isDefault  Boolean  @default(false)
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  posts      Post[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String       @id @default(cuid())
+  categoryType CategoryType
+  label        String
+  slug         String
+  color        String?
+  sortOrder    Int          @default(0)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  posts        PostTag[]
 
-  @@unique([categoryId, slug])
-  @@index([categoryId, isActive, sortOrder])
+  @@unique([categoryType, label])
+  @@unique([categoryType, slug])
+  @@index([categoryType, isActive, sortOrder])
 }
 
 model PostPermission {
@@ -186,16 +187,15 @@ model Post {
   body          String
   price         Decimal?     @db.Decimal(10, 2)
   status        PostStatus   @default(PUBLISHED)
-  postTagOptionId String?
   heldReason    String?
   deletedReason String?
   author        User         @relation(fields: [authorId], references: [id])
   city          City?        @relation(fields: [cityId], references: [id])
   country       Country?     @relation(fields: [countryId], references: [id])
   category      Category     @relation(fields: [categoryId], references: [id])
-  postTagOption PostTagOption? @relation(fields: [postTagOptionId], references: [id], onDelete: SetNull)
   contactUrl    String?
   images        PostImage[]
+  tags          PostTag[]
   comments      Comment[]
   reports       PostReport[]
   savedBy       SavedPost[]
@@ -207,6 +207,16 @@ model Post {
 
   @@index([cityId, categoryId, status, createdAt])
   @@index([authorId, createdAt])
+}
+
+model PostTag {
+  postId          String
+  postTagOptionId String
+  createdAt       DateTime      @default(now())
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postTagOption   PostTagOption @relation(fields: [postTagOptionId], references: [id], onDelete: Cascade)
+
+  @@id([postId, postTagOptionId])
   @@index([postTagOptionId, createdAt])
 }
 

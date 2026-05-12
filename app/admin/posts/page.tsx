@@ -41,8 +41,12 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
       deletedAt: true,
       createdAt: true,
       author: { select: { id: true, displayName: true } },
-      category: { select: { name: true } },
-      postTagOption: { select: { label: true, isActive: true } },
+      category: { select: { name: true, type: true } },
+      tags: {
+        select: {
+          postTagOption: { select: { id: true, label: true, isActive: true } },
+        },
+      },
       city: { select: { name: true } },
     },
   });
@@ -115,19 +119,21 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
               <li key={post.id} className="space-y-2 rounded-xl border border-[#e8e8e8] p-3">
                 <div className="flex flex-wrap gap-2 text-xs text-[#888]">
                   <span className="rounded-full bg-[#fffde7] px-2 py-0.5 font-medium text-[#7a6000]">{post.category.name}</span>
+                  <span className="rounded-full bg-[#eef2ff] px-2 py-0.5 text-[#3730a3]">{post.category.type}</span>
                   <span className="rounded-full bg-[#f5f5f5] px-2 py-0.5">{post.city?.name ?? '전 지역'}</span>
-                  {post.postTagOption ? (
+                  {post.tags.map((tag) => (
                     <span
+                      key={tag.postTagOption.id}
                       className={`rounded-full px-2 py-0.5 ${
-                        post.postTagOption.isActive
+                        tag.postTagOption.isActive
                           ? 'bg-[#e8f0fe] text-[#1a56db]'
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {post.postTagOption.label}
-                      {post.postTagOption.isActive ? '' : ' (비활성 태그)'}
+                      {tag.postTagOption.label}
+                      {tag.postTagOption.isActive ? '' : ' (비활성 태그)'}
                     </span>
-                  ) : null}
+                  ))}
                   <span
                     className={`rounded-full px-2 py-0.5 ${
                       post.status === 'HELD'

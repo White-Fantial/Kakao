@@ -33,6 +33,12 @@ function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeTextArray(values: FormDataEntryValue[]) {
+  return values
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean);
+}
+
 function parsePrice(rawPrice: string) {
   if (!rawPrice) {
     return { value: null as Decimal | null, invalid: false };
@@ -69,10 +75,10 @@ function getUploadedImages(formData: FormData): PreUploadedImage[] {
   );
 }
 
-async function validateCategoryPriceAndTag(
+async function validateCategoryPriceAndTags(
   categoryId: string,
   rawPrice: string,
-  rawPostTagOptionId: string,
+  rawPostTagOptionIds: string[],
 ) {
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
@@ -80,11 +86,6 @@ async function validateCategoryPriceAndTag(
       id: true,
       type: true,
       visibilityMode: true,
-      postTagOptions: {
-        where: { isActive: true },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        select: { id: true, isDefault: true },
-      },
     },
   });
 
@@ -103,24 +104,25 @@ async function validateCategoryPriceAndTag(
     return { ok: false as const, message: '판매글은 가격을 입력해 주세요.' };
   }
 
-  const selectedTagOptionId = rawPostTagOptionId || null;
-  if (selectedTagOptionId) {
-    const matched = category.postTagOptions.some((option) => option.id === selectedTagOptionId);
-    if (!matched) {
-      return { ok: false as const, message: '카테고리에 맞는 활성 태그를 선택해 주세요.' };
-    }
-  }
+  const availableTagOptions = await prisma.postTagOption.findMany({
+    where: {
+      categoryType: category.type,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  const availableTagOptionIds = new Set(availableTagOptions.map((option) => option.id));
+  const selectedTagOptionIds = Array.from(new Set(rawPostTagOptionIds));
 
-  const defaultTagOptionId =
-    category.postTagOptions.find((option) => option.isDefault)?.id ??
-    category.postTagOptions[0]?.id ??
-    null;
+  if (selectedTagOptionIds.some((optionId) => !availableTagOptionIds.has(optionId))) {
+    return { ok: false as const, message: '카테고리 타입에 맞는 활성 태그만 선택해 주세요.' };
+  }
 
   return {
     ok: true as const,
     category,
     price,
-    postTagOptionId: selectedTagOptionId ?? defaultTagOptionId,
+    postTagOptionIds: selectedTagOptionIds,
   };
 }
 
@@ -179,7 +181,7 @@ export async function createPostAction(formData: FormData) {
   const rawCountryId = normalizeText(formData.get('countryId'));
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
-  const rawPostTagOptionId = normalizeText(formData.get('postTagOptionId'));
+  const rawPostTagOptionIds = normalizeTextArray(formData.getAll('postTagOptionIds'));
   const contactUrl = normalizeText(formData.get('contactUrl')) || null;
   const uploadedImages = getUploadedImages(formData);
 
@@ -211,7 +213,11 @@ export async function createPostAction(formData: FormData) {
     redirect('/posts/new?error=카테고리를 선택해 주세요.');
   }
 
-  const categoryResult = await validateCategoryPriceAndTag(categoryId, rawPrice, rawPostTagOptionId);
+  const categoryResult = await validateCategoryPriceAndTags(
+    categoryId,
+    rawPrice,
+    rawPostTagOptionIds,
+  );
 
   if (!categoryResult.ok) {
     redirect(`/posts/new?error=${encodeURIComponent(categoryResult.message)}`);
@@ -250,10 +256,18 @@ export async function createPostAction(formData: FormData) {
         countryId: resolvedCountryId,
         price: categoryResult.price,
         status: 'PUBLISHED',
-        postTagOptionId: categoryResult.postTagOptionId,
         contactUrl,
       },
     });
+
+    if (categoryResult.postTagOptionIds.length > 0) {
+      await tx.postTag.createMany({
+        data: categoryResult.postTagOptionIds.map((postTagOptionId) => ({
+          postId: post.id,
+          postTagOptionId,
+        })),
+      });
+    }
 
     if (uploadedImages.length > 0) {
       await tx.postImage.createMany({
@@ -319,7 +333,7 @@ export async function updatePostAction(formData: FormData) {
   const rawCountryId = normalizeText(formData.get('countryId'));
   const rawCityId = normalizeText(formData.get('cityId'));
   const rawPrice = normalizeText(formData.get('price'));
-  const rawPostTagOptionId = normalizeText(formData.get('postTagOptionId'));
+  const rawPostTagOptionIds = normalizeTextArray(formData.getAll('postTagOptionIds'));
   const contactUrl = normalizeText(formData.get('contactUrl')) || null;
   const uploadedImages = getUploadedImages(formData);
   const deleteImageIds = formData.getAll('deleteImageIds').filter((v): v is string => typeof v === 'string');
@@ -332,7 +346,11 @@ export async function updatePostAction(formData: FormData) {
     redirect(`/posts/${postId}/edit?error=카테고리를 선택해 주세요.`);
   }
 
-  const categoryResult = await validateCategoryPriceAndTag(categoryId, rawPrice, rawPostTagOptionId);
+  const categoryResult = await validateCategoryPriceAndTags(
+    categoryId,
+    rawPrice,
+    rawPostTagOptionIds,
+  );
 
   if (!categoryResult.ok) {
     redirect(
@@ -397,11 +415,23 @@ export async function updatePostAction(formData: FormData) {
         cityId: resolvedCityId,
         countryId: resolvedCountryId,
         price: isPostInSaleCategory ? categoryResult.price : null,
-        postTagOptionId: categoryResult.postTagOptionId,
         status: 'PUBLISHED',
         contactUrl,
       },
     });
+
+    await tx.postTag.deleteMany({
+      where: { postId },
+    });
+
+    if (categoryResult.postTagOptionIds.length > 0) {
+      await tx.postTag.createMany({
+        data: categoryResult.postTagOptionIds.map((postTagOptionId) => ({
+          postId,
+          postTagOptionId,
+        })),
+      });
+    }
 
     if (deleteImageIds.length > 0) {
       await tx.postImage.deleteMany({
@@ -537,7 +567,11 @@ export async function changePostTagOptionAction(formData: FormData) {
       id: true,
       authorId: true,
       status: true,
-      categoryId: true,
+      category: {
+        select: {
+          type: true,
+        },
+      },
     },
   });
 
@@ -548,7 +582,7 @@ export async function changePostTagOptionAction(formData: FormData) {
   const selectedOption = await prisma.postTagOption.findFirst({
     where: {
       id: postTagOptionId,
-      categoryId: post.categoryId,
+      categoryType: post.category.type,
       isActive: true,
     },
     select: { id: true, label: true },
@@ -558,11 +592,16 @@ export async function changePostTagOptionAction(formData: FormData) {
     redirect(`/posts/${postId}?error=${encodeURIComponent('유효한 활성 태그를 선택해 주세요.')}`);
   }
 
-  await prisma.post.update({
-    where: { id: postId },
-    data: {
-      postTagOptionId: selectedOption.id,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.postTag.deleteMany({
+      where: { postId },
+    });
+    await tx.postTag.create({
+      data: {
+        postId,
+        postTagOptionId: selectedOption.id,
+      },
+    });
   });
 
   if (user.role === 'ADMIN' && user.id !== post.authorId) {

@@ -23,7 +23,8 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
   const user = await requireUser();
   const params = await searchParams;
 
-  const posts = await prisma.post.findMany({
+  const [posts, tagOptions] = await Promise.all([
+    prisma.post.findMany({
     where: {
       authorId: user.id,
       status: {
@@ -36,14 +37,16 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
       category: {
         select: {
           name: true,
-          postTagOptions: {
-            where: { isActive: true },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: { id: true, label: true },
+          type: true,
+        },
+      },
+      tags: {
+        select: {
+          postTagOption: {
+            select: { id: true, label: true, color: true },
           },
         },
       },
-      postTagOption: { select: { id: true, label: true, color: true } },
       images: {
         select: { url: true },
         orderBy: { sortOrder: 'asc' },
@@ -57,7 +60,20 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
         },
       },
     },
-  });
+    }),
+    prisma.postTagOption.findMany({
+      where: { isActive: true },
+      orderBy: [{ categoryType: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, label: true, categoryType: true },
+    }),
+  ]);
+
+  const tagOptionsByType = new Map<string, { id: string; label: string }[]>();
+  for (const option of tagOptions) {
+    const existing = tagOptionsByType.get(option.categoryType) ?? [];
+    existing.push({ id: option.id, label: option.label });
+    tagOptionsByType.set(option.categoryType, existing);
+  }
 
   return (
     <section className="space-y-4">
@@ -74,11 +90,12 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
           {posts.map((post) => {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, 40);
-            const postHeading = withPostTagPrefix(titleText || bodyPreview, post.postTagOption?.label);
-            const activeTagOptionIds = new Set(post.category.postTagOptions.map((option) => option.id));
-            const selectedTagOptionId = activeTagOptionIds.has(post.postTagOption?.id ?? '')
-              ? post.postTagOption?.id
-              : post.category.postTagOptions[0]?.id;
+            const postTagOptions = tagOptionsByType.get(post.category.type) ?? [];
+            const selectedTagIds = post.tags.map((tag) => tag.postTagOption.id);
+            const postHeading = withPostTagPrefix(titleText || bodyPreview, post.tags[0]?.postTagOption.label);
+            const activeTagOptionIds = new Set(postTagOptions.map((option) => option.id));
+            const selectedTagOptionId = selectedTagIds.find((id) => activeTagOptionIds.has(id))
+              ?? postTagOptions[0]?.id;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
               : '게시글 썸네일: 제목 없는 게시글';
@@ -100,10 +117,15 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap gap-2 text-xs">
                       <span className="rounded-full bg-[#fffde7] px-2 py-1 font-medium text-[#7a6000]">{post.category.name}</span>
+                      <span className="rounded-full bg-[#eef2ff] px-2 py-1 text-[#3730a3]">{post.category.type}</span>
                       <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-[#555]">{post.city?.name ?? '전 지역'}</span>
-                      {post.postTagOption ? (
-                        <PostTagBadge label={post.postTagOption.label} color={post.postTagOption.color} />
-                      ) : null}
+                      {post.tags.map((tag) => (
+                        <PostTagBadge
+                          key={tag.postTagOption.id}
+                          label={tag.postTagOption.label}
+                          color={tag.postTagOption.color}
+                        />
+                      ))}
                     </div>
                     <h2 className="text-base font-semibold">{postHeading}</h2>
                     <p className="line-clamp-2 text-sm text-[#555]">{post.body}</p>
@@ -124,7 +146,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                   <Link href={`/posts/${post.id}/edit`} className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm font-medium hover:bg-[#f9f9f9]">
                     수정
                   </Link>
-                  {post.category.postTagOptions.length > 0 ? (
+                  {postTagOptions.length > 0 ? (
                     <form action={changePostTagOptionAction} className="flex items-center gap-2">
                       <input type="hidden" name="postId" value={post.id} />
                       <select
@@ -132,7 +154,7 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
                         defaultValue={selectedTagOptionId}
                         className="rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
                       >
-                        {post.category.postTagOptions.map((option) => (
+                        {postTagOptions.map((option) => (
                           <option key={option.id} value={option.id}>
                             {option.label}
                           </option>
