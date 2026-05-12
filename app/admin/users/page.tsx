@@ -8,6 +8,10 @@ import { canMakeFinalUserDecision } from '@/lib/permissions';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 export const dynamic = 'force-dynamic';
+const MAX_REVIEW_REQUESTS_PER_USER = 5;
+const MIN_REVIEW_REQUEST_LOOKUP = 20;
+const MAX_REVIEW_REQUEST_LOOKUP = 200;
+const MAX_RECENT_USER_MODERATION_ACTIONS = 30;
 
 type AdminUsersPageProps = {
   searchParams: Promise<{ error?: string }>;
@@ -35,6 +39,45 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       },
     },
   });
+  const userIds = users.map((user) => user.id);
+  const reviewRequestTake = Math.min(
+    Math.max(userIds.length * MAX_REVIEW_REQUESTS_PER_USER, MIN_REVIEW_REQUEST_LOOKUP),
+    MAX_REVIEW_REQUEST_LOOKUP,
+  );
+
+  const userReviewRequests = await prisma.moderationAction.findMany({
+    where: {
+      targetType: 'USER',
+      actionType: 'REVIEW_REQUEST',
+      ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: reviewRequestTake,
+    select: {
+      id: true,
+      targetId: true,
+      reason: true,
+      createdAt: true,
+      actor: { select: { displayName: true } },
+    },
+  });
+
+  const userModerationActions = await prisma.moderationAction.findMany({
+    where: {
+      targetType: 'USER',
+      ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: MAX_RECENT_USER_MODERATION_ACTIONS,
+    select: {
+      id: true,
+      targetId: true,
+      actionType: true,
+      reason: true,
+      createdAt: true,
+      actor: { select: { displayName: true } },
+    },
+  });
 
   const roleLabels: Record<string, string> = {
     USER: '일반',
@@ -48,6 +91,34 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     SUSPENDED: '정지',
     DELETED: '삭제',
   };
+
+  const formatUserActionType = (actionType: string) => {
+    if (actionType === 'REVIEW_REQUEST') {
+      return '검토 요청';
+    }
+
+    if (actionType.startsWith('ROLE_CHANGE_TO_')) {
+      const role = actionType.replace('ROLE_CHANGE_TO_', '');
+      return `역할 변경 → ${roleLabels[role] ?? role}`;
+    }
+
+    if (actionType.startsWith('STATUS_CHANGE_TO_')) {
+      const status = actionType.replace('STATUS_CHANGE_TO_', '');
+      return `상태 변경 → ${statusLabels[status] ?? status}`;
+    }
+
+    return actionType;
+  };
+
+  const userReviewRequestsByTargetId = userReviewRequests.reduce<
+    Record<string, Array<(typeof userReviewRequests)[number]>>
+  >((acc, request) => {
+    if (!acc[request.targetId]) {
+      acc[request.targetId] = [];
+    }
+    acc[request.targetId].push(request);
+    return acc;
+  }, {});
 
   return (
     <section className="space-y-6">
@@ -75,8 +146,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           <p className="text-sm text-[#888]">사용자가 없습니다.</p>
         ) : (
           <ul className="space-y-4">
-            {users.map((u) => (
-              <li key={u.id} className="space-y-2 rounded-xl border border-[#e8e8e8] p-3">
+            {users.map((u) => {
+              const reviewRequests =
+                userReviewRequestsByTargetId[u.id]?.slice(0, MAX_REVIEW_REQUESTS_PER_USER) ?? [];
+
+              return (
+                <li key={u.id} className="space-y-2 rounded-xl border border-[#e8e8e8] p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">{u.displayName}</span>
                   <span
@@ -172,6 +247,50 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 ) : (
                   <p className="text-xs text-[#aaa]">본인 계정은 수정할 수 없습니다.</p>
                 )}
+
+                {reviewRequests.length > 0 ? (
+                  <div className="rounded-lg border border-[#f3e8e8] bg-[#fffafa] p-2">
+                    <p className="mb-2 text-xs font-semibold text-[#7a2e2e]">
+                      검토 요청 내역 ({reviewRequests.length}건)
+                    </p>
+                    <ul className="space-y-1">
+                      {reviewRequests.map((request) => (
+                        <li key={request.id} className="text-xs text-[#555]">
+                          <span className="font-medium">{request.actor.displayName}</span>
+                          {' · '}
+                          <span>{new Date(request.createdAt).toLocaleString('ko-KR')}</span>
+                          {request.reason ? (
+                            <span className="ml-1 text-[#7a2e2e]">({request.reason})</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+        <h2 className="mb-3 font-semibold">최근 사용자 변경 내역</h2>
+        {userModerationActions.length === 0 ? (
+          <p className="text-sm text-[#888]">로그가 없습니다.</p>
+        ) : (
+          <ul className="space-y-2">
+            {userModerationActions.map((action) => (
+              <li key={action.id} className="rounded-lg border border-[#e8e8e8] p-2 text-xs">
+                <span className="font-medium">{action.actor.displayName}</span>
+                {' → '}
+                <span className="text-[#555]">{formatUserActionType(action.actionType)}</span>
+                {' · '}
+                <span className="font-mono text-[#aaa]">{action.targetId.slice(0, 8)}…</span>
+                {action.reason ? <span className="ml-2 text-[#888]">({action.reason})</span> : null}
+                <span className="ml-2 text-[#aaa]">
+                  {new Date(action.createdAt).toLocaleString('ko-KR')}
+                </span>
               </li>
             ))}
           </ul>
