@@ -55,6 +55,7 @@ export function ColorPaletteInput({ name, defaultValue = '', label }: ColorPalet
             color === '' ? 'border-[#3c1e1e]' : 'border-[#e8e8e8]'
           }`}
           title="색상 없음"
+          aria-label="색상 제거"
         >
           ✕
         </button>

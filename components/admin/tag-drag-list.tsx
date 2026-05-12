@@ -93,6 +93,7 @@ export function TagDragList({ categoryType, categoryTypeLabel, initialTags }: Ta
                 <span
                   className="cursor-grab text-[#bbb] active:cursor-grabbing"
                   title="드래그하여 순서 변경"
+                  aria-label="드래그하여 순서 변경"
                 >
                   ⠿
                 </span>

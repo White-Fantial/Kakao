@@ -106,7 +106,7 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
       <details className="group rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold select-none">
           <span>카테고리 추가</span>
-          <span className="text-sm text-[#aaa] transition-transform group-open:rotate-180">▼</span>
+          <span className="text-sm text-[#aaa] transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
         </summary>
         <div className="border-t border-[#f0f0f0] px-4 pb-4 pt-3">
           <form action={createCategoryAction} className="space-y-3">
