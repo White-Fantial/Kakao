@@ -198,8 +198,8 @@ export function PostForm({
   );
   const [cityValue, setCityValue] = useState(toCityValue(defaultValues?.cityId ?? defaultCityId));
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? '');
-  const [selectedPostTagOptionIds, setSelectedPostTagOptionIds] = useState<string[]>(
-    defaultValues?.postTagOptionIds ?? [],
+  const [selectedPostTagOptionId, setSelectedPostTagOptionId] = useState(
+    defaultValues?.postTagOptionIds?.[0] ?? '',
   );
   const [deletedImageIds, setDeletedImageIds] = useState<Set<string>>(new Set());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -245,13 +245,13 @@ export function PostForm({
     () => new Set(selectedCategoryTagOptions.map((option) => option.id)),
     [selectedCategoryTagOptions],
   );
-  const validatedSelectedPostTagOptionIds = selectedPostTagOptionIds.filter((optionId) =>
-    selectedCategoryTagOptionIdSet.has(optionId),
-  );
+  const validatedSelectedPostTagOptionId = selectedCategoryTagOptionIdSet.has(selectedPostTagOptionId)
+    ? selectedPostTagOptionId
+    : '';
 
   function togglePostTagOption(optionId: string) {
-    setSelectedPostTagOptionIds((prev) =>
-      prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId],
+    setSelectedPostTagOptionId((prev) =>
+      prev === optionId ? '' : optionId,
     );
   }
 
@@ -440,7 +440,7 @@ export function PostForm({
             setCategoryId(nextCategoryId);
             const nextCategory = categories.find((category) => category.id === nextCategoryId);
             const validIds = new Set((nextCategory?.postTagOptions ?? []).map((option) => option.id));
-            setSelectedPostTagOptionIds((prev) => prev.filter((id) => validIds.has(id)));
+            setSelectedPostTagOptionId((prev) => (validIds.has(prev) ? prev : ''));
           }}
           required
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
@@ -455,10 +455,10 @@ export function PostForm({
 
       {selectedCategoryTagOptions.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-sm font-medium">태그 (선택, 0개 이상)</p>
+          <p className="text-sm font-medium">태그 (선택, 최대 1개)</p>
           <div className="flex flex-wrap gap-2 rounded-lg border border-[#e8e8e8] p-3">
             {selectedCategoryTagOptions.map((option) => {
-              const checked = validatedSelectedPostTagOptionIds.includes(option.id);
+              const checked = validatedSelectedPostTagOptionId === option.id;
               return (
                 <label
                   key={option.id}
@@ -480,6 +480,15 @@ export function PostForm({
                 </label>
               );
             })}
+            {validatedSelectedPostTagOptionId ? (
+              <button
+                type="button"
+                onClick={() => setSelectedPostTagOptionId('')}
+                className="rounded-full border border-[#e8e8e8] px-3 py-1.5 text-sm text-[#666] hover:border-[#fee500] hover:bg-[#fffde7]"
+              >
+                선택 해제
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
