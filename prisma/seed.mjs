@@ -77,7 +77,7 @@ const categories = [
     name: '광고',
     slug: 'advertisement',
     type: CategoryType.ADVERTISEMENT,
-    visibilityMode: CategoryVisibilityMode.NORMAL,
+    visibilityMode: CategoryVisibilityMode.ALWAYS_INCLUDED,
   },
   {
     name: '공지사항',
