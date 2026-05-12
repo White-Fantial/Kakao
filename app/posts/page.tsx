@@ -6,12 +6,7 @@ import { saveSearchAlertAction } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
-import { CountrySwitchSuggestionBanner } from '@/components/location/country-switch-suggestion-banner';
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
-import {
-  dismissCountrySuggestionAction,
-  switchCountryBySuggestionAction,
-} from './country-suggestion-actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -63,14 +58,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           select: {
             cityId: true,
             countryId: true,
-            country: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            countrySuggestionDismissedCountryId: true,
-            countrySuggestionDismissedUntil: true,
           },
         })
       : Promise.resolve(null),
@@ -349,17 +336,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ) : null}
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
-      ) : null}
-
-      {currentUser ? (
-        <CountrySwitchSuggestionBanner
-          selectedCountry={dbUser?.country ?? null}
-          dismissedCountryId={dbUser?.countrySuggestionDismissedCountryId ?? null}
-          dismissedUntil={dbUser?.countrySuggestionDismissedUntil?.toISOString() ?? null}
-          nowIso={new Date().toISOString()}
-          switchAction={switchCountryBySuggestionAction}
-          dismissAction={dismissCountrySuggestionAction}
-        />
       ) : null}
 
       {currentUser && !hasActiveProfileCity ? (

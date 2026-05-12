@@ -81,8 +81,6 @@ export async function updateProfileAction(formData: FormData) {
         openChatUrl,
         countryId: targetCountryId,
         cityId: null,
-        countrySuggestionDismissedCountryId: null,
-        countrySuggestionDismissedUntil: null,
         notifyOnKakaoForSearchAlert,
         notifyOnKakaoForComment,
       },
