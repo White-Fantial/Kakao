@@ -345,9 +345,15 @@ export default async function PostDetailPage({
 
       {canSubmitReport && reportOptions.length > 0 ? (
         <section className="border-t border-[#e8e8e8] pt-4">
-          <details className="space-y-2">
-            <summary className="cursor-pointer list-none rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">
-              신고하기
+          <details className="group space-y-2">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">
+              <span>신고하기</span>
+              <span
+                aria-hidden="true"
+                className="text-xs text-red-400 transition-transform group-open:rotate-180"
+              >
+                ▼
+              </span>
             </summary>
             <div className="space-y-2 pt-2">
               {myReport ? (
