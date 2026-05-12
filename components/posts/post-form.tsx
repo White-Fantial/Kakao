@@ -198,8 +198,8 @@ export function PostForm({
   );
   const [cityValue, setCityValue] = useState(toCityValue(defaultValues?.cityId ?? defaultCityId));
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? '');
-  const [selectedPostTagOptionId, setSelectedPostTagOptionId] = useState(
-    defaultValues?.postTagOptionIds?.[0] ?? '',
+  const [selectedPostTagOptionIds, setSelectedPostTagOptionIds] = useState<string[]>(
+    defaultValues?.postTagOptionIds ?? [],
   );
   const [deletedImageIds, setDeletedImageIds] = useState<Set<string>>(new Set());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -245,9 +245,9 @@ export function PostForm({
     () => new Set(selectedCategoryTagOptions.map((option) => option.id)),
     [selectedCategoryTagOptions],
   );
-  const validatedSelectedPostTagOptionId = selectedCategoryTagOptionIdSet.has(selectedPostTagOptionId)
-    ? selectedPostTagOptionId
-    : '';
+  const validatedSelectedPostTagOptionIds = selectedPostTagOptionIds.filter((id) =>
+    selectedCategoryTagOptionIdSet.has(id),
+  );
 
   function toggleDeleteImage(id: string) {
     setDeletedImageIds((prev) => {
@@ -434,7 +434,7 @@ export function PostForm({
             setCategoryId(nextCategoryId);
             const nextCategory = categories.find((category) => category.id === nextCategoryId);
             const validIds = new Set((nextCategory?.postTagOptions ?? []).map((option) => option.id));
-            setSelectedPostTagOptionId((prev) => (validIds.has(prev) ? prev : ''));
+            setSelectedPostTagOptionIds((prev) => prev.filter((id) => validIds.has(id)));
           }}
           required
           className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
@@ -449,19 +449,14 @@ export function PostForm({
 
       {selectedCategoryTagOptions.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-sm font-medium">태그 (선택, 최대 1개)</p>
+          <p className="text-sm font-medium">태그 (선택)</p>
           <div
-            role="radiogroup"
+            role="group"
             aria-label="태그 선택"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setSelectedPostTagOptionId('');
-              }
-            }}
             className="flex flex-wrap gap-2 rounded-lg border border-[#e8e8e8] p-3"
           >
             {selectedCategoryTagOptions.map((option) => {
-              const checked = validatedSelectedPostTagOptionId === option.id;
+              const checked = validatedSelectedPostTagOptionIds.includes(option.id);
               return (
                 <label
                   key={option.id}
@@ -472,25 +467,31 @@ export function PostForm({
                   }`}
                 >
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="postTagOptionIds"
                     value={option.id}
                     checked={checked}
-                    onChange={() => setSelectedPostTagOptionId(option.id)}
+                    onChange={() =>
+                      setSelectedPostTagOptionIds((prev) =>
+                        prev.includes(option.id)
+                          ? prev.filter((id) => id !== option.id)
+                          : [...prev, option.id],
+                      )
+                    }
                     className="accent-[#fee500]"
                   />
                   <span>{option.label}</span>
                 </label>
               );
             })}
-            {validatedSelectedPostTagOptionId ? (
+            {validatedSelectedPostTagOptionIds.length > 0 ? (
               <button
                 type="button"
-                onClick={() => setSelectedPostTagOptionId('')}
+                onClick={() => setSelectedPostTagOptionIds([])}
                 aria-label="태그 선택 해제"
                 className="rounded-full border border-[#e8e8e8] px-3 py-1.5 text-sm text-[#666] hover:border-[#fee500] hover:bg-[#fffde7] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
               >
-                선택 해제
+                전체 해제
               </button>
             ) : null}
           </div>

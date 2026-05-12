@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import {
-  changePostTagOptionAction,
   reportPostAction,
 } from '@/app/posts/actions';
 import { savePostAction, unsavePostAction } from '@/app/posts/saved-actions';
@@ -26,7 +25,6 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import {
   canDeleteComment,
-  canEditPost,
   canHoldPost,
   canReportPost,
   canRestorePost,
@@ -151,14 +149,6 @@ export default async function PostDetailPage({
   }
 
   const isCoordinator = currentUser ? canHoldPost(currentUser) : false;
-  const categoryTagOptions = await prisma.postTagOption.findMany({
-    where: {
-      categoryType: post.category.type,
-      isActive: true,
-    },
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: { id: true, label: true },
-  });
 
   // Non-coordinators cannot view HELD posts
   if (post.status === 'HELD' && !isCoordinator) {
@@ -210,11 +200,6 @@ export default async function PostDetailPage({
   }
 
   const isOwner = currentUser?.id === post.authorId;
-  const canChangeTag = currentUser ? canEditPost(currentUser, post) : false;
-  const selectedTagIds = post.tags.map((tag) => tag.postTagOption.id);
-  const activeTagOptionIds = new Set(categoryTagOptions.map((option) => option.id));
-  const selectedTagOptionId = selectedTagIds.find((id) => activeTagOptionIds.has(id))
-    ?? categoryTagOptions[0]?.id;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -309,27 +294,6 @@ export default async function PostDetailPage({
       ) : (
         <p className="text-sm text-[#888]">작성자가 연락 링크를 등록하지 않았어요.</p>
       )}
-      {canChangeTag && categoryTagOptions.length > 0 ? (
-        <form action={changePostTagOptionAction} className="flex items-center gap-2 border-t border-[#e8e8e8] pt-4">
-          <input type="hidden" name="postId" value={post.id} />
-          <select
-            name="postTagOptionId"
-            defaultValue={selectedTagOptionId}
-            className="w-full rounded-xl border border-[#e8e8e8] px-3 py-2 text-sm"
-          >
-            {categoryTagOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <FormSubmitButton
-            idleLabel="태그 변경"
-            pendingLabel="처리 중..."
-            className={outlineActionButtonClass}
-          />
-        </form>
-      ) : null}
       {isOwner ? (
         <div className="grid grid-cols-2 gap-2 border-t border-[#e8e8e8] pt-4">
           <Link href={`/posts/${post.id}/edit`} className={outlineActionButtonClass}>
