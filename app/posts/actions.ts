@@ -567,6 +567,6 @@ export async function reportPostAction(formData: FormData) {
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
-  revalidatePath('/admin/reports');
+  revalidatePath('/coordinator/reports');
   redirect(`/posts/${postId}?success=${encodeURIComponent('신고가 접수되었어요.')}`);
 }
