@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { changeUserRoleAction, changeUserStatusAction } from '@/app/admin/actions';

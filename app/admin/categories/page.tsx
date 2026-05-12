@@ -1,5 +1,4 @@
 import type { CategoryType, CategoryVisibilityMode } from '@prisma/client';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import {
