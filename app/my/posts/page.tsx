@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 
 import { DeletePostButton } from '@/components/posts/delete-post-button';
 import { PostTagBadge } from '@/components/posts/post-tag-badge';
+import { EmptyStateMessage } from '@/components/ui/empty-state-message';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
@@ -75,9 +76,10 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
       ) : null}
 
       {visiblePosts.length === 0 ? (
-        <p className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-sm text-[#888]">
-          아직 올라온 글이 없어요. 첫 글을 남겨보세요.
-        </p>
+        <EmptyStateMessage
+          title="작성한 글이 아직 없어요."
+          description="첫 글을 올리면 이곳에서 쉽게 관리할 수 있어요."
+        />
       ) : (
         <ul className="space-y-3">
           {visiblePosts.map((post) => {
