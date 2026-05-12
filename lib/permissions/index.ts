@@ -2,6 +2,11 @@ import { CategoryVisibilityMode, UserRole } from '@prisma/client';
 import type { CategoryType, PostStatus, UserStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
+import {
+  getActiveCategories,
+  getActiveCities,
+  getActivePostTagOptions,
+} from '@/lib/posts/reference-data';
 
 type PermissionUser = {
   id: string;
@@ -181,31 +186,9 @@ export async function getPostCreationFormOptions(
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true },
     }),
-    prisma.city.findMany({
-      where: { isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, countryId: true },
-    }),
-    prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        visibilityMode: true,
-      },
-    }),
-    prisma.postTagOption.findMany({
-      where: { isActive: true },
-      orderBy: [{ categoryType: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: {
-        id: true,
-        categoryType: true,
-        label: true,
-        slug: true,
-      },
-    }),
+    getActiveCities(),
+    getActiveCategories(),
+    getActivePostTagOptions(),
     user.role === 'ADMIN'
       ? Promise.resolve([])
       : prisma.postPermission.findMany({

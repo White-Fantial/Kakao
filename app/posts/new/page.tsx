@@ -19,7 +19,7 @@ type NewPostPageProps = {
 
 export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const user = await requireUser();
-  const hasCity = await hasValidProfileCity(user.id);
+  const hasCity = await hasValidProfileCity(user.cityId, user.countryId);
 
   if (!hasCity) {
     redirect(getProfileCityRequiredHref('/posts/new'));

@@ -13,13 +13,16 @@ export const metadata: Metadata = {
   description: '내가 작성한 게시글을 관리할 수 있어요.',
 };
 
+const PAGE_SIZE = 20;
+
 type MyPostsPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; page?: string }>;
 };
 
 export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
   const user = await requireUser();
   const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1);
 
   const posts = await prisma.post.findMany({
     where: {
@@ -29,6 +32,8 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
       },
     },
     orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE + 1,
     include: {
       city: { select: { name: true } },
       category: {
@@ -60,19 +65,22 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
     },
   });
 
+  const hasNextPage = posts.length > PAGE_SIZE;
+  const visiblePosts = hasNextPage ? posts.slice(0, PAGE_SIZE) : posts;
+
   return (
     <section className="space-y-4">
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
-      {posts.length === 0 ? (
+      {visiblePosts.length === 0 ? (
         <p className="rounded-xl border border-[#e8e8e8] bg-white p-6 text-sm text-[#888]">
           아직 올라온 글이 없어요. 첫 글을 남겨보세요.
         </p>
       ) : (
         <ul className="space-y-3">
-          {posts.map((post) => {
+          {visiblePosts.map((post) => {
             const titleText = post.title?.trim() ?? '';
             const bodyPreview = post.body.slice(0, 40);
             const postHeading = titleText || bodyPreview;
@@ -135,6 +143,29 @@ export default async function MyPostsPage({ searchParams }: MyPostsPageProps) {
           })}
         </ul>
       )}
+
+      {(page > 1 || hasNextPage) ? (
+        <div className="flex justify-between gap-2 pt-1">
+          {page > 1 ? (
+            <Link
+              href={`/my/posts?page=${page - 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              이전
+            </Link>
+          ) : (
+            <span />
+          )}
+          {hasNextPage ? (
+            <Link
+              href={`/my/posts?page=${page + 1}`}
+              className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]"
+            >
+              다음
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

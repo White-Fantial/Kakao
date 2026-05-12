@@ -18,9 +18,9 @@ export const getActiveCities = unstable_cache(
     prisma.city.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true },
+      select: { id: true, name: true, countryId: true },
     }),
-  ['reference-cities'],
+  ['reference-cities-v2'],
   { revalidate: 3600 },
 );
 
@@ -29,9 +29,9 @@ export const getActivePostTagOptions = unstable_cache(
     prisma.postTagOption.findMany({
       where: { isActive: true },
       orderBy: [{ categoryType: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { id: true, label: true, categoryType: true },
+      select: { id: true, label: true, categoryType: true, slug: true },
     }),
-  ['reference-post-tag-options'],
+  ['reference-post-tag-options-v2'],
   { revalidate: 3600 },
 );
 
