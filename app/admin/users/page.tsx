@@ -36,6 +36,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     },
   });
   const userIds = users.map((user) => user.id);
+  const reviewRequestTake = Math.min(Math.max(userIds.length * 5, 20), 200);
 
   const userReviewRequests = await prisma.moderationAction.findMany({
     where: {
@@ -44,7 +45,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
       ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
     },
     orderBy: { createdAt: 'desc' },
-    take: 60,
+    take: reviewRequestTake,
     select: {
       id: true,
       targetId: true,
@@ -55,7 +56,10 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   });
 
   const userModerationActions = await prisma.moderationAction.findMany({
-    where: { targetType: 'USER' },
+    where: {
+      targetType: 'USER',
+      ...(userIds.length > 0 ? { targetId: { in: userIds } } : {}),
+    },
     orderBy: { createdAt: 'desc' },
     take: 30,
     select: {
