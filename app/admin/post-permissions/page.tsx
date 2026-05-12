@@ -5,6 +5,7 @@ import {
   createPostPermissionAction,
   deletePostPermissionAction,
 } from '@/app/admin/actions';
+import { adminManagementNavItems, ManagementSectionNav } from '@/components/admin/management-section-nav';
 import { PostPermissionForm } from '@/components/admin/post-permission-form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -74,15 +75,9 @@ export default async function AdminPostPermissionsPage({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">관리자 — 게시글 작성 권한</h1>
-        <nav className="flex gap-3 text-sm">
-          <Link href="/admin/users" className="font-medium text-[#3c1e1e] underline">사용자</Link>
-          <Link href="/admin/categories" className="font-medium text-[#3c1e1e] underline">카테고리</Link>
-          <Link href="/admin/posts" className="font-medium text-[#3c1e1e] underline">게시글</Link>
-          <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
-          <Link href="/admin/countries" className="font-medium text-[#3c1e1e] underline">국가</Link>
-        </nav>
+        <ManagementSectionNav items={adminManagementNavItems} />
       </div>
 
       {params.error ? (

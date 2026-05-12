@@ -1,11 +1,14 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 
 import {
   holdPostAction,
   restorePostAction,
   requestUserReviewAction,
 } from '@/app/coordinator/actions';
+import {
+  coordinatorManagementNavItems,
+  ManagementSectionNav,
+} from '@/components/admin/management-section-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canHoldPost } from '@/lib/permissions';
@@ -69,14 +72,9 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">운영 관리 대시보드</h1>
-        <Link
-          href="/admin/reports"
-          className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-1 text-sm font-medium text-[#3c1e1e] hover:border-[#fee500] hover:bg-[#fffde7]"
-        >
-          신고내역 확인
-        </Link>
+        <ManagementSectionNav items={coordinatorManagementNavItems} />
       </div>
 
       {params.error ? (

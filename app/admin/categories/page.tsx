@@ -10,6 +10,7 @@ import {
   updatePostTagOptionAction,
   updateCategorySettingsAction,
 } from '@/app/admin/actions';
+import { adminManagementNavItems, ManagementSectionNav } from '@/components/admin/management-section-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
@@ -104,15 +105,9 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">관리자 — 카테고리 관리</h1>
-        <nav className="flex gap-3 text-sm">
-          <Link href="/admin/users" className="font-medium text-[#3c1e1e] underline">사용자</Link>
-          <Link href="/admin/post-permissions" className="font-medium text-[#3c1e1e] underline">게시글 권한</Link>
-          <Link href="/admin/posts" className="font-medium text-[#3c1e1e] underline">게시글</Link>
-          <Link href="/admin/cities" className="font-medium text-[#3c1e1e] underline">도시</Link>
-          <Link href="/admin/countries" className="font-medium text-[#3c1e1e] underline">국가</Link>
-        </nav>
+        <ManagementSectionNav items={adminManagementNavItems} />
       </div>
 
       {params.error ? (
