@@ -8,6 +8,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
+const POST_PREVIEW_LENGTH = 40;
 
 type UserProfilePageProps = {
   params: Promise<{ userId: string }>;
@@ -127,7 +128,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         <ul className="space-y-3">
           {posts.map((post) => {
             const titleText = post.title?.trim() ?? '';
-            const bodyPreview = post.body.slice(0, 40);
+            const bodyPreview = post.body.slice(0, POST_PREVIEW_LENGTH);
             const postHeading = titleText || bodyPreview;
             const thumbnailAlt = titleText
               ? `게시글 썸네일: ${titleText}`
