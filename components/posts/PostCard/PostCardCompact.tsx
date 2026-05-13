@@ -39,7 +39,7 @@ export function PostCardCompact({
 
       <div className="min-w-0 flex-1 space-y-1.5">
         <PostCardBadges post={post} compact />
-        <h3 className="truncate text-sm font-semibold sm:text-base">{post.title?.trim() || post.bodyPreview}</h3>
+        {post.title?.trim() ? <h3 className="truncate text-sm font-semibold sm:text-base">{post.title.trim()}</h3> : null}
         <p className="truncate text-sm text-[#555]">{post.bodyPreview}</p>
         <PostCardMeta
           compact
