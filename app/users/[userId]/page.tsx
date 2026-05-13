@@ -169,7 +169,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           </div>
           <div className="flex gap-2">
             <dt className="font-medium text-[#333]">베스트 댓글</dt>
-            <dd>{bestCommentAwardCount}회</dd>
+            <dd>{bestCommentAwardCount}개</dd>
           </div>
         </dl>
       </div>
