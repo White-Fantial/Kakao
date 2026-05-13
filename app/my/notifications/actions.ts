@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
 import {
+  archiveAllNotifications,
   archiveNotification,
   markAllNotificationsRead,
   markNotificationRead,
@@ -48,5 +49,11 @@ export async function archiveNotificationAction(formData: FormData) {
 
   const user = await requireUser();
   await archiveNotification(notificationId, user.id);
+  revalidatePath('/my/notifications');
+}
+
+export async function archiveAllNotificationsAction() {
+  const user = await requireUser();
+  await archiveAllNotifications(user.id);
   revalidatePath('/my/notifications');
 }

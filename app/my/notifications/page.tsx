@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth/session';
 import { getNotificationHref, getNotifications } from '@/lib/notifications';
 import { EmptyStateMessage } from '@/components/ui/empty-state-message';
 import {
+  archiveAllNotificationsAction,
   archiveNotificationAction,
   markAllNotificationsReadAction,
   markNotificationReadAction,
@@ -47,13 +48,15 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">알림</h1>
-        {hasUnread && (
-          <form action={markAllNotificationsReadAction}>
+        {notifications.length > 0 && (
+          <form action={hasUnread ? markAllNotificationsReadAction : archiveAllNotificationsAction}>
             <button
               type="submit"
-              className="rounded-full border border-[#e8e8e8] px-3 py-1 text-sm font-medium text-[#555] hover:border-[#fee500] hover:bg-[#fffde7]"
+              className={`rounded-full border border-[#e8e8e8] px-3 py-1 text-sm font-medium text-[#555] ${
+                hasUnread ? 'hover:border-[#fee500] hover:bg-[#fffde7]' : 'hover:border-[#ffd8d8] hover:bg-[#fff5f5]'
+              }`.trim()}
             >
-              모두 읽음
+              {hasUnread ? '모두 읽음' : '모두 아카이브'}
             </button>
           </form>
         )}
