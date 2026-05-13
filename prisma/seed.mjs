@@ -309,6 +309,8 @@ const recommendedTagsByCategoryType = {
     '주의',
     '생활팁',
     '새소식',
+    '사진/영상',
+    '서비스제안/문의'
   ],
   [CategoryType.QUESTION]: [
     '생활질문',
