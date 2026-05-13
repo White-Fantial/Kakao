@@ -38,8 +38,11 @@ export function PostCard({ post, href, showLikeButton = false }: PostCardProps) 
   const preview = withPostTagPrefix(previewBase, post.postTags[0]?.label);
 
   return (
-    <article className="space-y-2 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm transition hover:border-[#fee500] hover:shadow-md">
-      <Link href={href ?? `/posts/${post.id}`} className="block space-y-2 active:scale-[0.995]">
+    <article className="space-y-2 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+      <Link
+        href={href ?? `/posts/${post.id}`}
+        className="block space-y-2 rounded-lg transition hover:bg-[#fafafa] active:scale-[0.995]"
+      >
         <div className="flex flex-wrap gap-2 text-xs">
           {post.isPinned ? (
             <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">📌 고정</span>
@@ -111,7 +114,7 @@ export function PostCard({ post, href, showLikeButton = false }: PostCardProps) 
             />
           </form>
         ) : (
-          <Link href="/login" className="underline">
+          <Link href="/login" className="rounded-lg border border-[#e8e8e8] px-3 py-1 text-xs hover:bg-[#f9f9f9]">
             로그인 후 좋아요
           </Link>
         )}

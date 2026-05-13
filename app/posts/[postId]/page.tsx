@@ -1002,7 +1002,7 @@ async function CommentsSection({
                 <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
                 {isBestComment ? (
                   <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
-                    Most helpful
+                    베스트 댓글
                   </p>
                 ) : null}
                 <div className="mt-2 flex items-center justify-between text-xs text-[#888]">

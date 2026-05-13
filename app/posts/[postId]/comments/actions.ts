@@ -28,6 +28,9 @@ function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * redirect() throws and never returns, so callers can rely on type narrowing.
+ */
 function redirectWithPostError(postId: string, message: string): never {
   redirect(`/posts/${postId}?error=${encodeURIComponent(message)}`);
 }
