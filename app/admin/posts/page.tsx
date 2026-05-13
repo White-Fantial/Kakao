@@ -153,7 +153,13 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
                   {post.title ?? truncatePostBody(post.body)}
                 </p>
                 <p className="text-xs text-[#888]">
-                  작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')} · 신고 {post._count.reports}건 · 점수 {post.communityScore.toFixed(1)}
+                  <span>작성자: {post.author.displayName}</span>
+                  {' · '}
+                  <span>{new Date(post.createdAt).toLocaleString('ko-KR')}</span>
+                  {' · '}
+                  <span aria-label={`신고 ${post._count.reports}건`}>신고 {post._count.reports}건</span>
+                  {' · '}
+                  <span aria-label={`커뮤니티 점수 ${post.communityScore.toFixed(1)}`}>점수 {post.communityScore.toFixed(1)}</span>
                 </p>
                 {post.heldReason ? (
                   <p className="text-xs text-[#7a6000]">보류 사유: {post.heldReason}</p>
