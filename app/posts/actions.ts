@@ -32,6 +32,10 @@ import {
   NEIGHBOUR_WARMTH_BASE_GAINS,
   adjustNeighbourWarmth,
 } from '@/lib/neighbour-warmth';
+import {
+  COMMUNITY_SCORE_BASE_DELTAS,
+  applyCommunityScoreChange,
+} from '@/lib/community-score';
 
 const CREATE_POST_RATE_LIMIT = {
   limit: 5,
@@ -573,6 +577,16 @@ export async function togglePostLikeAction(formData: FormData) {
     });
   });
 
+  void applyCommunityScoreChange({
+    targetType: 'POST',
+    targetId: postId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.POST_LIKE_RECEIVED,
+    reason: 'POST_LIKE_RECEIVED',
+  }).catch((err) => {
+    console.error('[togglePostLikeAction] community score update failed', err);
+  });
+
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
   revalidatePath(`/users/${post.authorId}`);
@@ -616,6 +630,11 @@ export async function reportPostAction(formData: FormData) {
     redirect(`/posts/${postId}?error=${encodeURIComponent('유효한 신고 사유를 선택해 주세요.')}`);
   }
 
+  const existingReport = await prisma.postReport.findUnique({
+    where: { postId_reporterId: { postId, reporterId: user.id } },
+    select: { id: true },
+  });
+
   await prisma.postReport.upsert({
     where: {
       postId_reporterId: {
@@ -634,6 +653,18 @@ export async function reportPostAction(formData: FormData) {
       additionalReason: additionalReason || null,
     },
   });
+
+  if (!existingReport) {
+    void applyCommunityScoreChange({
+      targetType: 'POST',
+      targetId: postId,
+      actorId: user.id,
+      baseDelta: COMMUNITY_SCORE_BASE_DELTAS.POST_REPORT_SUBMITTED,
+      reason: 'POST_REPORT_SUBMITTED',
+    }).catch((err) => {
+      console.error('[reportPostAction] community score update failed', err);
+    });
+  }
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);

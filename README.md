@@ -61,6 +61,15 @@
 - category-based configurable post tag/status system
   - 카테고리별 태그 옵션 관리(활성/기본/정렬/색상)
   - 글 작성/수정/상세/목록에서 설정 기반 태그 선택 및 표시
+- **커뮤니티 스코어 기반 자동 보류 시스템 (internal)**
+  - Post/Comment에 내부 `communityScore` 추가
+  - 좋아요·신고·베스트댓글·운영 조치에 따른 점수 자동 반영 (행위자 `neighbourWarmth` 가중치 적용)
+  - 임계값(-8 게시글 / -5 댓글) 이하 시 자동 `HELD` 처리
+  - 보류 게시글: 일반 사용자에게 검토 중 메시지 표시, 운영/관리자만 전문 열람 가능
+  - 보류 댓글: 일반 사용자에게 플레이스홀더 텍스트 표시, 운영/관리자만 전문 열람 가능
+  - `CommunityScoreEvent` 감사 로그 테이블 추가
+  - 코디네이터/관리자 화면에 점수 및 신고 수 표시
+  - 상세 문서: `docs/community-score-moderation.md`
 
 ## Not Yet Implemented
 - 분석 이벤트 외부 대시보드 연동
