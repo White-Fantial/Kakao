@@ -8,8 +8,20 @@ import { HeaderNavConditional } from '@/components/ui/header-nav-conditional';
 import { HeaderNavLink } from '@/components/ui/header-nav-link';
 
 function getMetadataBaseUrl() {
+  const normalizeSiteUrl = (value: string) => {
+    try {
+      return new URL(value).origin;
+    } catch {
+      return value.replace(/\/$/, '');
+    }
+  };
+
   if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
+    return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  }
+
+  if (process.env.NEXTAUTH_URL) {
+    return normalizeSiteUrl(process.env.NEXTAUTH_URL);
   }
 
   if (process.env.NODE_ENV === 'development') {
