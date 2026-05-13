@@ -34,6 +34,14 @@ function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeQuickCommentTemplates(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(/\r?\n/)
+    .map((template) => template.trim())
+    .filter((template) => template.length > 0);
+}
+
 function requireAdmin(user: SessionUser | null) {
   if (!user || !canMakeFinalUserDecision(user)) {
     redirect('/posts?error=권한이 없습니다.');
@@ -393,6 +401,11 @@ export async function createCategoryAction(formData: FormData) {
   const type = normalizeText(formData.get('type')) as CategoryType;
   const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
   const colorValue = normalizeText(formData.get('color'));
+  const requireCommentBeforeContactDefault =
+    formData.get('requireCommentBeforeContactDefault') === 'on';
+  const quickCommentTemplates = normalizeQuickCommentTemplates(
+    formData.get('quickCommentTemplates'),
+  );
   const color = normalizeHexColor(colorValue);
 
   if (!name || !slug || !type || !visibilityMode) {
@@ -417,7 +430,15 @@ export async function createCategoryAction(formData: FormData) {
   }
 
   await prisma.category.create({
-    data: { name, slug, type, visibilityMode, color },
+    data: {
+      name,
+      slug,
+      type,
+      visibilityMode,
+      color,
+      requireCommentBeforeContactDefault,
+      quickCommentTemplates: quickCommentTemplates.length > 0 ? quickCommentTemplates : null,
+    },
   });
 
   revalidatePath('/admin/categories');
@@ -459,6 +480,11 @@ export async function updateCategorySettingsAction(formData: FormData) {
   const type = normalizeText(formData.get('type')) as CategoryType;
   const visibilityMode = normalizeText(formData.get('visibilityMode')) as CategoryVisibilityMode;
   const colorValue = normalizeText(formData.get('color'));
+  const requireCommentBeforeContactDefault =
+    formData.get('requireCommentBeforeContactDefault') === 'on';
+  const quickCommentTemplates = normalizeQuickCommentTemplates(
+    formData.get('quickCommentTemplates'),
+  );
   const color = normalizeHexColor(colorValue);
 
   if (!categoryId) {
@@ -479,7 +505,13 @@ export async function updateCategorySettingsAction(formData: FormData) {
 
   await prisma.category.update({
     where: { id: categoryId },
-    data: { type, visibilityMode, color },
+    data: {
+      type,
+      visibilityMode,
+      color,
+      requireCommentBeforeContactDefault,
+      quickCommentTemplates: quickCommentTemplates.length > 0 ? quickCommentTemplates : null,
+    },
   });
 
   await logModerationAction(user.id, 'CATEGORY', categoryId, 'SETTINGS_UPDATE');
