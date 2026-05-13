@@ -1,18 +1,56 @@
 type CursorPayload = {
   createdAt: string;
   id: string;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
 };
 
 export type PaginationCursor = {
   createdAt: Date;
   id: string;
+  isPinned?: boolean;
+  pinnedAt?: Date | null;
 };
+
+function serializePinnedCursorFields(cursor: PaginationCursor) {
+  return {
+    ...(typeof cursor.isPinned === 'boolean' ? { isPinned: cursor.isPinned } : {}),
+    ...('pinnedAt' in cursor
+      ? { pinnedAt: cursor.pinnedAt ? cursor.pinnedAt.toISOString() : null }
+      : {}),
+  };
+}
+
+function parsePinnedCursorFields(parsed: CursorPayload) {
+  let pinnedAt: Date | null | undefined;
+
+    if ('pinnedAt' in parsed) {
+      if (parsed.pinnedAt === null) {
+        pinnedAt = null;
+      } else if (typeof parsed.pinnedAt === 'string') {
+        const parsedPinnedAt = new Date(parsed.pinnedAt);
+        if (Number.isNaN(parsedPinnedAt.getTime())) {
+          console.warn('[decodeCursor] invalid pinnedAt value', parsed.pinnedAt);
+          return null;
+        }
+        pinnedAt = parsedPinnedAt;
+      } else {
+        return null;
+    }
+  }
+
+  return {
+    ...(typeof parsed.isPinned === 'boolean' ? { isPinned: parsed.isPinned } : {}),
+    ...(pinnedAt !== undefined ? { pinnedAt } : {}),
+  };
+}
 
 export function encodeCursor(cursor: PaginationCursor) {
   return Buffer.from(
     JSON.stringify({
       createdAt: cursor.createdAt.toISOString(),
       id: cursor.id,
+      ...serializePinnedCursorFields(cursor),
     }),
   ).toString('base64url');
 }
@@ -28,10 +66,15 @@ export function decodeCursor(value: string) {
     if (Number.isNaN(createdAt.getTime())) {
       return null;
     }
+    const pinnedFields = parsePinnedCursorFields(parsed);
+    if (pinnedFields === null) {
+      return null;
+    }
 
     return {
       id: parsed.id,
       createdAt,
+      ...pinnedFields,
     } as PaginationCursor;
   } catch {
     return null;

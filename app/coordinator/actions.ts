@@ -67,6 +67,8 @@ export async function holdPostAction(formData: FormData) {
       where: { id: postId },
       data: {
         status: 'HELD',
+        isPinned: false,
+        pinnedAt: null,
         heldAt: new Date(),
         heldReason: reason || null,
       },
@@ -84,6 +86,7 @@ export async function holdPostAction(formData: FormData) {
   });
 
   revalidatePath('/coordinator');
+  revalidatePath('/admin/posts');
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
   redirect('/coordinator');
@@ -121,6 +124,9 @@ export async function restorePostAction(formData: FormData) {
       where: { id: postId },
       data: {
         status: 'PUBLISHED',
+        // Intentionally keep restored posts unpinned after any HELD/DELETED transition.
+        isPinned: false,
+        pinnedAt: null,
         heldAt: null,
         heldReason: null,
       },
@@ -138,6 +144,7 @@ export async function restorePostAction(formData: FormData) {
   });
 
   revalidatePath('/coordinator');
+  revalidatePath('/admin/posts');
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
   redirect('/coordinator');
