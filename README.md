@@ -144,6 +144,7 @@
 - 카카오 로그인은 `KAKAO_CLIENT_ID`와 `KAKAO_REDIRECT_URI` 환경 변수가 설정된 경우 실제 OAuth 흐름을 사용합니다. 미설정 시 개발용 임시 로그인으로 폴백됩니다.
 - 카카오 개발자 콘솔(https://developers.kakao.com)에서 앱을 등록하고, `KAKAO_REDIRECT_URI`에 `/api/auth/kakao/callback` 경로를 등록해야 합니다.
 - 이미지 업로드는 현재 Cloudinary API 환경 변수 설정이 필요합니다.
+- AWS Amplify 배포 시 `NEXT_PUBLIC_SITE_URL`(권장) 또는 `NEXTAUTH_URL`을 반드시 설정해야 SEO 메타데이터와 카카오 알림 링크가 올바른 절대 URL을 사용합니다.
 
 ## Next Focus
 - 분석 이벤트 외부 대시보드 연동

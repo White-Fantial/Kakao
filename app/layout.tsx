@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Analytics } from '@vercel/analytics/next';
 
 import './globals.css';
 import { HeaderAuthButton } from '@/components/ui/header-auth-button';
@@ -10,16 +8,20 @@ import { HeaderNavConditional } from '@/components/ui/header-nav-conditional';
 import { HeaderNavLink } from '@/components/ui/header-nav-link';
 
 function getMetadataBaseUrl() {
+  const normalizeSiteUrl = (value: string) => {
+    try {
+      return new URL(value).origin;
+    } catch {
+      return value.replace(/\/$/, '');
+    }
+  };
+
   if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
+    return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
   }
 
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  if (process.env.NEXTAUTH_URL) {
+    return normalizeSiteUrl(process.env.NEXTAUTH_URL);
   }
 
   if (process.env.NODE_ENV === 'development') {
@@ -105,8 +107,6 @@ export default async function RootLayout({
           </header>
           <main className="flex-1 p-4">{children}</main>
         </div>
-        <SpeedInsights />
-        <Analytics />
       </body>
     </html>
   );

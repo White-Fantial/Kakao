@@ -53,22 +53,22 @@ function formatErrorMessage(error: unknown) {
   return '알 수 없는 카카오 전송 오류가 발생했습니다.';
 }
 
+function normalizeSiteUrl(value: string) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value.replace(/\/$/, '');
+  }
+}
+
 function getSiteBaseUrl() {
   const explicitSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicitSiteUrl) {
-    return explicitSiteUrl.replace(/\/$/, '');
-  }
-
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/$/, '');
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`.replace(/\/$/, '');
+    return normalizeSiteUrl(explicitSiteUrl);
   }
 
   if (process.env.NEXTAUTH_URL) {
-    return process.env.NEXTAUTH_URL.replace(/\/$/, '');
+    return normalizeSiteUrl(process.env.NEXTAUTH_URL);
   }
 
   if (process.env.NODE_ENV === 'development') {
