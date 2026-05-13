@@ -414,7 +414,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           도시 기반 필터와 글쓰기를 위해 <Link href="/my/profile" className="underline">기본 지역</Link>을 선택해 주세요.
         </p>
       ) : null}
-      <div className="sticky top-[var(--home-sticky-top)] z-0 -mx-1 rounded-2xl bg-[#f9f8f4]/95 px-1 py-1 backdrop-blur">
+      <div className="-mx-1 rounded-2xl px-1 py-1">
         <form key={returnToParams.toString()}>
           <div className="mb-3 flex items-center gap-2">
             <input
