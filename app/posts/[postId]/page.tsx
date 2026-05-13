@@ -1061,7 +1061,7 @@ async function CommentsSection({
                 ) : null}
                 <div className="mt-3 space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       <UserAvatar
                         displayName={comment.author.displayName}
                         profileImageUrl={comment.author.profileImageUrl}
@@ -1079,13 +1079,13 @@ async function CommentsSection({
                       </div>
                     </div>
                     {canDelete ? (
-                      <form action={deleteCommentAction}>
+                      <form action={deleteCommentAction} className="shrink-0">
                         <input type="hidden" name="postId" value={postId} />
                         <input type="hidden" name="commentId" value={comment.id} />
                         <FormSubmitButton
                           idleLabel="삭제"
                           pendingLabel="삭제 중..."
-                          className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50"
+                          className="whitespace-nowrap rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50"
                         />
                       </form>
                     ) : null}
