@@ -36,6 +36,7 @@ type PostsPageProps = {
 
 const PAGE_SIZE = 20;
 const BODY_PREVIEW_LENGTH = 220;
+const DEFAULT_POPULAR_KEYWORDS = ['플랫', '중고', '구인'];
 
 function toArray(value: string | string[] | undefined) {
   if (!value) {
@@ -63,9 +64,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const userCountryId = currentUser?.countryId ?? null;
 
-  const [categories, cities] = await Promise.all([
+  const [categories, cities, popularKeywordOptions] = await Promise.all([
     getActiveCategories(),
     userCountryId ? getActiveCitiesByCountry(userCountryId) : getActiveCities(),
+    prisma.postTagOption.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      take: 3,
+      select: { label: true },
+    }),
   ]);
 
   const alwaysIncludedCategories = categories.filter(
@@ -349,6 +356,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
 
   const hasFilters = shouldFilterByCountry || shouldFilterByCategory || shouldFilterByCity || hasKeyword;
+  const todayUTCStart = new Date();
+  todayUTCStart.setUTCHours(0, 0, 0, 0);
+  const statsTodayNewPosts = await prisma.post.count({
+    where: {
+      status: 'PUBLISHED',
+      createdAt: { gte: todayUTCStart },
+    },
+  });
   const firstPost = normalizedPosts[0];
   const lastPost = normalizedPosts[normalizedPosts.length - 1];
   const prevCursor = firstPost
@@ -376,9 +391,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         title: '아직 올라온 글이 없어요.',
         description: '첫 글을 남겨서 동네 소식을 나눠보세요.',
       };
-  const popularKeywords = ['플랫', '중고', '구인'];
-  const statsTodayNewPosts = 43;
-  const statsActiveCityCount = cities.length > 0 ? cities.length : 24;
+  const statsActiveCityCount = cities.length;
+  const popularKeywords =
+    popularKeywordOptions.length > 0
+      ? popularKeywordOptions.map((option) => option.label)
+      : DEFAULT_POPULAR_KEYWORDS;
 
   return (
     <section className="space-y-4">
@@ -407,7 +424,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           도시 기반 필터와 글쓰기를 위해 <Link href="/my/profile" className="underline">기본 지역</Link>을 선택해 주세요.
         </p>
       ) : null}
-      <div className="sticky top-[8.25rem] z-[5] -mx-1 rounded-2xl bg-[#f9f8f4]/95 px-1 py-1 backdrop-blur">
+      <div className="sticky top-[var(--home-sticky-top)] z-0 -mx-1 rounded-2xl bg-[#f9f8f4]/95 px-1 py-1 backdrop-blur">
         <form key={returnToParams.toString()}>
           <div className="mb-3 flex items-center gap-2">
             <input
@@ -420,7 +437,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             />
             <button
               type="submit"
-              className="w-[84px] shrink-0 rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+              className="w-20 shrink-0 rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
             >
               검색
             </button>
