@@ -54,8 +54,9 @@
 2. COORDINATOR changes post to HELD
 3. Post disappears from public listing
 4. COORDINATOR adds reason
-5. COORDINATOR can restore if minor issue resolved
-6. ADMIN can permanently delete or restore
+5. HELD/DELETED 전환 시 상단 고정은 자동 해제된다
+6. COORDINATOR can restore if minor issue resolved
+7. ADMIN can permanently delete or restore
 
 ### User Restriction Flow
 1. COORDINATOR flags user for review
