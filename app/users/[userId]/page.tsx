@@ -110,7 +110,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
       where: {
         comment: {
           authorId: userId,
-          status: { not: 'DELETED' },
+          status: 'PUBLISHED',
         },
       },
     }),
@@ -119,7 +119,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
         status: { not: 'DELETED' },
         bestComment: {
           authorId: userId,
-          status: { not: 'DELETED' },
+          status: 'PUBLISHED',
         },
       },
     }),
