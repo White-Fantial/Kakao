@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import {
   CategoryType,
   CategoryVisibilityMode,
+  Prisma,
   PermissionSubjectType,
 } from '@prisma/client';
 
@@ -437,7 +438,8 @@ export async function createCategoryAction(formData: FormData) {
       visibilityMode,
       color,
       requireCommentBeforeContactDefault,
-      quickCommentTemplates: quickCommentTemplates.length > 0 ? quickCommentTemplates : null,
+      quickCommentTemplates:
+        quickCommentTemplates.length > 0 ? quickCommentTemplates : Prisma.DbNull,
     },
   });
 
@@ -510,7 +512,8 @@ export async function updateCategorySettingsAction(formData: FormData) {
       visibilityMode,
       color,
       requireCommentBeforeContactDefault,
-      quickCommentTemplates: quickCommentTemplates.length > 0 ? quickCommentTemplates : null,
+      quickCommentTemplates:
+        quickCommentTemplates.length > 0 ? quickCommentTemplates : Prisma.DbNull,
     },
   });
 
