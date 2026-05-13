@@ -59,44 +59,71 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
     notFound();
   }
 
-  const posts = await prisma.post.findMany({
-    where: {
-      authorId: userId,
-      status: { not: 'DELETED' },
-    },
-    orderBy: { createdAt: 'desc' },
-    skip: (page - 1) * PAGE_SIZE,
-    take: PAGE_SIZE + 1,
-    include: {
-      city: { select: { name: true } },
-      category: {
-        select: {
-          name: true,
-          type: true,
-          color: true,
-        },
+  const [posts, receivedPostLikesCount, receivedCommentLikesCount, selectedBestCommentCount] = await Promise.all([
+    prisma.post.findMany({
+      where: {
+        authorId: userId,
+        status: { not: 'DELETED' },
       },
-      tags: {
-        select: {
-          postTagOption: {
-            select: { id: true, label: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE + 1,
+      include: {
+        city: { select: { name: true } },
+        category: {
+          select: {
+            name: true,
+            type: true,
+            color: true,
+          },
+        },
+        tags: {
+          select: {
+            postTagOption: {
+              select: { id: true, label: true },
+            },
+          },
+        },
+        images: {
+          select: { url: true },
+          orderBy: { sortOrder: 'asc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            comments: {
+              where: { status: 'PUBLISHED' },
+            },
           },
         },
       },
-      images: {
-        select: { url: true },
-        orderBy: { sortOrder: 'asc' },
-        take: 1,
-      },
-      _count: {
-        select: {
-          comments: {
-            where: { status: 'PUBLISHED' },
-          },
+    }),
+    prisma.postLike.count({
+      where: {
+        post: {
+          authorId: userId,
+          status: { not: 'DELETED' },
         },
       },
-    },
-  });
+    }),
+    prisma.commentLike.count({
+      where: {
+        comment: {
+          authorId: userId,
+          status: { not: 'DELETED' },
+        },
+      },
+    }),
+    prisma.post.count({
+      where: {
+        status: { not: 'DELETED' },
+        bestComment: {
+          authorId: userId,
+          status: { not: 'DELETED' },
+        },
+      },
+    }),
+  ]);
 
   const hasNextPage = posts.length > PAGE_SIZE;
   const visiblePosts = hasNextPage ? posts.slice(0, PAGE_SIZE) : posts;
@@ -131,6 +158,18 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           <div className="flex gap-2">
             <dt className="font-medium text-[#333]">게시물 수</dt>
             <dd>{user._count.posts}개</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="font-medium text-[#333]">게시글 좋아요</dt>
+            <dd>{receivedPostLikesCount}개</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="font-medium text-[#333]">댓글 좋아요</dt>
+            <dd>{receivedCommentLikesCount}개</dd>
+          </div>
+          <div className="flex gap-2">
+            <dt className="font-medium text-[#333]">베스트 댓글</dt>
+            <dd>{selectedBestCommentCount}회</dd>
           </div>
         </dl>
       </div>
