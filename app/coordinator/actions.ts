@@ -124,6 +124,7 @@ export async function restorePostAction(formData: FormData) {
       where: { id: postId },
       data: {
         status: 'PUBLISHED',
+        // Intentionally keep restored posts unpinned after any HELD/DELETED transition.
         isPinned: false,
         pinnedAt: null,
         heldAt: null,
