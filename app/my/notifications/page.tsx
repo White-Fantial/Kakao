@@ -52,10 +52,8 @@ export default async function NotificationsPage() {
           <form action={hasUnread ? markAllNotificationsReadAction : archiveAllNotificationsAction}>
             <button
               type="submit"
-              className={`rounded-full border px-3 py-1 text-sm font-medium ${
-                hasUnread
-                  ? 'border-[#e8e8e8] text-[#555] hover:border-[#fee500] hover:bg-[#fffde7]'
-                  : 'border-[#e8e8e8] text-[#555] hover:border-[#ffd8d8] hover:bg-[#fff5f5]'
+              className={`rounded-full border border-[#e8e8e8] px-3 py-1 text-sm font-medium text-[#555] ${
+                hasUnread ? 'hover:border-[#fee500] hover:bg-[#fffde7]' : 'hover:border-[#ffd8d8] hover:bg-[#fff5f5]'
               }`.trim()}
             >
               {hasUnread ? '모두 읽음' : '모두 아카이브'}
