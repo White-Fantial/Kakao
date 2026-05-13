@@ -283,31 +283,33 @@ export async function pinPostAction(formData: FormData) {
     redirect('/admin/posts?error=게시된 글만 고정할 수 있습니다.');
   }
 
-  if (!post.isPinned) {
-    await prisma.$transaction(async (tx) => {
-      await tx.post.update({
-        where: { id: postId },
-        data: {
-          isPinned: true,
-          pinnedAt: new Date(),
-        },
-      });
-
-      await tx.moderationAction.create({
-        data: {
-          actorId: user.id,
-          targetType: 'POST',
-          targetId: postId,
-          actionType: 'PIN_POST',
-        },
-      });
-    });
+  if (post.isPinned) {
+    redirect(`/admin/posts?success=${encodeURIComponent('이미 상단 고정된 게시글입니다.')}`);
   }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        isPinned: true,
+        pinnedAt: new Date(),
+      },
+    });
+
+    await tx.moderationAction.create({
+      data: {
+        actorId: user.id,
+        targetType: 'POST',
+        targetId: postId,
+        actionType: 'PIN_POST',
+      },
+    });
+  });
 
   revalidatePath('/admin/posts');
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
-  redirect('/admin/posts');
+  redirect(`/admin/posts?success=${encodeURIComponent('게시글을 상단에 고정했어요.')}`);
 }
 
 export async function unpinPostAction(formData: FormData) {
@@ -329,31 +331,33 @@ export async function unpinPostAction(formData: FormData) {
     redirect('/admin/posts?error=게시글을 찾을 수 없습니다.');
   }
 
-  if (post.isPinned) {
-    await prisma.$transaction(async (tx) => {
-      await tx.post.update({
-        where: { id: postId },
-        data: {
-          isPinned: false,
-          pinnedAt: null,
-        },
-      });
-
-      await tx.moderationAction.create({
-        data: {
-          actorId: user.id,
-          targetType: 'POST',
-          targetId: postId,
-          actionType: 'UNPIN_POST',
-        },
-      });
-    });
+  if (!post.isPinned) {
+    redirect(`/admin/posts?success=${encodeURIComponent('이미 고정 해제된 게시글입니다.')}`);
   }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        isPinned: false,
+        pinnedAt: null,
+      },
+    });
+
+    await tx.moderationAction.create({
+      data: {
+        actorId: user.id,
+        targetType: 'POST',
+        targetId: postId,
+        actionType: 'UNPIN_POST',
+      },
+    });
+  });
 
   revalidatePath('/admin/posts');
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
-  redirect('/admin/posts');
+  redirect(`/admin/posts?success=${encodeURIComponent('게시글 상단 고정을 해제했어요.')}`);
 }
 
 export async function createCategoryAction(formData: FormData) {

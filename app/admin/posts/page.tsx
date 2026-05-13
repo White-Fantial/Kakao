@@ -12,7 +12,7 @@ import { PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 export const dynamic = 'force-dynamic';
 
 type AdminPostsPageProps = {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; success?: string }>;
 };
 
 export default async function AdminPostsPage({ searchParams }: AdminPostsPageProps) {
@@ -82,6 +82,9 @@ export default async function AdminPostsPage({ searchParams }: AdminPostsPagePro
 
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
+      ) : null}
+      {params.success ? (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{params.success}</p>
       ) : null}
 
       <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">

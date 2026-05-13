@@ -24,17 +24,18 @@ function serializePinnedCursorFields(cursor: PaginationCursor) {
 function parsePinnedCursorFields(parsed: CursorPayload) {
   let pinnedAt: Date | null | undefined;
 
-  if ('pinnedAt' in parsed) {
-    if (parsed.pinnedAt === null) {
-      pinnedAt = null;
-    } else if (typeof parsed.pinnedAt === 'string') {
-      const parsedPinnedAt = new Date(parsed.pinnedAt);
-      if (Number.isNaN(parsedPinnedAt.getTime())) {
+    if ('pinnedAt' in parsed) {
+      if (parsed.pinnedAt === null) {
+        pinnedAt = null;
+      } else if (typeof parsed.pinnedAt === 'string') {
+        const parsedPinnedAt = new Date(parsed.pinnedAt);
+        if (Number.isNaN(parsedPinnedAt.getTime())) {
+          console.warn('[decodeCursor] invalid pinnedAt value', parsed.pinnedAt);
+          return null;
+        }
+        pinnedAt = parsedPinnedAt;
+      } else {
         return null;
-      }
-      pinnedAt = parsedPinnedAt;
-    } else {
-      return null;
     }
   }
 

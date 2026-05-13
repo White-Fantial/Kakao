@@ -709,14 +709,14 @@ async function AdjacentPostsSection({
       });
     }
 
-    const postCursor = {
+    const currentPostCursor = {
       id: post.id,
       createdAt: post.createdAt,
       isPinned: post.isPinned,
       pinnedAt: post.pinnedAt,
     };
-    const previousCursorWhere = buildPinnedPostCursorWhere(postCursor, 'prev');
-    const nextCursorWhere = buildPinnedPostCursorWhere(postCursor, 'next');
+    const previousCursorWhere = buildPinnedPostCursorWhere(currentPostCursor, 'prev');
+    const nextCursorWhere = buildPinnedPostCursorWhere(currentPostCursor, 'next');
 
     [previousPost, nextPost] = await measureServerTiming('post-detail:adjacent', () =>
       Promise.all([
