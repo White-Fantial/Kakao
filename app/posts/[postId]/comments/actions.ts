@@ -28,7 +28,7 @@ function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function redirectWithPostError(postId: string, message: string) {
+function redirectWithPostError(postId: string, message: string): never {
   redirect(`/posts/${postId}?error=${encodeURIComponent(message)}`);
 }
 

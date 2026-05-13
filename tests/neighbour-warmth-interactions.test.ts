@@ -5,7 +5,7 @@ import {
   NEIGHBOUR_WARMTH_BASE_GAINS,
   NEIGHBOUR_WARMTH_DEFAULT,
   adjustNeighbourWarmth,
-} from '../lib/neighbour-warmth';
+} from '../lib/neighbour-warmth.ts';
 
 type UserState = {
   id: string;
