@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { CategoryType } from '@prisma/client';
-import { LoggedInHomeBanner } from '@/components/home/LoggedInHomeBanner';
 import { HomeStatsBar } from '@/components/home/HomeStatsBar';
 import { PublicHomeHero } from '@/components/home/PublicHomeHero';
 import { PostCard } from '@/components/posts/post-card';
@@ -421,11 +420,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   return (
     <section className="space-y-4">
-      {currentUser ? (
-        <LoggedInHomeBanner nickname={currentUser.displayName} cityId={activeProfileCityId} />
-      ) : (
-        <PublicHomeHero />
-      )}
+      {!currentUser && <PublicHomeHero />}
       <HomeStatsBar
         todayNewPosts={statsTodayNewPosts}
         activeCityCount={statsActiveCityCount}
