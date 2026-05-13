@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { togglePostLikeAction } from '@/app/posts/actions';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { PostTagBadge, withPostTagPrefix } from '@/components/posts/post-tag-badge';
-import { NeighbourWarmthLabel } from '@/components/ui/neighbour-warmth-label';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 type PostCardProps = {
@@ -88,9 +87,6 @@ export function PostCard({ post, href, showLikeButton = false }: PostCardProps) 
             sizes="24px"
           />
           <span className="text-[#666]">{post.author.displayName}</span>
-          <span className="text-[#777]">
-            <NeighbourWarmthLabel warmth={post.author.neighbourWarmth} />
-          </span>
           <span aria-hidden="true">·</span>
           <span>댓글 {post.commentCount}</span>
           <time dateTime={post.createdAt.toISOString()}>
