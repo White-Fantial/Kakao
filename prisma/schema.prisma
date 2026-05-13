@@ -96,6 +96,7 @@ model User {
   notifyOnKakaoForComment     Boolean            @default(true)
   searchAlerts         SearchAlert[]
   postReports          PostReport[]
+  commentReports       CommentReport[]
   savedPosts           SavedPost[]
   postLikes            PostLike[]
   commentLikes         CommentLike[]
@@ -264,13 +265,14 @@ model SavedPost {
 }
 
 model ReportOption {
-  id        String       @id @default(cuid())
-  label     String       @unique
-  isActive  Boolean      @default(true)
-  sortOrder Int          @default(0)
-  reports   PostReport[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id             String          @id @default(cuid())
+  label          String          @unique
+  isActive       Boolean         @default(true)
+  sortOrder      Int             @default(0)
+  reports        PostReport[]
+  commentReports CommentReport[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model PostReport {
@@ -290,6 +292,23 @@ model PostReport {
   @@index([reporterId, createdAt])
 }
 
+model CommentReport {
+  id               String       @id @default(cuid())
+  commentId        String
+  reporterId       String
+  optionId         String
+  additionalReason String?
+  comment          Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter         User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  option           ReportOption @relation(fields: [optionId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([commentId, reporterId])
+  @@index([commentId, createdAt])
+  @@index([reporterId, createdAt])
+}
+
 model PostImage {
   id               String   @id @default(cuid())
   postId           String
@@ -304,17 +323,18 @@ model PostImage {
 }
 
 model Comment {
-  id        String        @id @default(cuid())
-  postId    String
-  authorId  String
-  body      String
-  status    CommentStatus @default(PUBLISHED)
-  post      Post          @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
-  author    User          @relation(fields: [authorId], references: [id])
+  id           String          @id @default(cuid())
+  postId       String
+  authorId     String
+  body         String
+  status       CommentStatus   @default(PUBLISHED)
+  post         Post            @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  author       User            @relation(fields: [authorId], references: [id])
   commentLikes CommentLike[]
-  bestForPosts Post[]     @relation("PostBestComment")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  bestForPosts Post[]          @relation("PostBestComment")
+  reports      CommentReport[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([postId, status, createdAt])
   @@index([postId, status, id])

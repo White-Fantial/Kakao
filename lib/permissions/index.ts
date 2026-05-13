@@ -365,6 +365,21 @@ export function canReportPost(
   return user.id !== post.authorId;
 }
 
+export function canReportComment(
+  user: PermissionUser | null | undefined,
+  comment: { authorId: string; status: string },
+) {
+  if (!user || !isActiveWriter(user)) {
+    return false;
+  }
+
+  if (comment.status !== 'PUBLISHED') {
+    return false;
+  }
+
+  return user.id !== comment.authorId;
+}
+
 export function canEditPost(
   user: PermissionUser | null | undefined,
   post: PermissionPost,

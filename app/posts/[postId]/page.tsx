@@ -15,10 +15,13 @@ import {
   toggleCommentLikeAction,
   setBestCommentAction,
   removeBestCommentAction,
+  reportCommentAction,
 } from '@/app/posts/[postId]/comments/actions';
 import {
   holdPostAction,
   restorePostAction,
+  holdCommentAction,
+  restoreCommentAction,
 } from '@/app/coordinator/actions';
 import { DeletePostButton } from '@/components/posts/delete-post-button';
 import { PostImageGallery } from '@/components/posts/post-image-gallery';
@@ -34,6 +37,7 @@ import {
   canDeleteComment,
   canHoldPost,
   canReportPost,
+  canReportComment,
   canRestorePost,
 } from '@/lib/permissions';
 import {
@@ -172,6 +176,7 @@ const getPostComments = cache(async (
         id: true,
         body: true,
         authorId: true,
+        status: true,
         createdAt: true,
         author: {
           select: {
@@ -268,6 +273,9 @@ export default async function PostDetailPage({
 
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
   const canSubmitReport = currentUser ? canReportPost(currentUser, post) : false;
+  const canSubmitCommentReport = currentUser
+    ? currentUser.status === 'ACTIVE'
+    : false;
   let reportOptions: { id: string; label: string }[] = [];
   let myReport: { optionId: string; additionalReason: string | null } | null = null;
   let isSaved = false;
@@ -330,7 +338,7 @@ export default async function PostDetailPage({
       select: { id: true },
     });
 
-    if (canSubmitReport) {
+    if (canSubmitReport || canSubmitCommentReport) {
       const [savedPost, likedPost, options, report] = await Promise.all([
         savedPostPromise,
         postLikePromise,
@@ -339,15 +347,17 @@ export default async function PostDetailPage({
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           select: { id: true, label: true },
         }),
-        prisma.postReport.findUnique({
-          where: {
-            postId_reporterId: {
-              postId: post.id,
-              reporterId: currentUser.id,
-            },
-          },
-          select: { optionId: true, additionalReason: true },
-        }),
+        canSubmitReport
+          ? prisma.postReport.findUnique({
+              where: {
+                postId_reporterId: {
+                  postId: post.id,
+                  reporterId: currentUser.id,
+                },
+              },
+              select: { optionId: true, additionalReason: true },
+            })
+          : Promise.resolve(null),
       ]);
 
       isSaved = Boolean(savedPost);
@@ -621,6 +631,8 @@ export default async function PostDetailPage({
           bestCommentId={post.bestCommentId}
           commentCount={post._count.comments}
           currentUser={currentUser}
+          reportOptions={reportOptions}
+          isCoordinator={isCoordinator}
           query={query}
         />
       </Suspense>
@@ -888,6 +900,8 @@ type CommentsSectionProps = {
   bestCommentId: string | null;
   commentCount: number;
   currentUser: Awaited<ReturnType<typeof getCurrentUser>>;
+  reportOptions: { id: string; label: string }[];
+  isCoordinator: boolean;
   query: Awaited<PostDetailPageProps['searchParams']>;
 };
 
@@ -897,6 +911,8 @@ async function CommentsSection({
   bestCommentId,
   commentCount,
   currentUser,
+  reportOptions,
+  isCoordinator,
   query,
 }: CommentsSectionProps) {
   const commentsCursor = toSingle(query.commentsCursor);
@@ -909,6 +925,18 @@ async function CommentsSection({
   );
   const firstComment = visibleComments[0];
   const lastComment = visibleComments[visibleComments.length - 1];
+
+  const visibleCommentIds = visibleComments.map((c) => c.id);
+  const myCommentReports =
+    currentUser && reportOptions.length > 0 && visibleCommentIds.length > 0
+      ? await prisma.commentReport.findMany({
+          where: { commentId: { in: visibleCommentIds }, reporterId: currentUser.id },
+          select: { commentId: true, optionId: true, additionalReason: true },
+        })
+      : [];
+  const myCommentReportMap = new Map(
+    myCommentReports.map((r) => [r.commentId, r]),
+  );
 
   const createCommentPageHref = (nextCursor: string, nextDirection: 'next' | 'prev') => {
     const queryString = new URLSearchParams();
@@ -996,6 +1024,8 @@ async function CommentsSection({
             const isBestComment = comment.id === bestCommentId;
             const canManageBestComment = currentUser?.id === postAuthorId;
             const isCommentLikedByCurrentUser = comment.commentLikes.length > 0;
+            const canReport = canReportComment(currentUser, comment);
+            const myCommentReport = myCommentReportMap.get(comment.id) ?? null;
 
             return (
               <li key={comment.id} className="rounded-xl border border-[#e8e8e8] p-3">
@@ -1071,6 +1101,103 @@ async function CommentsSection({
                     ) : null}
                   </div>
                 </div>
+                {isCoordinator ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="w-full text-xs text-[#aaa]">운영 관리</span>
+                    {comment.status === 'PUBLISHED' ? (
+                      <details>
+                        <summary className="cursor-pointer rounded-xl border border-yellow-300 bg-[#fffde7] px-2 py-1 text-xs font-medium text-[#7a6000]">
+                          보류 처리
+                        </summary>
+                        <form action={holdCommentAction} className="mt-2 space-y-2">
+                          <input type="hidden" name="postId" value={postId} />
+                          <input type="hidden" name="commentId" value={comment.id} />
+                          <input
+                            type="text"
+                            name="reason"
+                            placeholder="보류 사유 (선택)"
+                            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+                          />
+                          <FormSubmitButton
+                            idleLabel="보류 확정"
+                            pendingLabel="처리 중..."
+                            className="rounded-xl bg-[#fee500] px-3 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
+                          />
+                        </form>
+                      </details>
+                    ) : null}
+                    {comment.status === 'HELD' ? (
+                      <form action={restoreCommentAction}>
+                        <input type="hidden" name="postId" value={postId} />
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <FormSubmitButton
+                          idleLabel="재게시"
+                          pendingLabel="처리 중..."
+                          className="rounded-xl border border-green-300 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
+                        />
+                      </form>
+                    ) : null}
+                  </div>
+                ) : null}
+                {canReport && reportOptions.length > 0 ? (
+                  <div className="mt-2">
+                    <details className="group space-y-2">
+                      <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">
+                        <span>신고하기</span>
+                        <span aria-hidden="true" className="text-xs text-red-400 transition-transform group-open:rotate-180">
+                          ▼
+                        </span>
+                      </summary>
+                      <div className="space-y-2 pt-2">
+                        {myCommentReport ? (
+                          <p className="text-xs text-[#888]">
+                            이미 신고한 댓글입니다. 다시 제출하면 신고 내용이 업데이트됩니다.
+                          </p>
+                        ) : null}
+                        <form action={reportCommentAction} className="space-y-2">
+                          <input type="hidden" name="postId" value={postId} />
+                          <input type="hidden" name="commentId" value={comment.id} />
+                          <label htmlFor={`comment-report-option-${comment.id}`} className="text-xs text-[#555]">
+                            신고 사유
+                          </label>
+                          <select
+                            id={`comment-report-option-${comment.id}`}
+                            name="optionId"
+                            defaultValue={myCommentReport?.optionId ?? ''}
+                            required
+                            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+                          >
+                            <option value="" disabled>
+                              신고 사유를 선택해 주세요
+                            </option>
+                            {reportOptions.map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <label htmlFor={`comment-report-additional-${comment.id}`} className="text-xs text-[#555]">
+                            추가 사유 (선택)
+                          </label>
+                          <textarea
+                            id={`comment-report-additional-${comment.id}`}
+                            name="additionalReason"
+                            rows={3}
+                            maxLength={500}
+                            defaultValue={myCommentReport?.additionalReason ?? ''}
+                            placeholder="옵션 외 추가로 설명할 내용이 있다면 입력해 주세요."
+                            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+                          />
+                          <FormSubmitButton
+                            idleLabel={myCommentReport ? '신고 내용 수정' : '신고 접수'}
+                            pendingLabel="접수 중..."
+                            className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                          />
+                        </form>
+                      </div>
+                    </details>
+                  </div>
+                ) : null}
               </li>
             );
           })}

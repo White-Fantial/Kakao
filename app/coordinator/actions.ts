@@ -195,6 +195,49 @@ export async function holdCommentAction(formData: FormData) {
   revalidatePath(`/posts/${postId}`);
 }
 
+export async function restoreCommentAction(formData: FormData) {
+  const user = await requireUser();
+
+  const postId = normalizeText(formData.get('postId'));
+  const commentId = normalizeText(formData.get('commentId'));
+
+  if (!postId || !commentId) {
+    redirect('/coordinator/reports?error=댓글 정보가 없습니다.');
+  }
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { id: true, postId: true, authorId: true, status: true },
+  });
+
+  if (!comment || comment.postId !== postId || !canDeleteComment(user, comment)) {
+    redirect('/coordinator/reports?error=권한이 없습니다.');
+  }
+
+  if (comment.status !== 'HELD') {
+    redirect('/coordinator/reports?error=보류 상태인 댓글만 복구할 수 있습니다.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.comment.update({
+      where: { id: commentId },
+      data: { status: 'PUBLISHED' },
+    });
+
+    await tx.moderationAction.create({
+      data: {
+        actorId: user.id,
+        targetType: 'COMMENT',
+        targetId: commentId,
+        actionType: 'RESTORE',
+      },
+    });
+  });
+
+  revalidatePath('/coordinator/reports');
+  revalidatePath(`/posts/${postId}`);
+}
+
 export async function requestUserReviewAction(formData: FormData) {
   const user = await requireUser();
 

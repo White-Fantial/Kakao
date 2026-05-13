@@ -8,7 +8,7 @@ import { assertNoSpamText, enforceRateLimit } from '@/lib/abuse/guard';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { notifyCommentForPost } from '@/lib/kakao/message';
-import { canCreateComment, canDeleteComment } from '@/lib/permissions';
+import { canCreateComment, canDeleteComment, canReportComment } from '@/lib/permissions';
 import {
   NEIGHBOUR_WARMTH_BASE_GAINS,
   adjustNeighbourWarmth,
@@ -317,4 +317,66 @@ export async function removeBestCommentAction(formData: FormData) {
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
+}
+
+export async function reportCommentAction(formData: FormData) {
+  const user = await requireUser();
+  const postId = normalizeText(formData.get('postId'));
+  const commentId = normalizeText(formData.get('commentId'));
+  const optionId = normalizeText(formData.get('optionId'));
+  const additionalReason = normalizeText(formData.get('additionalReason'));
+
+  if (!postId || !commentId) {
+    redirect('/posts');
+  }
+
+  if (!optionId) {
+    redirectWithPostError(postId, '신고 사유를 선택해 주세요.');
+  }
+
+  if (additionalReason && additionalReason.length > 500) {
+    redirectWithPostError(postId, '추가 사유는 500자 이내로 입력해 주세요.');
+  }
+
+  const [comment, option] = await Promise.all([
+    prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { id: true, postId: true, authorId: true, status: true },
+    }),
+    prisma.reportOption.findFirst({
+      where: { id: optionId, isActive: true },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!comment || comment.postId !== postId || !canReportComment(user, comment)) {
+    redirectWithPostError(postId, '신고할 수 없는 댓글입니다.');
+  }
+
+  if (!option) {
+    redirectWithPostError(postId, '유효한 신고 사유를 선택해 주세요.');
+  }
+
+  await prisma.commentReport.upsert({
+    where: {
+      commentId_reporterId: {
+        commentId,
+        reporterId: user.id,
+      },
+    },
+    update: {
+      optionId: option.id,
+      additionalReason: additionalReason || null,
+    },
+    create: {
+      commentId,
+      reporterId: user.id,
+      optionId: option.id,
+      additionalReason: additionalReason || null,
+    },
+  });
+
+  revalidatePath(`/posts/${postId}`);
+  revalidatePath('/coordinator/reports');
+  redirect(`/posts/${postId}?success=${encodeURIComponent('댓글 신고가 접수되었어요.')}`);
 }
