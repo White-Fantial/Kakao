@@ -430,7 +430,7 @@ export default async function PostDetailPage({
         </span>
       </div>
 
-      <div className={currentUser ? 'grid grid-cols-1 gap-2 sm:grid-cols-3' : 'grid grid-cols-1 gap-2'}>
+      <div className={`grid grid-cols-1 gap-2 ${currentUser ? 'sm:grid-cols-3' : ''}`}>
         {currentUser ? (
           <form action={togglePostLikeAction}>
             <input type="hidden" name="postId" value={post.id} />
@@ -1041,7 +1041,7 @@ async function CommentsSection({
                         <form action={removeBestCommentAction}>
                           <input type="hidden" name="postId" value={postId} />
                           <FormSubmitButton
-                            idleLabel="Best comment 해제"
+                            idleLabel="베스트 댓글 해제"
                             pendingLabel="처리 중..."
                             className="rounded-md border border-amber-200 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50"
                           />
@@ -1051,7 +1051,7 @@ async function CommentsSection({
                           <input type="hidden" name="postId" value={postId} />
                           <input type="hidden" name="commentId" value={comment.id} />
                           <FormSubmitButton
-                            idleLabel="Best comment"
+                            idleLabel="베스트 댓글"
                             pendingLabel="처리 중..."
                             className="rounded-md border border-amber-200 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50"
                           />

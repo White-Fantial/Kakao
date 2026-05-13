@@ -29,7 +29,8 @@ function normalizeText(value: FormDataEntryValue | null) {
 }
 
 /**
- * redirect() throws and never returns, so callers can rely on type narrowing.
+ * 게시글 상세 페이지로 에러 메시지를 포함해 리다이렉트합니다.
+ * redirect()가 예외를 던지므로 never를 반환해 이후 코드에서 타입이 안전하게 좁혀지도록 합니다.
  */
 function redirectWithPostError(postId: string, message: string): never {
   redirect(`/posts/${postId}?error=${encodeURIComponent(message)}`);
