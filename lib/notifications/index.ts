@@ -104,3 +104,9 @@ export async function archiveNotification(notificationId: string, userId: string
     where: { id: notificationId, recipientId: userId },
   });
 }
+
+export async function archiveAllNotifications(userId: string) {
+  await prisma.notification.deleteMany({
+    where: { recipientId: userId },
+  });
+}
