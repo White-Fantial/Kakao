@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 
 import { requireUser } from '@/lib/auth/session';
-import { getNotifications } from '@/lib/notifications';
-import { PostCard } from '@/components/posts/post-card';
+import { getNotificationHref, getNotifications } from '@/lib/notifications';
 import { EmptyStateMessage } from '@/components/ui/empty-state-message';
-import { markAllNotificationsReadAction } from './actions';
+import {
+  archiveNotificationAction,
+  markAllNotificationsReadAction,
+  markNotificationReadAction,
+  openNotificationAction,
+} from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,17 +36,6 @@ function formatRelativeTime(date: Date): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}일 전`;
   return date.toLocaleDateString('ko-KR');
-}
-
-function getNotificationHref(notification: {
-  relatedPostId: string | null;
-  relatedCommentId: string | null;
-}): string | null {
-  if (!notification.relatedPostId) return null;
-  if (notification.relatedCommentId) {
-    return `/posts/${notification.relatedPostId}#comment-${notification.relatedCommentId}`;
-  }
-  return `/posts/${notification.relatedPostId}`;
 }
 
 export default async function NotificationsPage() {
@@ -76,17 +69,55 @@ export default async function NotificationsPage() {
 
             return (
               <li key={notification.id}>
-                <PostCard
-                  variant="minimal"
-                  post={{
-                    id: notification.id,
-                    title: label,
-                    bodyPreview: formatRelativeTime(notification.createdAt),
-                    createdAt: notification.createdAt,
-                    href: href ?? undefined,
-                    isUnread: !notification.isRead,
-                  }}
-                />
+                <article
+                  className={`rounded-xl border border-[#e8e8e8] bg-white shadow-sm ${
+                    notification.isRead ? '' : 'bg-[#fffde7]'
+                  }`.trim()}
+                >
+                  <form action={openNotificationAction}>
+                    <input type="hidden" name="notificationId" value={notification.id} />
+                    <button type="submit" className="block w-full px-3 py-3 text-left">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-[#1a1a1a]">{label}</p>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            notification.isRead
+                              ? 'bg-[#f4f4f4] text-[#777]'
+                              : 'bg-[#ffe36d] text-[#3c1e1e]'
+                          }`.trim()}
+                        >
+                          {notification.isRead ? '읽음' : '안읽음'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#888]">
+                        {formatRelativeTime(notification.createdAt)}
+                        {href ? ' · 눌러서 이동' : ''}
+                      </p>
+                    </button>
+                  </form>
+                  <div className="flex items-center justify-end gap-2 border-t border-[#f0f0f0] px-3 py-2">
+                    {!notification.isRead && (
+                      <form action={markNotificationReadAction}>
+                        <input type="hidden" name="notificationId" value={notification.id} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-[#e8e8e8] px-3 py-1 text-xs font-medium text-[#555] hover:border-[#fee500] hover:bg-[#fffde7]"
+                        >
+                          읽음 처리
+                        </button>
+                      </form>
+                    )}
+                    <form action={archiveNotificationAction}>
+                      <input type="hidden" name="notificationId" value={notification.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-[#e8e8e8] px-3 py-1 text-xs font-medium text-[#555] hover:border-[#ffd8d8] hover:bg-[#fff5f5]"
+                      >
+                        아카이브
+                      </button>
+                    </form>
+                  </div>
+                </article>
               </li>
             );
           })}

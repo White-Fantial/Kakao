@@ -1,9 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { requireUser } from '@/lib/auth/session';
-import { markAllNotificationsRead, markNotificationRead } from '@/lib/notifications';
+import {
+  archiveNotification,
+  markAllNotificationsRead,
+  markNotificationRead,
+  openNotification,
+} from '@/lib/notifications';
 
 export async function markAllNotificationsReadAction() {
   const user = await requireUser();
@@ -11,8 +17,36 @@ export async function markAllNotificationsReadAction() {
   revalidatePath('/my/notifications');
 }
 
-export async function markNotificationReadAction(notificationId: string) {
+export async function markNotificationReadAction(formData: FormData) {
+  const notificationId = String(formData.get('notificationId') ?? '').trim();
+  if (!notificationId) {
+    return;
+  }
+
   const user = await requireUser();
   await markNotificationRead(notificationId, user.id);
+  revalidatePath('/my/notifications');
+}
+
+export async function openNotificationAction(formData: FormData) {
+  const notificationId = String(formData.get('notificationId') ?? '').trim();
+  if (!notificationId) {
+    redirect('/my/notifications');
+  }
+
+  const user = await requireUser();
+  const href = await openNotification(notificationId, user.id);
+  revalidatePath('/my/notifications');
+  redirect(href ?? '/my/notifications');
+}
+
+export async function archiveNotificationAction(formData: FormData) {
+  const notificationId = String(formData.get('notificationId') ?? '').trim();
+  if (!notificationId) {
+    return;
+  }
+
+  const user = await requireUser();
+  await archiveNotification(notificationId, user.id);
   revalidatePath('/my/notifications');
 }

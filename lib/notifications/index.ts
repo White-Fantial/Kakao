@@ -12,6 +12,19 @@ export type CreateNotificationParams = {
   actorId?: string;
 };
 
+export type NotificationLinkTarget = {
+  relatedPostId: string | null;
+  relatedCommentId: string | null;
+};
+
+export function getNotificationHref(notification: NotificationLinkTarget): string | null {
+  if (!notification.relatedPostId) return null;
+  if (notification.relatedCommentId) {
+    return `/posts/${notification.relatedPostId}#comment-${notification.relatedCommentId}`;
+  }
+  return `/posts/${notification.relatedPostId}`;
+}
+
 export async function createNotification(params: CreateNotificationParams) {
   await prisma.notification.create({
     data: {
@@ -59,5 +72,35 @@ export async function markNotificationRead(notificationId: string, userId: strin
   await prisma.notification.updateMany({
     where: { id: notificationId, recipientId: userId },
     data: { isRead: true },
+  });
+}
+
+export async function openNotification(notificationId: string, userId: string) {
+  const notification = await prisma.notification.findFirst({
+    where: { id: notificationId, recipientId: userId },
+    select: {
+      relatedPostId: true,
+      relatedCommentId: true,
+      isRead: true,
+    },
+  });
+
+  if (!notification) {
+    return null;
+  }
+
+  if (!notification.isRead) {
+    await prisma.notification.updateMany({
+      where: { id: notificationId, recipientId: userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  return getNotificationHref(notification);
+}
+
+export async function archiveNotification(notificationId: string, userId: string) {
+  await prisma.notification.deleteMany({
+    where: { id: notificationId, recipientId: userId },
   });
 }
