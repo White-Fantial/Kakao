@@ -144,13 +144,17 @@ const getPostComments = cache(async (
   cursorToken: string,
   direction: 'next' | 'prev',
   currentUserId: string | null,
+  includeHeld: boolean,
 ) => {
   const cursor = cursorToken ? decodeCursor(cursorToken) : null;
+  const statusFilter: { in: ('PUBLISHED' | 'HELD')[] } | { equals: 'PUBLISHED' } = includeHeld
+    ? { in: ['PUBLISHED', 'HELD'] }
+    : { equals: 'PUBLISHED' };
   const comments = await measureServerTiming('post-detail:comments', () =>
     prisma.comment.findMany({
       where: {
         postId,
-        status: 'PUBLISHED',
+        status: statusFilter,
         ...(cursor
           ? direction === 'prev'
             ? {
@@ -266,9 +270,17 @@ export default async function PostDetailPage({
 
   const isCoordinator = currentUser ? canHoldPost(currentUser) : false;
 
-  // Non-coordinators cannot view HELD posts
+  // Non-coordinators see a pending-review message for HELD posts
   if (post.status === 'HELD' && !isCoordinator) {
-    notFound();
+    return (
+      <article className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-yellow-200 bg-[#fffde7] px-4 py-6 text-center">
+          <p className="text-base font-medium text-[#7a6000]">
+            이 게시글은 신고 접수로 인해 운영 검토 중입니다.
+          </p>
+        </div>
+      </article>
+    );
   }
 
   const contactUrl = post.contactUrl ?? post.author.openChatUrl;
@@ -922,6 +934,7 @@ async function CommentsSection({
     commentsCursor,
     commentsDirection,
     currentUser?.id ?? null,
+    isCoordinator,
   );
   const firstComment = visibleComments[0];
   const lastComment = visibleComments[visibleComments.length - 1];
@@ -1029,7 +1042,18 @@ async function CommentsSection({
 
             return (
               <li key={comment.id} className="rounded-xl border border-[#e8e8e8] p-3">
-                <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+                {comment.status === 'HELD' && !isCoordinator ? (
+                  <p className="text-sm italic text-[#aaa]">운영 검토 중인 댓글입니다.</p>
+                ) : (
+                  <>
+                    {comment.status === 'HELD' && isCoordinator ? (
+                      <span className="mb-1 inline-block rounded-full bg-[#fffde7] px-2 py-0.5 text-xs font-medium text-[#7a6000]">
+                        운영 검토 중
+                      </span>
+                    ) : null}
+                    <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+                  </>
+                )}
                 {isBestComment ? (
                   <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
                     베스트 댓글

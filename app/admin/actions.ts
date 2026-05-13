@@ -13,6 +13,10 @@ import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision, USER_ROLES } from '@/lib/permissions';
 import type { SessionUser } from '@/lib/auth/types';
 import type { UserRole, UserStatus } from '@prisma/client';
+import {
+  COMMUNITY_SCORE_BASE_DELTAS,
+  applyCommunityScoreChange,
+} from '@/lib/community-score';
 
 const VALID_CATEGORY_TYPES = Object.values(CategoryType) as CategoryType[];
 const VALID_CATEGORY_VISIBILITY_MODES = Object.values(
@@ -202,6 +206,16 @@ export async function adminDeletePostAction(formData: FormData) {
     });
   });
 
+  void applyCommunityScoreChange({
+    targetType: 'POST',
+    targetId: postId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.ADMIN_DELETES,
+    reason: 'ADMIN_DELETES',
+  }).catch((err) => {
+    console.error('[adminDeletePostAction] community score update failed', err);
+  });
+
   revalidatePath('/admin/posts');
   revalidatePath('/coordinator');
   revalidatePath('/posts');
@@ -251,6 +265,16 @@ export async function adminRestorePostAction(formData: FormData) {
         reason: reason || null,
       },
     });
+  });
+
+  void applyCommunityScoreChange({
+    targetType: 'POST',
+    targetId: postId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.ADMIN_RESTORES,
+    reason: 'ADMIN_RESTORES',
+  }).catch((err) => {
+    console.error('[adminRestorePostAction] community score update failed', err);
   });
 
   revalidatePath('/admin/posts');

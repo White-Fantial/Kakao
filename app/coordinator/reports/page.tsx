@@ -44,6 +44,7 @@ export default async function CoordinatorReportsPage() {
             title: true,
             body: true,
             status: true,
+            communityScore: true,
             author: { select: { displayName: true } },
             _count: { select: { reports: true } },
           },
@@ -68,6 +69,7 @@ export default async function CoordinatorReportsPage() {
             id: true,
             body: true,
             status: true,
+            communityScore: true,
             postId: true,
             author: { select: { displayName: true } },
             _count: { select: { reports: true } },
@@ -113,6 +115,9 @@ export default async function CoordinatorReportsPage() {
                       : report.post.status === 'HELD'
                         ? '보류'
                         : '게시됨'}
+                  </span>
+                  <span className="rounded-full bg-[#f0f0f0] px-2 py-0.5 text-[#555]">
+                    점수 {report.post.communityScore.toFixed(1)}
                   </span>
                 </div>
                 <p className="text-sm font-medium">
@@ -164,6 +169,9 @@ export default async function CoordinatorReportsPage() {
                       : report.comment.status === 'HELD'
                         ? '보류'
                         : '게시됨'}
+                  </span>
+                  <span className="rounded-full bg-[#f0f0f0] px-2 py-0.5 text-[#555]">
+                    점수 {report.comment.communityScore.toFixed(1)}
                   </span>
                 </div>
                 <p className="text-sm text-[#333]">

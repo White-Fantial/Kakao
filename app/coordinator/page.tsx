@@ -42,12 +42,14 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
       title: true,
       body: true,
       status: true,
+      communityScore: true,
       heldReason: true,
       heldAt: true,
       createdAt: true,
       author: { select: { id: true, displayName: true } },
       category: { select: { name: true } },
       city: { select: { name: true } },
+      _count: { select: { reports: true } },
     },
   });
 
@@ -128,7 +130,11 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
                   {post.title ?? truncatePostBody(post.body)}
                 </p>
                 <p className="mt-1 text-xs text-[#888]">
-                  작성자: {post.author.displayName} · {new Date(post.createdAt).toLocaleString('ko-KR')}
+                  <span>작성자: {post.author.displayName}</span>
+                  {' · '}
+                  <span>{new Date(post.createdAt).toLocaleString('ko-KR')}</span>
+                  {' · '}
+                  <span aria-label={`신고 ${post._count.reports}건`}>신고 {post._count.reports}건</span>
                 </p>
                 {post.heldReason ? (
                   <p className="mt-1 text-xs text-[#7a6000]">보류 사유: {post.heldReason}</p>

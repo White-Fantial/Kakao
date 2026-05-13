@@ -12,6 +12,10 @@ import {
   canDeleteComment,
   canModerateUser,
 } from '@/lib/permissions';
+import {
+  COMMUNITY_SCORE_BASE_DELTAS,
+  applyCommunityScoreChange,
+} from '@/lib/community-score';
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -85,6 +89,16 @@ export async function holdPostAction(formData: FormData) {
     });
   });
 
+  void applyCommunityScoreChange({
+    targetType: 'POST',
+    targetId: postId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COORDINATOR_HOLDS,
+    reason: 'COORDINATOR_HOLDS',
+  }).catch((err) => {
+    console.error('[holdPostAction] community score update failed', err);
+  });
+
   revalidatePath('/coordinator');
   revalidatePath('/admin/posts');
   revalidatePath('/posts');
@@ -143,6 +157,16 @@ export async function restorePostAction(formData: FormData) {
     });
   });
 
+  void applyCommunityScoreChange({
+    targetType: 'POST',
+    targetId: postId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COORDINATOR_RESTORES,
+    reason: 'COORDINATOR_RESTORES',
+  }).catch((err) => {
+    console.error('[restorePostAction] community score update failed', err);
+  });
+
   revalidatePath('/coordinator');
   revalidatePath('/admin/posts');
   revalidatePath('/posts');
@@ -191,6 +215,16 @@ export async function holdCommentAction(formData: FormData) {
     });
   });
 
+  void applyCommunityScoreChange({
+    targetType: 'COMMENT',
+    targetId: commentId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COORDINATOR_HOLDS,
+    reason: 'COORDINATOR_HOLDS',
+  }).catch((err) => {
+    console.error('[holdCommentAction] community score update failed', err);
+  });
+
   revalidatePath('/coordinator');
   revalidatePath(`/posts/${postId}`);
 }
@@ -232,6 +266,16 @@ export async function restoreCommentAction(formData: FormData) {
         actionType: 'RESTORE',
       },
     });
+  });
+
+  void applyCommunityScoreChange({
+    targetType: 'COMMENT',
+    targetId: commentId,
+    actorId: user.id,
+    baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COORDINATOR_RESTORES,
+    reason: 'COORDINATOR_RESTORES',
+  }).catch((err) => {
+    console.error('[restoreCommentAction] community score update failed', err);
   });
 
   revalidatePath('/coordinator/reports');

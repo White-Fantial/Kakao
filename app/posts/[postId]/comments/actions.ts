@@ -13,6 +13,10 @@ import {
   NEIGHBOUR_WARMTH_BASE_GAINS,
   adjustNeighbourWarmth,
 } from '@/lib/neighbour-warmth';
+import {
+  COMMUNITY_SCORE_BASE_DELTAS,
+  applyCommunityScoreChange,
+} from '@/lib/community-score';
 
 const MAX_COMMENT_BODY_LENGTH = 500;
 const COMMENT_STATUS = {
@@ -178,6 +182,8 @@ export async function toggleCommentLikeAction(formData: FormData) {
     redirectWithPostError(postId, '댓글을 찾을 수 없어요.');
   }
 
+  let isNewLike = false;
+
   await prisma.$transaction(async (tx) => {
     const existingLike = await tx.commentLike.findUnique({
       where: {
@@ -194,6 +200,7 @@ export async function toggleCommentLikeAction(formData: FormData) {
       return;
     }
 
+    isNewLike = true;
     await tx.commentLike.create({
       data: {
         commentId,
@@ -215,6 +222,18 @@ export async function toggleCommentLikeAction(formData: FormData) {
       },
     });
   });
+
+  if (isNewLike && comment.authorId !== user.id) {
+    void applyCommunityScoreChange({
+      targetType: 'COMMENT',
+      targetId: commentId,
+      actorId: user.id,
+      baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COMMENT_LIKE_RECEIVED,
+      reason: 'COMMENT_LIKE_RECEIVED',
+    }).catch((err) => {
+      console.error('[toggleCommentLikeAction] community score update failed', err);
+    });
+  }
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
@@ -261,6 +280,7 @@ export async function setBestCommentAction(formData: FormData) {
   }
 
   const shouldIncreaseWarmth = post.bestCommentId !== comment.id && comment.authorId !== user.id;
+  const isNewBestComment = post.bestCommentId !== comment.id && comment.authorId !== user.id;
 
   await prisma.$transaction(async (tx) => {
     await tx.post.update({
@@ -282,6 +302,18 @@ export async function setBestCommentAction(formData: FormData) {
       },
     });
   });
+
+  if (isNewBestComment) {
+    void applyCommunityScoreChange({
+      targetType: 'COMMENT',
+      targetId: commentId,
+      actorId: user.id,
+      baseDelta: COMMUNITY_SCORE_BASE_DELTAS.BEST_COMMENT_SELECTED,
+      reason: 'BEST_COMMENT_SELECTED',
+    }).catch((err) => {
+      console.error('[setBestCommentAction] community score update failed', err);
+    });
+  }
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${postId}`);
@@ -357,6 +389,11 @@ export async function reportCommentAction(formData: FormData) {
     redirectWithPostError(postId, '유효한 신고 사유를 선택해 주세요.');
   }
 
+  const existingCommentReport = await prisma.commentReport.findUnique({
+    where: { commentId_reporterId: { commentId, reporterId: user.id } },
+    select: { id: true },
+  });
+
   await prisma.commentReport.upsert({
     where: {
       commentId_reporterId: {
@@ -375,6 +412,18 @@ export async function reportCommentAction(formData: FormData) {
       additionalReason: additionalReason || null,
     },
   });
+
+  if (!existingCommentReport) {
+    void applyCommunityScoreChange({
+      targetType: 'COMMENT',
+      targetId: commentId,
+      actorId: user.id,
+      baseDelta: COMMUNITY_SCORE_BASE_DELTAS.COMMENT_REPORT_SUBMITTED,
+      reason: 'COMMENT_REPORT_SUBMITTED',
+    }).catch((err) => {
+      console.error('[reportCommentAction] community score update failed', err);
+    });
+  }
 
   revalidatePath(`/posts/${postId}`);
   revalidatePath('/coordinator/reports');
