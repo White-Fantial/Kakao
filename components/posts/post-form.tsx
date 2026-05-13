@@ -31,6 +31,7 @@ type CategoryOption = {
   label: string;
   type: string;
   visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN';
+  requireCommentBeforeContactDefault: boolean;
   postTagOptions: {
     id: string;
     label: string;
@@ -64,10 +65,11 @@ type PostFormProps = {
     body?: string;
     countryId?: string | null;
     cityId?: string | null;
-      categoryId?: string;
-      postTagOptionIds?: string[];
-      price?: string | null;
-      contactUrl?: string | null;
+    categoryId?: string;
+    postTagOptionIds?: string[];
+    price?: string | null;
+    contactUrl?: string | null;
+    requireCommentBeforeContact?: boolean;
     images?: {
       id: string;
       url: string;
@@ -205,6 +207,12 @@ export function PostForm({
   const [fileError, setFileError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [commentGateCategoryId, setCommentGateCategoryId] = useState<string | null>(
+    defaultValues?.categoryId ?? null,
+  );
+  const [commentGateOverride, setCommentGateOverride] = useState<boolean | null>(
+    defaultValues?.postId ? (defaultValues.requireCommentBeforeContact ?? false) : null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSubmitting = isPending || isUploading;
@@ -239,7 +247,10 @@ export function PostForm({
     () => categories.find((category) => category.id === selectedCategoryId),
     [categories, selectedCategoryId],
   );
-  const selectedCategoryTagOptions = selectedCategory?.postTagOptions ?? [];
+  const selectedCategoryTagOptions = useMemo(
+    () => selectedCategory?.postTagOptions ?? [],
+    [selectedCategory],
+  );
   const selectedCategoryTagOptionIdSet = useMemo(
     () => new Set(selectedCategoryTagOptions.map((option) => option.id)),
     [selectedCategoryTagOptions],
@@ -318,6 +329,12 @@ export function PostForm({
     : isPending
       ? '처리 중...'
       : submitLabel;
+  const requireCommentBeforeContact =
+    commentGateCategoryId === selectedCategoryId && commentGateOverride !== null
+      ? commentGateOverride
+      : defaultValues?.postId && selectedCategoryId === defaultValues.categoryId
+        ? (defaultValues.requireCommentBeforeContact ?? false)
+        : (selectedCategory?.requireCommentBeforeContactDefault ?? false);
 
   return (
     <form
@@ -431,6 +448,12 @@ export function PostForm({
           onChange={(event) => {
             const nextCategoryId = event.target.value;
             setCategoryId(nextCategoryId);
+            setCommentGateCategoryId(nextCategoryId);
+            setCommentGateOverride(
+              defaultValues?.postId && nextCategoryId === defaultValues.categoryId
+                ? (defaultValues.requireCommentBeforeContact ?? false)
+                : null,
+            );
             const nextCategory = categories.find((category) => category.id === nextCategoryId);
             const validIds = new Set((nextCategory?.postTagOptions ?? []).map((option) => option.id));
             setSelectedPostTagOptionIds((prev) => prev.filter((id) => validIds.has(id)));
@@ -534,6 +557,34 @@ export function PostForm({
         <p className="text-xs text-[#888]">
           이 글에서만 사용할 카카오 오픈채팅 링크를 입력하세요. 비워두면 프로필 링크가 사용됩니다.
         </p>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-[#e8e8e8] p-3">
+        <input
+          type="hidden"
+          name="requireCommentBeforeContact"
+          value={requireCommentBeforeContact ? 'true' : 'false'}
+        />
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <label htmlFor="requireCommentBeforeContact" className="text-sm font-medium">
+              Require comment before Kakao contact
+            </label>
+            <p className="text-xs text-[#888]">
+              Users must leave a comment before they can contact you via Kakao.
+            </p>
+          </div>
+          <input
+            id="requireCommentBeforeContact"
+            type="checkbox"
+            checked={requireCommentBeforeContact}
+            onChange={(event) => {
+              setCommentGateCategoryId(selectedCategoryId);
+              setCommentGateOverride(event.target.checked);
+            }}
+            className="mt-1 h-4 w-4 rounded border-[#d8d8d8] accent-[#fee500]"
+          />
+        </div>
       </div>
 
       {defaultValues?.images?.length ? (
