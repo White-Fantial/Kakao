@@ -14,6 +14,7 @@ export const getActiveCategories = unstable_cache(
         visibilityMode: true,
         type: true,
         requireCommentBeforeContactDefault: true,
+        contactSectionDefaultExpanded: true,
       },
     }),
   ['reference-categories-v2'],
