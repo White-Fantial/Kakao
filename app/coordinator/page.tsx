@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ReportReviewStatus } from '@prisma/client';
 
 import {
 
@@ -33,40 +35,48 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
   const params = await searchParams;
   const statusFilter = params.status ?? 'HELD';
 
-  const posts = await prisma.post.findMany({
-    where: {
-      status: statusFilter as 'PUBLISHED' | 'HELD' | 'DELETED',
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      status: true,
-      communityScore: true,
-      heldReason: true,
-      heldAt: true,
-      createdAt: true,
-      author: { select: { id: true, displayName: true } },
-      category: { select: { name: true } },
-      city: { select: { name: true } },
-      _count: { select: { reports: true } },
-    },
-  });
-
-  const recentUsers = await prisma.user.findMany({
-    where: { role: { in: ['USER', 'COORDINATOR'] } },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-    select: {
-      id: true,
-      displayName: true,
-      role: true,
-      status: true,
-      createdAt: true,
-    },
-  });
+  const [posts, recentUsers, unresolvedPostReportCount, unresolvedCommentReportCount] = await Promise.all([
+    prisma.post.findMany({
+      where: {
+        status: statusFilter as 'PUBLISHED' | 'HELD' | 'DELETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        status: true,
+        communityScore: true,
+        heldReason: true,
+        heldAt: true,
+        createdAt: true,
+        author: { select: { id: true, displayName: true } },
+        category: { select: { name: true } },
+        city: { select: { name: true } },
+        _count: { select: { reports: true } },
+      },
+    }),
+    prisma.user.findMany({
+      where: { role: { in: ['USER', 'COORDINATOR'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        displayName: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    }),
+    prisma.postReport.count({
+      where: { reviewStatus: ReportReviewStatus.PENDING },
+    }),
+    prisma.commentReport.count({
+      where: { reviewStatus: ReportReviewStatus.PENDING },
+    }),
+  ]);
+  const unresolvedReportCount = unresolvedPostReportCount + unresolvedCommentReportCount;
 
   const statusOptions = [
     { value: 'PUBLISHED', label: '게시됨' },
@@ -83,6 +93,18 @@ export default async function CoordinatorPage({ searchParams }: CoordinatorPageP
 
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
+      ) : null}
+
+      {unresolvedReportCount > 0 ? (
+        <Link
+          href="/coordinator/reports"
+          className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+        >
+          <span>미확정 신고 내역이 있습니다.</span>
+          <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+            {unresolvedReportCount}건
+          </span>
+        </Link>
       ) : null}
 
       <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">

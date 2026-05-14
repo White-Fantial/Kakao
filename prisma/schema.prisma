@@ -78,6 +78,12 @@ enum KakaoMessageDeliveryStatus {
   FAILED
 }
 
+enum ReportReviewStatus {
+  PENDING
+  VALID
+  FALSE_REPORT
+}
+
 model User {
   id                   String             @id @default(cuid())
   kakaoId              String             @unique
@@ -112,6 +118,8 @@ model User {
   postPermissions      PostPermission[]
   kakaoMessageDeliveries KakaoMessageDelivery[]
   notifications        Notification[]
+  reviewedPostReports  PostReport[]         @relation("PostReportReviewer")
+  reviewedCommentReports CommentReport[]    @relation("CommentReportReviewer")
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -297,8 +305,12 @@ model PostReport {
   reporterId       String
   optionId         String
   additionalReason String?
+  reviewStatus     ReportReviewStatus @default(PENDING)
+  reviewedAt       DateTime?
+  reviewedById     String?
   post             Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
   reporter         User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy       User?        @relation("PostReportReviewer", fields: [reviewedById], references: [id])
   option           ReportOption @relation(fields: [optionId], references: [id])
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -306,6 +318,7 @@ model PostReport {
   @@unique([postId, reporterId])
   @@index([postId, createdAt])
   @@index([reporterId, createdAt])
+  @@index([reviewStatus, createdAt])
 }
 
 model CommentReport {
@@ -314,8 +327,12 @@ model CommentReport {
   reporterId       String
   optionId         String
   additionalReason String?
+  reviewStatus     ReportReviewStatus @default(PENDING)
+  reviewedAt       DateTime?
+  reviewedById     String?
   comment          Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
   reporter         User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy       User?        @relation("CommentReportReviewer", fields: [reviewedById], references: [id])
   option           ReportOption @relation(fields: [optionId], references: [id])
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -323,6 +340,7 @@ model CommentReport {
   @@unique([commentId, reporterId])
   @@index([commentId, createdAt])
   @@index([reporterId, createdAt])
+  @@index([reviewStatus, createdAt])
 }
 
 model PostImage {
