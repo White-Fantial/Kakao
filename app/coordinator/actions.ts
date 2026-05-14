@@ -17,15 +17,8 @@ import {
   COMMUNITY_SCORE_BASE_DELTAS,
   applyCommunityScoreChange,
 } from '@/lib/community-score';
-import { adjustNeighbourWarmth } from '@/lib/neighbour-warmth';
+import { adjustNeighbourWarmth, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS } from '@/lib/neighbour-warmth';
 import { createNotification } from '@/lib/notifications';
-
-const MODERATION_WARMTH_DELTAS = {
-  VALID_POST_REPORT: -1.0,
-  VALID_COMMENT_REPORT: -1.2,
-  COORDINATOR_HOLDS: -3.0,
-  FALSE_REPORT: -2.0,
-} as const;
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
@@ -129,7 +122,7 @@ export async function holdPostAction(formData: FormData) {
     });
   });
 
-  void applyWarmthDelta(post.authorId, MODERATION_WARMTH_DELTAS.COORDINATOR_HOLDS).catch((err) => {
+  void applyWarmthDelta(post.authorId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.COORDINATOR_HOLDS).catch((err) => {
     console.error('[holdPostAction] neighbour warmth update failed', err);
   });
 
@@ -209,10 +202,6 @@ export async function restorePostAction(formData: FormData) {
     });
   });
 
-  void applyWarmthDelta(comment.authorId, MODERATION_WARMTH_DELTAS.COORDINATOR_HOLDS).catch((err) => {
-    console.error('[holdCommentAction] neighbour warmth update failed', err);
-  });
-
   void applyCommunityScoreChange({
     targetType: 'POST',
     targetId: postId,
@@ -269,6 +258,10 @@ export async function holdCommentAction(formData: FormData) {
         reason: reason || null,
       },
     });
+  });
+
+  void applyWarmthDelta(comment.authorId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.COORDINATOR_HOLDS).catch((err) => {
+    console.error('[holdCommentAction] neighbour warmth update failed', err);
   });
 
   void applyCommunityScoreChange({
@@ -401,13 +394,16 @@ export async function reviewPostReportAction(formData: FormData) {
 
   if (report.reviewStatus === ReportReviewStatus.PENDING) {
     if (reviewStatus === ReportReviewStatus.VALID) {
-      void applyWarmthDelta(report.post.authorId, MODERATION_WARMTH_DELTAS.VALID_POST_REPORT).catch(
+      void applyWarmthDelta(
+        report.post.authorId,
+        NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.VALID_POST_REPORT,
+      ).catch(
         (err) => {
           console.error('[reviewPostReportAction] neighbour warmth update failed', err);
         },
       );
     } else if (reviewStatus === ReportReviewStatus.FALSE_REPORT) {
-      void applyWarmthDelta(report.reporterId, MODERATION_WARMTH_DELTAS.FALSE_REPORT).catch((err) => {
+      void applyWarmthDelta(report.reporterId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.FALSE_REPORT).catch((err) => {
         console.error('[reviewPostReportAction] neighbour warmth update failed', err);
       });
     }
@@ -473,12 +469,12 @@ export async function reviewCommentReportAction(formData: FormData) {
     if (reviewStatus === ReportReviewStatus.VALID) {
       void applyWarmthDelta(
         report.comment.authorId,
-        MODERATION_WARMTH_DELTAS.VALID_COMMENT_REPORT,
+        NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.VALID_COMMENT_REPORT,
       ).catch((err) => {
         console.error('[reviewCommentReportAction] neighbour warmth update failed', err);
       });
     } else if (reviewStatus === ReportReviewStatus.FALSE_REPORT) {
-      void applyWarmthDelta(report.reporterId, MODERATION_WARMTH_DELTAS.FALSE_REPORT).catch((err) => {
+      void applyWarmthDelta(report.reporterId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.FALSE_REPORT).catch((err) => {
         console.error('[reviewCommentReportAction] neighbour warmth update failed', err);
       });
     }

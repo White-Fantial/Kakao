@@ -18,16 +18,13 @@ import {
   COMMUNITY_SCORE_BASE_DELTAS,
   applyCommunityScoreChange,
 } from '@/lib/community-score';
-import { adjustNeighbourWarmth } from '@/lib/neighbour-warmth';
+import { adjustNeighbourWarmth, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS } from '@/lib/neighbour-warmth';
 
 const VALID_CATEGORY_TYPES = Object.values(CategoryType) as CategoryType[];
 const VALID_CATEGORY_VISIBILITY_MODES = Object.values(
   CategoryVisibilityMode,
 ) as CategoryVisibilityMode[];
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
-const ADMIN_MODERATION_WARMTH_DELTAS = {
-  ADMIN_DELETES: -6.0,
-} as const;
 
 function normalizeHexColor(value: string) {
   if (!value) return null;
@@ -249,7 +246,7 @@ export async function adminDeletePostAction(formData: FormData) {
     console.error('[adminDeletePostAction] community score update failed', err);
   });
 
-  void applyWarmthDelta(post.authorId, ADMIN_MODERATION_WARMTH_DELTAS.ADMIN_DELETES).catch((err) => {
+  void applyWarmthDelta(post.authorId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.ADMIN_DELETES).catch((err) => {
     console.error('[adminDeletePostAction] neighbour warmth update failed', err);
   });
 
