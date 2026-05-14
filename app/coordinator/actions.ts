@@ -30,6 +30,11 @@ function normalizeReportFilter(value: FormDataEntryValue | null) {
   return normalized === 'resolved' || normalized === 'all' ? normalized : 'pending';
 }
 
+function redirectWithQuery(path: string, query: Record<string, string>): never {
+  const searchParams = new URLSearchParams(query);
+  redirect(`${path}?${searchParams.toString()}`);
+}
+
 function parseReviewStatus(value: FormDataEntryValue | null) {
   const normalized = normalizeText(value);
   if (normalized === ReportReviewStatus.VALID || normalized === ReportReviewStatus.FALSE_REPORT) {
@@ -283,7 +288,7 @@ export async function restoreCommentAction(formData: FormData) {
   const commentId = normalizeText(formData.get('commentId'));
 
   if (!postId || !commentId) {
-    redirect('/coordinator/reports?error=댓글 정보가 없습니다.');
+    redirectWithQuery('/coordinator/reports', { error: '댓글 정보가 없습니다.' });
   }
 
   const comment = await prisma.comment.findUnique({
@@ -291,12 +296,18 @@ export async function restoreCommentAction(formData: FormData) {
     select: { id: true, postId: true, authorId: true, status: true },
   });
 
-  if (!comment || comment.postId !== postId || !canDeleteComment(user, comment)) {
-    redirect('/coordinator/reports?error=권한이 없습니다.');
+  if (!comment) {
+    redirectWithQuery('/coordinator/reports', { error: '권한이 없습니다.' });
+  }
+
+  if (comment.postId !== postId || !canDeleteComment(user, comment)) {
+    redirectWithQuery('/coordinator/reports', { error: '권한이 없습니다.' });
   }
 
   if (comment.status !== 'HELD') {
-    redirect('/coordinator/reports?error=보류 상태인 댓글만 복구할 수 있습니다.');
+    redirectWithQuery('/coordinator/reports', {
+      error: '보류 상태인 댓글만 복구할 수 있습니다.',
+    });
   }
 
   await prisma.$transaction(async (tx) => {
@@ -333,7 +344,7 @@ export async function reviewPostReportAction(formData: FormData) {
   const user = await requireUser();
 
   if (!canHoldPost(user)) {
-    redirect('/coordinator/reports?error=권한이 없습니다.');
+    redirectWithQuery('/coordinator/reports', { error: '권한이 없습니다.' });
   }
 
   const reportId = normalizeText(formData.get('reportId'));
@@ -341,12 +352,20 @@ export async function reviewPostReportAction(formData: FormData) {
   const filter = normalizeReportFilter(formData.get('filter'));
 
   if (!reportId) {
-    redirect(`/coordinator/reports?filter=${filter}&error=신고 ID가 없습니다.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '신고 ID가 없습니다.',
+    });
   }
 
   if (!reviewStatus) {
-    redirect(`/coordinator/reports?filter=${filter}&error=유효한 확정 상태를 선택해 주세요.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '유효한 확정 상태를 선택해 주세요.',
+    });
   }
+
+  const resolvedReviewStatus = reviewStatus;
 
   const report = await prisma.postReport.findUnique({
     where: { id: reportId },
@@ -362,13 +381,18 @@ export async function reviewPostReportAction(formData: FormData) {
   });
 
   if (!report) {
-    redirect(`/coordinator/reports?filter=${filter}&error=신고 내역을 찾을 수 없습니다.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '신고 내역을 찾을 수 없습니다.',
+    });
   }
+
+  const resolvedReport = report;
 
   await prisma.postReport.update({
     where: { id: reportId },
     data: {
-      reviewStatus,
+      reviewStatus: resolvedReviewStatus,
       reviewedAt: new Date(),
       reviewedById: user.id,
     },
@@ -378,21 +402,24 @@ export async function reviewPostReportAction(formData: FormData) {
     user.id,
     'POST_REPORT',
     reportId,
-    reviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
+    resolvedReviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
   );
 
-  if (report.reviewStatus === ReportReviewStatus.PENDING) {
-    if (reviewStatus === ReportReviewStatus.VALID) {
+  if (resolvedReport.reviewStatus === ReportReviewStatus.PENDING) {
+    if (resolvedReviewStatus === ReportReviewStatus.VALID) {
       void applyUserWarmthDelta(
-        report.post.authorId,
+        resolvedReport.post.authorId,
         NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.VALID_POST_REPORT,
       ).catch(
         (err) => {
           console.error('[reviewPostReportAction] neighbour warmth update failed', err);
         },
       );
-    } else if (reviewStatus === ReportReviewStatus.FALSE_REPORT) {
-      void applyUserWarmthDelta(report.reporterId, NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.FALSE_REPORT).catch(
+    } else if (resolvedReviewStatus === ReportReviewStatus.FALSE_REPORT) {
+      void applyUserWarmthDelta(
+        resolvedReport.reporterId,
+        NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.FALSE_REPORT,
+      ).catch(
         (err) => {
           console.error('[reviewPostReportAction] neighbour warmth update failed', err);
         },
@@ -402,14 +429,17 @@ export async function reviewPostReportAction(formData: FormData) {
 
   revalidatePath('/coordinator');
   revalidatePath('/coordinator/reports');
-  redirect(`/coordinator/reports?filter=${filter}&success=신고 상태를 저장했어요.`);
+  redirectWithQuery('/coordinator/reports', {
+    filter,
+    success: '신고 상태를 저장했어요.',
+  });
 }
 
 export async function reviewCommentReportAction(formData: FormData) {
   const user = await requireUser();
 
   if (!canHoldPost(user)) {
-    redirect('/coordinator/reports?error=권한이 없습니다.');
+    redirectWithQuery('/coordinator/reports', { error: '권한이 없습니다.' });
   }
 
   const reportId = normalizeText(formData.get('reportId'));
@@ -417,12 +447,20 @@ export async function reviewCommentReportAction(formData: FormData) {
   const filter = normalizeReportFilter(formData.get('filter'));
 
   if (!reportId) {
-    redirect(`/coordinator/reports?filter=${filter}&error=신고 ID가 없습니다.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '신고 ID가 없습니다.',
+    });
   }
 
   if (!reviewStatus) {
-    redirect(`/coordinator/reports?filter=${filter}&error=유효한 확정 상태를 선택해 주세요.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '유효한 확정 상태를 선택해 주세요.',
+    });
   }
+
+  const resolvedReviewStatus = reviewStatus;
 
   const report = await prisma.commentReport.findUnique({
     where: { id: reportId },
@@ -437,13 +475,18 @@ export async function reviewCommentReportAction(formData: FormData) {
   });
 
   if (!report) {
-    redirect(`/coordinator/reports?filter=${filter}&error=신고 내역을 찾을 수 없습니다.`);
+    redirectWithQuery('/coordinator/reports', {
+      filter,
+      error: '신고 내역을 찾을 수 없습니다.',
+    });
   }
+
+  const resolvedReport = report;
 
   await prisma.commentReport.update({
     where: { id: reportId },
     data: {
-      reviewStatus,
+      reviewStatus: resolvedReviewStatus,
       reviewedAt: new Date(),
       reviewedById: user.id,
     },
@@ -453,20 +496,20 @@ export async function reviewCommentReportAction(formData: FormData) {
     user.id,
     'COMMENT_REPORT',
     reportId,
-    reviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
+    resolvedReviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
   );
 
-  if (report.reviewStatus === ReportReviewStatus.PENDING) {
-    if (reviewStatus === ReportReviewStatus.VALID) {
+  if (resolvedReport.reviewStatus === ReportReviewStatus.PENDING) {
+    if (resolvedReviewStatus === ReportReviewStatus.VALID) {
       void applyUserWarmthDelta(
-        report.comment.authorId,
+        resolvedReport.comment.authorId,
         NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.VALID_COMMENT_REPORT,
       ).catch((err) => {
         console.error('[reviewCommentReportAction] neighbour warmth update failed', err);
       });
-    } else if (reviewStatus === ReportReviewStatus.FALSE_REPORT) {
+    } else if (resolvedReviewStatus === ReportReviewStatus.FALSE_REPORT) {
       void applyUserWarmthDelta(
-        report.reporterId,
+        resolvedReport.reporterId,
         NEIGHBOUR_WARMTH_BASE_DEDUCTIONS.FALSE_REPORT,
       ).catch((err) => {
         console.error('[reviewCommentReportAction] neighbour warmth update failed', err);
@@ -476,7 +519,10 @@ export async function reviewCommentReportAction(formData: FormData) {
 
   revalidatePath('/coordinator');
   revalidatePath('/coordinator/reports');
-  redirect(`/coordinator/reports?filter=${filter}&success=신고 상태를 저장했어요.`);
+  redirectWithQuery('/coordinator/reports', {
+    filter,
+    success: '신고 상태를 저장했어요.',
+  });
 }
 
 export async function requestUserReviewAction(formData: FormData) {
