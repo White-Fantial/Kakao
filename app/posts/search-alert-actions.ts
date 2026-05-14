@@ -63,7 +63,7 @@ export async function saveSearchAlertAction(formData: FormData) {
       userId: user.id,
       query,
     },
-    update: {},
+    update: {}, // no-op: keep existing record as-is if already saved
   });
 
   revalidatePath('/posts');
