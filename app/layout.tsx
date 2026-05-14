@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 
 import './globals.css';
 import { HeaderNavLink } from '@/components/ui/header-nav-link';
+import { HeaderNavConditional } from '@/components/ui/header-nav-conditional';
 import { NotificationBell } from '@/components/ui/notification-bell';
 
 function getMetadataBaseUrl() {
@@ -102,6 +103,7 @@ export default async function RootLayout({
               <HeaderNavLink href="/my/saved">저장한글</HeaderNavLink>
               <HeaderNavLink href="/my/notifications">알림</HeaderNavLink>
               <HeaderNavLink href="/my/profile">내 프로필</HeaderNavLink>
+              <HeaderNavConditional />
             </nav>
           </header>
           <main className="flex-1 p-4">{children}</main>
