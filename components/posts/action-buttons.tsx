@@ -47,6 +47,10 @@ function buildActionClassName({
   ].join(' ');
 }
 
+function resolveIconFillClass(filled: boolean) {
+  return filled ? 'fill-current' : 'fill-none';
+}
+
 type IconActionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   icon: ReactNode;
   count?: number;
@@ -133,7 +137,14 @@ export function CommentActionButtons({ children }: { children: ReactNode }) {
 
 export function HeartIcon({ filled = false }: { filled?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={`h-4 w-4 ${filled ? 'fill-current' : 'fill-none'} stroke-current`}>
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`h-4 w-4 ${resolveIconFillClass(filled)} stroke-current`}
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
       <path d="M12 21s-6.716-4.35-9.193-8.058C.56 9.605 2.053 5 6.138 5c2.24 0 3.38 1.258 3.862 2.005C10.482 6.258 11.622 5 13.862 5 17.947 5 19.44 9.605 21.193 12.942 18.716 16.65 12 21 12 21Z" />
     </svg>
   );
@@ -141,7 +152,14 @@ export function HeartIcon({ filled = false }: { filled?: boolean }) {
 
 export function BookmarkIcon({ filled = false }: { filled?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={`h-4 w-4 ${filled ? 'fill-current' : 'fill-none'} stroke-current`}>
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`h-4 w-4 ${resolveIconFillClass(filled)} stroke-current`}
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
       <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3-6 3V5a1 1 0 0 1 1-1Z" />
     </svg>
   );
@@ -149,7 +167,14 @@ export function BookmarkIcon({ filled = false }: { filled?: boolean }) {
 
 export function CommentIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4 fill-none stroke-current"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
       <path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.4-4.2A8 8 0 1 1 21 12Z" />
     </svg>
   );
@@ -157,8 +182,18 @@ export function CommentIcon() {
 
 export function ShareIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current">
-      <path d="M17 8a3 3 0 1 0-2.816-4H14a3 3 0 0 0 .184 1.04L8.91 8.035A3 3 0 0 0 7 7.33a3 3 0 1 0 1.91 5.295l5.273 2.995A3 3 0 1 0 14 17c0-.35.06-.685.17-.996l5.203-2.958a3 3 0 1 0 0-2.092l-5.203-2.958c.11-.311.17-.646.17-.996h.844A2.996 2.996 0 0 0 17 8Z" />
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-4 w-4 fill-none stroke-current"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
+      <path d="M16 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path d="M7 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path d="M16 13a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path d="M9.53 10.96l4.08-2.04m-4.08 4.12 4.08 2.04" />
     </svg>
   );
 }
