@@ -345,9 +345,11 @@ export function PostForm({
       : defaultValues?.postId && selectedCategoryId === defaultValues.categoryId
         ? (defaultValues.requireCommentBeforeContact ?? false)
         : (selectedCategory?.requireCommentBeforeContactDefault ?? false);
-  const [isContactSectionExpanded, setIsContactSectionExpanded] = useState(
-    selectedCategory?.contactSectionDefaultExpanded ?? false,
-  );
+  const [contactSectionExpandedOverride, setContactSectionExpandedOverride] = useState<
+    boolean | null
+  >(null);
+  const isContactSectionExpanded =
+    contactSectionExpandedOverride ?? (selectedCategory?.contactSectionDefaultExpanded ?? false);
   const selectedFilePreviews = useMemo(
     () =>
       selectedFiles.map((file) => ({
@@ -360,10 +362,6 @@ export function PostForm({
     defaultValues?.images?.filter((image) => !deletedImageIds.has(image.id)).length ?? 0;
   const imageTotalCount = activeExistingImageCount + selectedFiles.length;
   const cancelHref = defaultValues?.postId ? `/posts/${defaultValues.postId}` : '/posts';
-
-  useEffect(() => {
-    setIsContactSectionExpanded(selectedCategory?.contactSectionDefaultExpanded ?? false);
-  }, [selectedCategoryId, selectedCategory?.contactSectionDefaultExpanded]);
 
   useEffect(() => {
     const textarea = bodyTextareaRef.current;
@@ -454,6 +452,7 @@ export function PostForm({
               onChange={(event) => {
                 const nextCategoryId = event.target.value;
                 setCategoryId(nextCategoryId);
+                setContactSectionExpandedOverride(null);
                 setCommentGateCategoryId(nextCategoryId);
                 setCommentGateOverride(
                   defaultValues?.postId && nextCategoryId === defaultValues.categoryId
@@ -679,7 +678,13 @@ export function PostForm({
           <p className="text-sm font-semibold">연락 방법 (선택)</p>
           <button
             type="button"
-            onClick={() => setIsContactSectionExpanded((prev) => !prev)}
+            onClick={() =>
+              setContactSectionExpandedOverride((prev) => {
+                const current =
+                  prev ?? (selectedCategory?.contactSectionDefaultExpanded ?? false);
+                return !current;
+              })
+            }
             className="text-xs font-medium text-[#666] hover:text-[#222]"
           >
             {isContactSectionExpanded ? '▲ 접기' : '▼ 펼치기'}
