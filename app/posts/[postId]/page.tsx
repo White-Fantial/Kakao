@@ -421,20 +421,18 @@ export default async function PostDetailPage({
           typeof template === 'string' && template.trim().length > 0,
       )
     : [];
+  const hasReportOptions = canSubmitReport && reportOptions.length > 0;
   const canEditCurrentPost = canEditPost(currentUser, post);
   const canDeleteCurrentPost = canDeletePost(currentUser, post);
   const canModerateCurrentPost = currentUser ? canHoldPost(currentUser) : false;
   const canShowPostOverflowMenu =
-    ((canSubmitReport && reportOptions.length > 0)
-    || canEditCurrentPost
-    || canDeleteCurrentPost
-    || canModerateCurrentPost);
-  const COMPACT_POST_OVERFLOW_PANEL_CLASS_NAME = 'w-40';
-  const WIDE_POST_OVERFLOW_PANEL_CLASS_NAME = 'w-72';
+    (hasReportOptions || canEditCurrentPost || canDeleteCurrentPost || canModerateCurrentPost);
+  const compactPostOverflowPanelClassName = 'w-40';
+  const widePostOverflowPanelClassName = 'w-72';
   const postOverflowPanelClassName =
-    (canSubmitReport && reportOptions.length > 0) || canModerateCurrentPost
-      ? WIDE_POST_OVERFLOW_PANEL_CLASS_NAME
-      : COMPACT_POST_OVERFLOW_PANEL_CLASS_NAME;
+    hasReportOptions || canModerateCurrentPost
+      ? widePostOverflowPanelClassName
+      : compactPostOverflowPanelClassName;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -451,7 +449,7 @@ export default async function PostDetailPage({
       {canShowPostOverflowMenu ? (
         <div className="absolute right-3 top-3 z-20">
           <OverflowMenu panelClassName={postOverflowPanelClassName}>
-            {canSubmitReport && reportOptions.length > 0 ? (
+            {hasReportOptions ? (
               <details className="group/report rounded-lg">
                 <summary className={`${overflowMenuItemClassName} flex cursor-pointer list-none items-center justify-between`}>
                   <span>신고하기</span>
