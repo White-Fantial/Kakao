@@ -429,6 +429,8 @@ export default async function PostDetailPage({
     || canEditCurrentPost
     || canDeleteCurrentPost
     || canModerateCurrentPost);
+  const postOverflowPanelClassName =
+    (canSubmitReport && reportOptions.length > 0) || canModerateCurrentPost ? 'w-72' : 'w-40';
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
@@ -444,7 +446,7 @@ export default async function PostDetailPage({
       ) : null}
       {canShowPostOverflowMenu ? (
         <div className="absolute right-3 top-3 z-20">
-          <OverflowMenu>
+          <OverflowMenu panelClassName={postOverflowPanelClassName}>
             {canSubmitReport && reportOptions.length > 0 ? (
               <details className="group/report rounded-lg">
                 <summary className={`${overflowMenuItemClassName} flex cursor-pointer list-none items-center justify-between`}>
