@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type OverflowMenuProps = {
   children: ReactNode;
@@ -10,8 +12,41 @@ export const overflowMenuItemClassName =
   'block w-full rounded-lg px-3 py-2 text-left text-sm text-[#444] hover:bg-[#f7f7f7]';
 
 export function OverflowMenu({ children, className = '', panelClassName = '' }: OverflowMenuProps) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (detailsRef.current && target instanceof Node && !detailsRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isOpen]);
+
   return (
-    <details className={`group relative ${className}`}>
+    <details
+      ref={detailsRef}
+      open={isOpen}
+      className={`group relative ${className}`}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      onKeyDownCapture={(event) => {
+        if (event.key === 'Escape') {
+          setIsOpen(false);
+        }
+      }}
+    >
       <summary
         className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-lg leading-none text-[#9aa0a6] opacity-55 transition hover:bg-[#f5f5f5] hover:opacity-100 group-open:bg-[#f5f5f5] group-open:opacity-100"
       >
