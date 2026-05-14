@@ -429,8 +429,12 @@ export default async function PostDetailPage({
     || canEditCurrentPost
     || canDeleteCurrentPost
     || canModerateCurrentPost);
+  const COMPACT_POST_OVERFLOW_PANEL_CLASS_NAME = 'w-40';
+  const WIDE_POST_OVERFLOW_PANEL_CLASS_NAME = 'w-72';
   const postOverflowPanelClassName =
-    (canSubmitReport && reportOptions.length > 0) || canModerateCurrentPost ? 'w-72' : 'w-40';
+    (canSubmitReport && reportOptions.length > 0) || canModerateCurrentPost
+      ? WIDE_POST_OVERFLOW_PANEL_CLASS_NAME
+      : COMPACT_POST_OVERFLOW_PANEL_CLASS_NAME;
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
