@@ -17,12 +17,11 @@ export function OverflowMenu({ children, className = '', panelClassName = '' }: 
 
   useEffect(() => {
     if (!isOpen) {
-      return undefined;
+      return;
     }
 
     const handlePointerDown = (event: PointerEvent) => {
       if (detailsRef.current && !detailsRef.current.contains(event.target as Node)) {
-        detailsRef.current.open = false;
         setIsOpen(false);
       }
     };
@@ -37,6 +36,7 @@ export function OverflowMenu({ children, className = '', panelClassName = '' }: 
   return (
     <details
       ref={detailsRef}
+      open={isOpen}
       className={`group relative ${className}`}
       onToggle={(event) => setIsOpen(event.currentTarget.open)}
     >
