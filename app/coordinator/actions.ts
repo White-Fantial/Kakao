@@ -1,5 +1,6 @@
 'use server';
 
+import { ReportReviewStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -20,6 +21,20 @@ import { createNotification } from '@/lib/notifications';
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeReportFilter(value: FormDataEntryValue | null) {
+  const normalized = normalizeText(value);
+  return normalized === 'resolved' || normalized === 'all' ? normalized : 'pending';
+}
+
+function parseReviewStatus(value: FormDataEntryValue | null) {
+  const normalized = normalizeText(value);
+  if (normalized === ReportReviewStatus.VALID || normalized === ReportReviewStatus.FALSE_REPORT) {
+    return normalized;
+  }
+
+  return null;
 }
 
 async function logModerationAction(
@@ -298,6 +313,104 @@ export async function restoreCommentAction(formData: FormData) {
 
   revalidatePath('/coordinator/reports');
   revalidatePath(`/posts/${postId}`);
+}
+
+export async function reviewPostReportAction(formData: FormData) {
+  const user = await requireUser();
+
+  if (!canHoldPost(user)) {
+    redirect('/coordinator/reports?error=권한이 없습니다.');
+  }
+
+  const reportId = normalizeText(formData.get('reportId'));
+  const reviewStatus = parseReviewStatus(formData.get('reviewStatus'));
+  const filter = normalizeReportFilter(formData.get('filter'));
+
+  if (!reportId) {
+    redirect(`/coordinator/reports?filter=${filter}&error=신고 ID가 없습니다.`);
+  }
+
+  if (!reviewStatus) {
+    redirect(`/coordinator/reports?filter=${filter}&error=유효한 확정 상태를 선택해 주세요.`);
+  }
+
+  const report = await prisma.postReport.findUnique({
+    where: { id: reportId },
+    select: { id: true },
+  });
+
+  if (!report) {
+    redirect(`/coordinator/reports?filter=${filter}&error=신고 내역을 찾을 수 없습니다.`);
+  }
+
+  await prisma.postReport.update({
+    where: { id: reportId },
+    data: {
+      reviewStatus,
+      reviewedAt: new Date(),
+      reviewedById: user.id,
+    },
+  });
+
+  await logModerationAction(
+    user.id,
+    'POST_REPORT',
+    reportId,
+    reviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
+  );
+
+  revalidatePath('/coordinator');
+  revalidatePath('/coordinator/reports');
+  redirect(`/coordinator/reports?filter=${filter}&success=신고 상태를 저장했어요.`);
+}
+
+export async function reviewCommentReportAction(formData: FormData) {
+  const user = await requireUser();
+
+  if (!canHoldPost(user)) {
+    redirect('/coordinator/reports?error=권한이 없습니다.');
+  }
+
+  const reportId = normalizeText(formData.get('reportId'));
+  const reviewStatus = parseReviewStatus(formData.get('reviewStatus'));
+  const filter = normalizeReportFilter(formData.get('filter'));
+
+  if (!reportId) {
+    redirect(`/coordinator/reports?filter=${filter}&error=신고 ID가 없습니다.`);
+  }
+
+  if (!reviewStatus) {
+    redirect(`/coordinator/reports?filter=${filter}&error=유효한 확정 상태를 선택해 주세요.`);
+  }
+
+  const report = await prisma.commentReport.findUnique({
+    where: { id: reportId },
+    select: { id: true },
+  });
+
+  if (!report) {
+    redirect(`/coordinator/reports?filter=${filter}&error=신고 내역을 찾을 수 없습니다.`);
+  }
+
+  await prisma.commentReport.update({
+    where: { id: reportId },
+    data: {
+      reviewStatus,
+      reviewedAt: new Date(),
+      reviewedById: user.id,
+    },
+  });
+
+  await logModerationAction(
+    user.id,
+    'COMMENT_REPORT',
+    reportId,
+    reviewStatus === ReportReviewStatus.VALID ? 'REPORT_VALIDATED' : 'REPORT_MARKED_FALSE',
+  );
+
+  revalidatePath('/coordinator');
+  revalidatePath('/coordinator/reports');
+  redirect(`/coordinator/reports?filter=${filter}&success=신고 상태를 저장했어요.`);
 }
 
 export async function requestUserReviewAction(formData: FormData) {
