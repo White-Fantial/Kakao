@@ -41,11 +41,11 @@ export function ReportMoreMenu({ children, className = '', panelClassName = '', 
         }
       }}
       onBlurCapture={() => {
-        requestAnimationFrame(() => {
+        setTimeout(() => {
           if (rootRef.current && !rootRef.current.contains(document.activeElement)) {
             closeMenu();
           }
-        });
+        }, 0);
       }}
     >
       <button
@@ -67,7 +67,6 @@ export function ReportMoreMenu({ children, className = '', panelClassName = '', 
         >
           <button
             type="button"
-            role="menuitem"
             className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[#444] hover:bg-[#f7f7f7]"
             aria-expanded={isReportOpen}
             aria-controls={reportContentId}
@@ -79,12 +78,7 @@ export function ReportMoreMenu({ children, className = '', panelClassName = '', 
             </span>
           </button>
           {isReportOpen ? (
-            <div
-              id={reportContentId}
-              role="region"
-              aria-label="신고 입력 폼"
-              className={`space-y-2 border-t border-[#f0f0f0] px-1 pt-2 ${contentClassName}`}
-            >
+            <div id={reportContentId} className={`space-y-2 border-t border-[#f0f0f0] px-1 pt-2 ${contentClassName}`}>
               {children}
             </div>
           ) : null}
