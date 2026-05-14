@@ -114,7 +114,8 @@ async function refreshAndPersistKakaoToken(userId: string, refreshToken: string)
       },
     });
     return refreshed.accessToken;
-  } catch {
+  } catch (error) {
+    console.error('[kakao/message] token refresh failed; clearing stored kakao tokens', error);
     await prisma.user.update({
       where: { id: userId },
       data: {
