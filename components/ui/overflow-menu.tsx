@@ -21,7 +21,9 @@ export function OverflowMenu({ children, className = '', panelClassName = '' }: 
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (detailsRef.current && !detailsRef.current.contains(event.target as Node)) {
+      const target = event.target;
+
+      if (detailsRef.current && target instanceof Node && !detailsRef.current.contains(target)) {
         setIsOpen(false);
       }
     };
@@ -39,6 +41,11 @@ export function OverflowMenu({ children, className = '', panelClassName = '' }: 
       open={isOpen}
       className={`group relative ${className}`}
       onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      onKeyDownCapture={(event) => {
+        if (event.key === 'Escape') {
+          setIsOpen(false);
+        }
+      }}
     >
       <summary
         className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-full text-lg leading-none text-[#9aa0a6] opacity-55 transition hover:bg-[#f5f5f5] hover:opacity-100 group-open:bg-[#f5f5f5] group-open:opacity-100"
