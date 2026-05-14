@@ -9,11 +9,13 @@ import type { PostCardFeaturedProps } from './types';
 
 export function PostCardFeatured({
   post,
+  displayVariant,
   showLikeAction = false,
   showSaveAction = false,
   returnTo,
 }: Omit<PostCardFeaturedProps, 'variant'>) {
   const href = post.href ?? `/posts/${post.id}`;
+  const showMetaStats = displayVariant !== 'feed';
 
   return (
     <article className="overflow-hidden rounded-xl border border-[#e8e8e8] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -54,6 +56,8 @@ export function PostCardFeatured({
             createdAt={post.createdAt}
             commentCount={post.commentCount}
             likeCount={post.likeCount}
+            showCommentCount={showMetaStats}
+            showLikeCount={showMetaStats}
           />
         </div>
       </Link>
