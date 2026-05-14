@@ -1,6 +1,13 @@
 import { prisma } from '@/lib/db/prisma';
 import { refreshKakaoAccessToken } from '@/lib/kakao/oauth';
 
+class KakaoAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'KakaoAuthError';
+  }
+}
+
 const KAKAO_MEMO_SEND_URL = 'https://kapi.kakao.com/v2/api/talk/memo/default/send';
 const PREVIEW_LENGTH = 80;
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
@@ -95,14 +102,39 @@ function matchesAlertQuery(post: NotifyPostInput, query: string) {
   );
 }
 
+async function refreshAndPersistKakaoToken(userId: string, refreshToken: string): Promise<string> {
+  try {
+    const refreshed = await refreshKakaoAccessToken(refreshToken);
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        kakaoAccessToken: refreshed.accessToken,
+        kakaoRefreshToken: refreshed.refreshToken ?? undefined,
+        kakaoAccessTokenExpiresAt: refreshed.accessTokenExpiresAt,
+      },
+    });
+    return refreshed.accessToken;
+  } catch {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        kakaoAccessToken: null,
+        kakaoRefreshToken: null,
+        kakaoAccessTokenExpiresAt: null,
+      },
+    });
+    throw new Error('카카오 리프레시 토큰이 만료되었습니다. 카카오 재연동이 필요합니다.');
+  }
+}
+
 async function ensureValidAccessToken(user: DeliveryRecipient) {
   if (!user.kakaoAccessToken) {
     return null;
   }
 
+  const expiresAt = user.kakaoAccessTokenExpiresAt?.getTime() ?? null;
   const shouldRefresh =
-    user.kakaoAccessTokenExpiresAt &&
-    user.kakaoAccessTokenExpiresAt.getTime() <= Date.now() + TOKEN_REFRESH_BUFFER_MS;
+    expiresAt === null || expiresAt <= Date.now() + TOKEN_REFRESH_BUFFER_MS;
 
   if (!shouldRefresh) {
     return user.kakaoAccessToken;
@@ -112,18 +144,7 @@ async function ensureValidAccessToken(user: DeliveryRecipient) {
     return null;
   }
 
-  const refreshed = await refreshKakaoAccessToken(user.kakaoRefreshToken);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      kakaoAccessToken: refreshed.accessToken,
-      kakaoRefreshToken: refreshed.refreshToken ?? undefined,
-      kakaoAccessTokenExpiresAt: refreshed.accessTokenExpiresAt,
-    },
-  });
-
-  return refreshed.accessToken;
+  return refreshAndPersistKakaoToken(user.id, user.kakaoRefreshToken);
 }
 
 async function sendKakaoMemo(accessToken: string, text: string, url: string) {
@@ -150,9 +171,11 @@ async function sendKakaoMemo(accessToken: string, text: string, url: string) {
 
   if (!response.ok) {
     const responseText = truncateText(await response.text(), MAX_RESPONSE_ERROR_LENGTH);
-    throw new Error(
-      `Kakao memo send failed: ${response.status}${responseText ? ` (${responseText})` : ''}`,
-    );
+    const message = `Kakao memo send failed: ${response.status}${responseText ? ` (${responseText})` : ''}`;
+    if (response.status === 401) {
+      throw new KakaoAuthError(message);
+    }
+    throw new Error(message);
   }
 }
 
@@ -185,11 +208,23 @@ async function attemptKakaoMessageDelivery(params: {
     const accessToken = await ensureValidAccessToken(params.recipient);
     if (!accessToken) {
       throw new Error(
-        '카카오 액세스 토큰이 없거나 만료되어 메시지를 전송할 수 없습니다. 사용자의 카카오 연동 상태를 확인해주세요.',
+        '카카오 액세스 토큰이 없거나 만료되었습니다. 카카오 재연동이 필요합니다.',
       );
     }
 
-    await sendKakaoMemo(accessToken, params.messageText, params.targetUrl);
+    try {
+      await sendKakaoMemo(accessToken, params.messageText, params.targetUrl);
+    } catch (sendError) {
+      if (sendError instanceof KakaoAuthError && params.recipient.kakaoRefreshToken) {
+        const freshToken = await refreshAndPersistKakaoToken(
+          params.recipient.id,
+          params.recipient.kakaoRefreshToken,
+        );
+        await sendKakaoMemo(freshToken, params.messageText, params.targetUrl);
+      } else {
+        throw sendError;
+      }
+    }
 
     await prisma.kakaoMessageDelivery.update({
       where: { id: params.deliveryId },
