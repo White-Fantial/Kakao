@@ -197,7 +197,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     isLikedByCurrentUser: boolean;
     isSavedByCurrentUser: boolean;
     reportCount?: number;
-    postTags: { id: string; label: string }[];
+    tags: { id: string; label: string }[];
     category: { name: string; type: CategoryType; color: string | null };
     city: { name: string } | null;
     author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number };
@@ -281,7 +281,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       createdAt: post.createdAt,
       isPinned: post.isPinned,
       pinnedAt: post.pinnedAt,
-      postTags: post.tags.map((tag) => tag.postTagOption),
+      tags: post.tags.map((tag) => tag.postTagOption),
       price: post.price ? post.price.toString() : null,
       thumbnailUrl: post.images[0]?.url ?? null,
       commentCount: post._count.comments,
@@ -368,7 +368,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       createdAt: post.createdAt,
       isPinned: post.isPinned,
       pinnedAt: post.pinnedAt,
-      postTags: post.tags.map((tag) => tag.postTagOption),
+      tags: post.tags.map((tag) => tag.postTagOption),
       price: post.price ? post.price.toString() : null,
       thumbnailUrl: post.images[0]?.url ?? null,
       commentCount: post._count.comments,
