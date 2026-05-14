@@ -689,7 +689,7 @@ export default async function PostDetailPage({
         <Suspense
           fallback={(
             <section className="space-y-3 border-t border-[#e8e8e8] pt-4">
-              <h2 className="text-base font-bold">댓글 {post._count.comments}</h2>
+              <h2 className="text-base font-bold">댓글 {post._count.comments}개</h2>
               <p className="text-sm text-[#888]">댓글을 불러오는 중...</p>
             </section>
           )}
@@ -1053,7 +1053,7 @@ async function CommentsSection({
 
   return (
     <section className="space-y-3 border-t border-[#e8e8e8] pt-4">
-      <h2 id="comments" className="text-base font-bold">댓글 {commentCount}</h2>
+      <h2 id="comments" className="text-base font-bold">댓글 {commentCount}개</h2>
 
       {currentUser ? (
         <PostCommentComposer postId={postId} currentUserLoggedIn />

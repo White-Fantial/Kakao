@@ -190,10 +190,10 @@ export function ShareIcon() {
       strokeLinejoin="round"
       strokeLinecap="round"
     >
-      <path d="M16 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-      <path d="M7 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-      <path d="M16 13a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-      <path d="M9.53 10.96l4.08-2.04m-4.08 4.12 4.08 2.04" />
+      <path strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" d="M16 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" d="M7 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" d="M16 13a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+      <path strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" d="M9.53 10.96l4.08-2.04m-4.08 4.12 4.08 2.04" />
     </svg>
   );
 }
