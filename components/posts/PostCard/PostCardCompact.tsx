@@ -7,6 +7,24 @@ import { PostCardBadges } from './PostCardBadges';
 import { PostCardMeta } from './PostCardMeta';
 import type { PostCardCompactProps } from './types';
 
+const POST_CARD_COMPACT_VARIANT_CONFIG = {
+  feed: {
+    showMetaStats: false,
+    showSavedBadge: false,
+    showMoreMenu: false,
+  },
+  'my-posts': {
+    showMetaStats: true,
+    showSavedBadge: false,
+    showMoreMenu: true,
+  },
+  saved: {
+    showMetaStats: true,
+    showSavedBadge: true,
+    showMoreMenu: false,
+  },
+} as const;
+
 function BookmarkIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current stroke-current">
@@ -23,26 +41,13 @@ export function PostCardCompact({
   moreMenu,
 }: Omit<PostCardCompactProps, 'variant'>) {
   const href = post.href ?? `/posts/${post.id}`;
-  const variantConfig = {
-    feed: {
-      showMetaStats: false,
-      showSavedBadge: false,
-      showMoreMenu: false,
-    },
-    'my-posts': {
-      showMetaStats: true,
-      showSavedBadge: false,
-      showMoreMenu: true,
-    },
-    saved: {
-      showMetaStats: true,
-      showSavedBadge: true,
-      showMoreMenu: false,
-    },
-  } as const;
-  const config = displayVariant ? variantConfig[displayVariant] : null;
-  const shouldShowSavedBadge = config ? config.showSavedBadge : showActiveBookmark;
-  const shouldShowMoreMenu = config ? config.showMoreMenu : Boolean(moreMenu);
+  const config = displayVariant
+    ? POST_CARD_COMPACT_VARIANT_CONFIG[displayVariant]
+    : {
+        showMetaStats: true,
+        showSavedBadge: showActiveBookmark,
+        showMoreMenu: Boolean(moreMenu),
+      };
 
   const content = (
     <>
@@ -69,8 +74,8 @@ export function PostCardCompact({
           authorName={post.author?.displayName}
           commentCount={post.commentCount}
           likeCount={post.likeCount}
-          showCommentCount={config ? config.showMetaStats : true}
-          showLikeCount={config ? config.showMetaStats : true}
+          showCommentCount={config.showMetaStats}
+          showLikeCount={config.showMetaStats}
         />
       </div>
     </>
@@ -88,13 +93,13 @@ export function PostCardCompact({
         )}
 
         <div className="flex shrink-0 items-center gap-2">
-          {shouldShowSavedBadge ? (
+          {config.showSavedBadge ? (
             <Badge variant="status" className="gap-1">
               <BookmarkIcon />
               저장됨
             </Badge>
           ) : null}
-          {shouldShowMoreMenu && moreMenu ? (
+          {config.showMoreMenu && moreMenu ? (
             <PostCardCompactMoreMenu editHref={moreMenu.editHref} postId={moreMenu.postId} />
           ) : null}
         </div>
