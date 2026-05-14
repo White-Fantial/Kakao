@@ -41,6 +41,7 @@
   - 게시글별 연락 링크 override
   - 게시글 상세 연락 버튼/미등록 fallback
   - 카테고리 기본값 기반 `Require comment before Kakao contact` 설정
+  - 카테고리별 `contactSectionDefaultExpanded` 설정으로 글쓰기 연락 방법 섹션 기본 펼침 제어
   - 판매/나눔 등 투명성이 중요한 글에서 공개 댓글 후 1회 연락 해제
 - 코디네이터 운영 기능
   - 보류/재게시
@@ -81,9 +82,14 @@
 
 ## Comment-before-contact system
 - 카테고리별로 `requireCommentBeforeContactDefault` 값을 설정할 수 있습니다.
+- 카테고리별로 `contactSectionDefaultExpanded` 값을 설정해 글쓰기 화면의 연락 방법 섹션 기본 상태를 제어할 수 있습니다.
 - 게시글 작성자는 글 단위로 기본값을 override 할 수 있습니다.
 - 글 작성자 본인과 코디네이터/관리자는 게이트를 우회합니다.
 - 일반 사용자는 삭제/보류되지 않은 댓글 1개만 남겨도 Kakao 연락 버튼이 즉시 열립니다.
+
+## 글쓰기 UX 흐름
+- 게시 위치 선택(국가/도시/카테고리) → 제목(선택) → 본문 → 사진 → 추천 태그 → 연락 방법(선택) → 하단 액션(취소/올리기) 순서로 구성됩니다.
+- 연락 방법 섹션은 카테고리 설정 기반 기본 펼침 상태로 시작하며, 작성자가 직접 펼치기/접기를 전환할 수 있습니다.
 
 ## Category quick comment templates
 - 카테고리별 `quickCommentTemplates` JSON 배열로 상세 페이지 quick reply chip을 구성합니다.

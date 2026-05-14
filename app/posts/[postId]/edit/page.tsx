@@ -88,6 +88,7 @@ export default async function EditPostPage({
             type: category.type,
             visibilityMode: category.visibilityMode,
             requireCommentBeforeContactDefault: category.requireCommentBeforeContactDefault,
+            contactSectionDefaultExpanded: category.contactSectionDefaultExpanded,
             postTagOptions: category.postTagOptions,
           }))}
           allowedTargets={formOptions.allowedTargets}

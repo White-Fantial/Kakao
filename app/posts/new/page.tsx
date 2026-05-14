@@ -55,6 +55,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
             type: category.type,
             visibilityMode: category.visibilityMode,
             requireCommentBeforeContactDefault: category.requireCommentBeforeContactDefault,
+            contactSectionDefaultExpanded: category.contactSectionDefaultExpanded,
             postTagOptions: category.postTagOptions,
           }))}
           allowedTargets={formOptions.allowedTargets}

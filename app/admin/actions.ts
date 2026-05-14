@@ -404,6 +404,7 @@ export async function createCategoryAction(formData: FormData) {
   const colorValue = normalizeText(formData.get('color'));
   const requireCommentBeforeContactDefault =
     formData.get('requireCommentBeforeContactDefault') === 'on';
+  const contactSectionDefaultExpanded = formData.get('contactSectionDefaultExpanded') === 'on';
   const quickCommentTemplates = normalizeQuickCommentTemplates(
     formData.get('quickCommentTemplates'),
   );
@@ -438,6 +439,7 @@ export async function createCategoryAction(formData: FormData) {
       visibilityMode,
       color,
       requireCommentBeforeContactDefault,
+      contactSectionDefaultExpanded,
       quickCommentTemplates:
         quickCommentTemplates.length > 0 ? quickCommentTemplates : Prisma.DbNull,
     },
@@ -484,6 +486,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
   const colorValue = normalizeText(formData.get('color'));
   const requireCommentBeforeContactDefault =
     formData.get('requireCommentBeforeContactDefault') === 'on';
+  const contactSectionDefaultExpanded = formData.get('contactSectionDefaultExpanded') === 'on';
   const quickCommentTemplates = normalizeQuickCommentTemplates(
     formData.get('quickCommentTemplates'),
   );
@@ -512,6 +515,7 @@ export async function updateCategorySettingsAction(formData: FormData) {
       visibilityMode,
       color,
       requireCommentBeforeContactDefault,
+      contactSectionDefaultExpanded,
       quickCommentTemplates:
         quickCommentTemplates.length > 0 ? quickCommentTemplates : Prisma.DbNull,
     },

@@ -67,6 +67,7 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
           visibilityMode: true,
           color: true,
           requireCommentBeforeContactDefault: true,
+          contactSectionDefaultExpanded: true,
           quickCommentTemplates: true,
           isActive: true,
           sortOrder: true,
@@ -160,6 +161,14 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                 className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
               />
               댓글 작성 후 연락 기본값 활성화
+            </label>
+            <label className="flex items-center gap-2 text-sm text-[#555]">
+              <input
+                type="checkbox"
+                name="contactSectionDefaultExpanded"
+                className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
+              />
+              연락 방법 섹션 기본 펼침
             </label>
             <div className="space-y-1">
               <label className="text-xs font-medium text-[#555]">빠른 댓글 템플릿 (줄바꿈으로 구분)</label>
@@ -276,6 +285,15 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                               className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
                             />
                             댓글 작성 후 연락 기본값 활성화
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-[#555]">
+                            <input
+                              type="checkbox"
+                              name="contactSectionDefaultExpanded"
+                              defaultChecked={category.contactSectionDefaultExpanded}
+                              className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
+                            />
+                            연락 방법 섹션 기본 펼침
                           </label>
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-[#555]">빠른 댓글 템플릿 (줄바꿈으로 구분)</label>

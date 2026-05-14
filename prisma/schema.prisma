@@ -160,6 +160,7 @@ model Category {
   visibilityMode CategoryVisibilityMode @default(NORMAL)
   color          String?
   requireCommentBeforeContactDefault Boolean @default(false)
+  contactSectionDefaultExpanded      Boolean @default(false)
   quickCommentTemplates Json?
   isActive       Boolean                @default(true)
   sortOrder      Int                    @default(0)
