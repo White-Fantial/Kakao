@@ -416,17 +416,17 @@ export default async function PostDetailPage({
   const canDeleteCurrentPost = canDeletePost(currentUser, post);
   const canModerateCurrentPost = currentUser ? canHoldPost(currentUser) : false;
   const canShowPostOverflowMenu =
-    (canSubmitReport && reportOptions.length > 0)
+    ((canSubmitReport && reportOptions.length > 0)
     || canEditCurrentPost
     || canDeleteCurrentPost
-    || canModerateCurrentPost;
+    || canModerateCurrentPost);
   const outlineActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm font-medium hover:bg-[#f9f9f9]';
   const primaryActionButtonClass =
     'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]';
 
   return (
-    <article className="relative space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 pr-12 shadow-sm">
+    <article className="relative space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 sm:pr-12 shadow-sm">
       {query.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{query.error}</p>
       ) : null}
@@ -1046,7 +1046,7 @@ async function CommentsSection({
               (canReport && reportOptions.length > 0) || canDelete || isCoordinator;
 
             return (
-              <li key={comment.id} className="relative rounded-2xl border border-[#e8e8e8] bg-white p-4 pr-12 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <li key={comment.id} className="relative rounded-2xl border border-[#e8e8e8] bg-white p-4 sm:pr-12 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 {canShowCommentOverflowMenu ? (
                   <div className="absolute right-3 top-3 z-10">
                     <OverflowMenu panelClassName="w-64">
