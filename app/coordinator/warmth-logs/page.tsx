@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import {
   coordinatorManagementNavItems,
-  ManagementSectionNav,
+  ManagementSectionHeader,
 } from '@/components/admin/management-section-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -64,10 +64,11 @@ export default async function WarmthLogsPage({ searchParams }: WarmthLogsPagePro
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">온기 변동 로그</h1>
-        <ManagementSectionNav items={coordinatorManagementNavItems} />
-      </div>
+      <ManagementSectionHeader
+        sectionLabel="운영 관리"
+        pageLabel="온기 변동 로그"
+        items={coordinatorManagementNavItems}
+      />
 
       <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
         <p className="mb-3 text-sm text-[#888]">전체 {totalCount.toLocaleString()}건</p>

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import {
   coordinatorManagementNavItems,
-  ManagementSectionNav,
+  ManagementSectionHeader,
 } from '@/components/admin/management-section-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -83,10 +83,11 @@ export default async function ScoreLogsPage({ searchParams }: ScoreLogsPageProps
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">커뮤니티점수 로그</h1>
-        <ManagementSectionNav items={coordinatorManagementNavItems} />
-      </div>
+      <ManagementSectionHeader
+        sectionLabel="운영 관리"
+        pageLabel="커뮤니티점수 로그"
+        items={coordinatorManagementNavItems}
+      />
 
       <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-wrap gap-2">

@@ -4,7 +4,7 @@ import { ReportReviewStatus } from '@prisma/client';
 
 import {
   coordinatorManagementNavItems,
-  ManagementSectionNav,
+  ManagementSectionHeader,
 } from '@/components/admin/management-section-nav';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -208,10 +208,11 @@ export default async function CoordinatorReportsPage({
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">운영 관리 — 신고 내역</h1>
-        <ManagementSectionNav items={coordinatorManagementNavItems} />
-      </div>
+      <ManagementSectionHeader
+        sectionLabel="운영 관리"
+        pageLabel="신고 내역"
+        items={coordinatorManagementNavItems}
+      />
 
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>

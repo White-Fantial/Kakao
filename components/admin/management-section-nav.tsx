@@ -38,3 +38,24 @@ export function ManagementSectionNav({ items }: ManagementSectionNavProps) {
     </nav>
   );
 }
+
+type ManagementSectionHeaderProps = {
+  sectionLabel: string;
+  pageLabel: string;
+  items: readonly ManagementNavItem[];
+};
+
+export function ManagementSectionHeader({
+  sectionLabel,
+  pageLabel,
+  items,
+}: ManagementSectionHeaderProps) {
+  return (
+    <div className="space-y-3">
+      <h1 className="text-xl font-bold">
+        {sectionLabel} — {pageLabel}
+      </h1>
+      <ManagementSectionNav items={items} />
+    </div>
+  );
+}
