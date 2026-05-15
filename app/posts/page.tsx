@@ -527,7 +527,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 >
                   필터 적용
                 </button>
-                <Link href="/posts" className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]">
+                <Link href="/posts?resetFilters=1" className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]">
                   초기화
                 </Link>
               </div>
