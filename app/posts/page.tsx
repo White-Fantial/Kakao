@@ -12,9 +12,7 @@ import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
 import { measureServerTiming } from '@/lib/performance/server';
-import type { OperatorProfileLookup } from '@/lib/posts/display-author';
-
-
+import { shouldShowOperatorBadge } from '@/lib/account-type';
 
 export const metadata: Metadata = {
   title: '홈',
@@ -54,50 +52,22 @@ function toSingle(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value).trim();
 }
 
-async function resolveOperatorProfileMap(
-  posts: Array<{ displayAuthorType: string; displayAuthorId: string | null }>,
-): Promise<Map<string, OperatorProfileLookup>> {
-  const ids = Array.from(
-    new Set(
-      posts
-        .filter((p) => p.displayAuthorType === 'OPERATOR_PROFILE' && p.displayAuthorId)
-        .map((p) => p.displayAuthorId as string),
-    ),
-  );
-  const map = new Map<string, OperatorProfileLookup>();
-  if (ids.length > 0) {
-    const profiles = await prisma.operatorProfile.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, displayName: true, avatarUrl: true },
-    });
-    for (const profile of profiles) {
-      map.set(profile.id, profile);
-    }
-  }
-  return map;
-}
-
 function resolvePostAuthor(
   post: {
-    displayAuthorType: string;
-    displayAuthorId: string | null;
-    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number };
-  },
-  operatorProfileMap: Map<string, OperatorProfileLookup>,
-): { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator: boolean } {
-  const opProfile =
-    post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId
-      ? operatorProfileMap.get(post.displayAuthorId) ?? null
-      : null;
-  if (opProfile) {
-    return {
-      displayName: opProfile.displayName,
-      profileImageUrl: opProfile.avatarUrl ?? null,
-      neighbourWarmth: post.author.neighbourWarmth,
-      isOperator: true,
+    author: {
+      displayName: string;
+      profileImageUrl: string | null;
+      neighbourWarmth: number;
+      accountType: 'REAL_USER' | 'PERSONA' | 'OPERATOR' | 'SYSTEM';
     };
-  }
-  return { ...post.author, isOperator: false };
+  },
+): { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator: boolean } {
+  return {
+    displayName: post.author.displayName,
+    profileImageUrl: post.author.profileImageUrl,
+    neighbourWarmth: post.author.neighbourWarmth,
+    isOperator: shouldShowOperatorBadge(post.author),
+  };
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
@@ -280,10 +250,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               displayName: true,
               profileImageUrl: true,
               neighbourWarmth: true,
+              accountType: true,
             },
           },
-          displayAuthorType: true,
-          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -323,8 +292,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    const operatorProfileMap = await resolveOperatorProfileMap(pagePosts);
-
     normalizedPosts = pagePosts.map((post) => {
       return {
         id: post.id,
@@ -343,7 +310,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         reportCount: post._count.reports,
         category: post.category,
         city: post.city,
-        author: resolvePostAuthor(post, operatorProfileMap),
+        author: resolvePostAuthor(post),
       };
     });
   } else {
@@ -374,10 +341,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               displayName: true,
               profileImageUrl: true,
               neighbourWarmth: true,
+              accountType: true,
             },
           },
-          displayAuthorType: true,
-          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -416,8 +382,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    const operatorProfileMap = await resolveOperatorProfileMap(pagePosts);
-
     normalizedPosts = pagePosts.map((post) => {
       return {
         id: post.id,
@@ -435,7 +399,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         isSavedByCurrentUser: post.savedBy.length > 0,
         category: post.category,
         city: post.city,
-        author: resolvePostAuthor(post, operatorProfileMap),
+        author: resolvePostAuthor(post),
       };
     });
   }

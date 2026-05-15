@@ -1,6 +1,6 @@
 'use server';
 
-import { UserRole, UserStatus } from '@prisma/client';
+import { AccountType, UserRole, UserStatus } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'node:crypto';
@@ -35,17 +35,32 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
   const normalizedRole =
     role === 'MODERATOR' || role === 'COORDINATOR' || role === 'ADMIN' ? role : UserRole.USER;
 
+  const existingUser = await prisma.user.findUnique({
+    where: { kakaoId },
+    select: { id: true, isManagedAccount: true, isActive: true },
+  });
+
+  if (existingUser?.isManagedAccount || existingUser?.isActive === false) {
+    redirect('/login?error=forbidden');
+  }
+
   const user = await prisma.user.upsert({
     where: { kakaoId },
     update: {
       displayName,
       role: normalizedRole,
+      accountType: AccountType.REAL_USER,
+      isManagedAccount: false,
+      isActive: true,
       status: UserStatus.ACTIVE,
     },
     create: {
       kakaoId,
       displayName,
       role: normalizedRole,
+      accountType: AccountType.REAL_USER,
+      isManagedAccount: false,
+      isActive: true,
       status: UserStatus.ACTIVE,
     },
     select: { id: true, countryId: true },

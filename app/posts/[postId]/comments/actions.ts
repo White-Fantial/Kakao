@@ -17,6 +17,7 @@ import {
 } from '@/lib/community-score';
 import { createNotification } from '@/lib/notifications';
 import { getWarmthConfig } from '@/lib/reputation-settings';
+import { canBeSelectedAsAuthorByAdmin } from '@/lib/account-type';
 
 const MAX_COMMENT_BODY_LENGTH = 500;
 const COMMENT_STATUS = {
@@ -56,6 +57,7 @@ async function createComment(
   user: Awaited<ReturnType<typeof requireUser>>,
   postId: string,
   body: string,
+  authorUserIdOverride: string,
 ) {
   if (!postId) {
     return { ok: false as const, message: '잘못된 게시글입니다.' };
@@ -110,22 +112,54 @@ async function createComment(
     return { ok: false as const, message: '댓글을 작성할 수 없는 게시글입니다.' };
   }
 
+  let resolvedAuthor = {
+    id: user.id,
+    displayName: user.displayName,
+  };
+
+  if (authorUserIdOverride) {
+    if (user.role !== 'ADMIN') {
+      return { ok: false as const, message: '작성 계정을 선택할 권한이 없습니다.' };
+    }
+
+    const targetAuthor = await prisma.user.findUnique({
+      where: { id: authorUserIdOverride },
+      select: {
+        id: true,
+        displayName: true,
+        accountType: true,
+        isManagedAccount: true,
+        isActive: true,
+      },
+    });
+
+    if (!targetAuthor || !canBeSelectedAsAuthorByAdmin(targetAuthor)) {
+      return {
+        ok: false as const,
+        message: 'PERSONA 또는 OPERATOR 운영 계정만 댓글 작성자로 선택할 수 있습니다.',
+      };
+    }
+
+    resolvedAuthor = targetAuthor;
+  }
+
   const comment = await prisma.comment.create({
     data: {
       postId,
-      authorId: user.id,
+      authorId: resolvedAuthor.id,
+      createdByUserId: user.id,
       body,
       status: COMMENT_STATUS.PUBLISHED,
     },
     select: { id: true },
   });
 
-  if (post.authorId !== user.id) {
+  if (post.authorId !== resolvedAuthor.id) {
     void notifyCommentForPost({
       postId,
       postTitle: post.title,
       postBody: post.body,
-      commenterDisplayName: user.displayName,
+      commenterDisplayName: resolvedAuthor.displayName,
       commentBody: body,
     }).catch((error) => {
       console.error('[createCommentAction] failed to send comment notification', error);
@@ -136,7 +170,7 @@ async function createComment(
       type: 'COMMENT_CREATED',
       relatedPostId: postId,
       relatedCommentId: comment.id,
-      actorId: user.id,
+      actorId: resolvedAuthor.id,
     }).catch((error) => {
       console.error('[createCommentAction] notification creation failed', error);
     });
@@ -160,12 +194,13 @@ export async function createCommentAction(formData: FormData) {
   const user = await requireUser();
   const postId = normalizeText(formData.get('postId'));
   const body = normalizeText(formData.get('body'));
+  const authorUserIdOverride = normalizeText(formData.get('authorUserIdOverride'));
 
   if (!postId) {
     redirect('/posts');
   }
 
-  const result = await createComment(user, postId, body);
+  const result = await createComment(user, postId, body, authorUserIdOverride);
 
   if (!result.ok) {
     redirectWithPostError(postId, result.message);
@@ -180,7 +215,8 @@ export async function createInteractiveCommentAction(
   const user = await requireUser();
   const postId = normalizeText(formData.get('postId'));
   const body = normalizeText(formData.get('body'));
-  const result = await createComment(user, postId, body);
+  const authorUserIdOverride = normalizeText(formData.get('authorUserIdOverride'));
+  const result = await createComment(user, postId, body, authorUserIdOverride);
 
   if (!result.ok) {
     return {

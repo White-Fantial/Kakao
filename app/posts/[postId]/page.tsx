@@ -66,6 +66,7 @@ import { truncatePostBody } from '@/lib/posts/constants';
 import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 import { measureServerTiming } from '@/lib/performance/server';
+import { shouldShowOperatorBadge, shouldShowWarmth } from '@/lib/account-type';
 
 
 const TITLE_PREVIEW_LENGTH = 40;
@@ -112,15 +113,22 @@ const getPostWithDetails = cache(async (postId: string) => {
     prisma.post.findUnique({
       where: { id: postId },
       include: {
-        author: {
-          select: {
-            id: true,
-            displayName: true,
-            profileImageUrl: true,
-            openChatUrl: true,
-            neighbourWarmth: true,
+          author: {
+            select: {
+              id: true,
+              displayName: true,
+              profileImageUrl: true,
+              openChatUrl: true,
+              neighbourWarmth: true,
+              accountType: true,
+            },
           },
-        },
+          createdByUser: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
         category: {
           select: {
             id: true,
@@ -205,8 +213,10 @@ const getPostComments = cache(async (
             displayName: true,
             profileImageUrl: true,
             neighbourWarmth: true,
+            accountType: true,
           },
         },
+        createdByUserId: true,
         commentLikes: {
           where: { userId: currentUserId ?? '__anonymous__' },
           select: { id: true },
@@ -289,21 +299,9 @@ export default async function PostDetailPage({
   const canModerateContent = currentUser ? canModerate(currentUser) : false;
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  // Resolve display author (operator profile or actual user)
-  let displayAuthorName = post.author.displayName;
-  let displayAuthorImageUrl: string | null = post.author.profileImageUrl;
-  let isOperatorPost = false;
-  if (post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId) {
-    const opProfile = await prisma.operatorProfile.findUnique({
-      where: { id: post.displayAuthorId },
-      select: { displayName: true, avatarUrl: true },
-    });
-    if (opProfile) {
-      displayAuthorName = opProfile.displayName;
-      displayAuthorImageUrl = opProfile.avatarUrl ?? null;
-      isOperatorPost = true;
-    }
-  }
+  const displayAuthorName = post.author.displayName;
+  const displayAuthorImageUrl: string | null = post.author.profileImageUrl;
+  const isOperatorPost = shouldShowOperatorBadge(post.author);
 
   // Non-moderators see a pending-review message for HELD posts
   if (post.status === 'HELD' && !canModerateContent) {
@@ -627,17 +625,17 @@ export default async function PostDetailPage({
               {displayAuthorName}
             </Link>
           )}
-          {!isOperatorPost && (
+          {shouldShowWarmth(post.author) && (
             <>{' '}· <NeighbourWarmthLabel warmth={post.author.neighbourWarmth} /></>
           )}
           {' '}· {new Date(post.createdAt).toLocaleString('ko-KR')}
         </span>
       </div>
-      {isAdmin && isOperatorPost && (
+      {isAdmin && post.createdByUser && post.createdByUser.id !== post.author.id && (
         <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <span className="font-semibold">[관리자 확인]</span> 실제 작성자:{' '}
-          <Link href={`/users/${post.author.id}`} className="font-medium underline">
-            {post.author.displayName}
+          <Link href={`/users/${post.createdByUser.id}`} className="font-medium underline">
+            {post.createdByUser.displayName}
           </Link>
         </div>
       )}
@@ -1056,6 +1054,23 @@ async function CommentsSection({
   const myCommentReportMap = new Map(
     myCommentReports.map((r) => [r.commentId, r]),
   );
+  const adminAuthorAccountOptionsRaw =
+    currentUser?.role === 'ADMIN'
+      ? await prisma.user.findMany({
+          where: {
+            accountType: { in: ['PERSONA', 'OPERATOR'] },
+            isManagedAccount: true,
+            isActive: true,
+          },
+          select: { id: true, displayName: true, accountType: true },
+          orderBy: [{ accountType: 'asc' }, { displayName: 'asc' }],
+        })
+      : [];
+  const adminAuthorAccountOptions = adminAuthorAccountOptionsRaw.map((authorAccount) => ({
+    ...authorAccount,
+    accountType:
+      authorAccount.accountType === 'OPERATOR' ? ('OPERATOR' as const) : ('PERSONA' as const),
+  }));
 
   const createCommentPageHref = (nextCursor: string, nextDirection: 'next' | 'prev') => {
     const queryString = new URLSearchParams();
@@ -1104,9 +1119,19 @@ async function CommentsSection({
       <h2 id="comments" className="text-base font-bold">댓글 {commentCount}개</h2>
 
       {currentUser ? (
-        <PostCommentComposer postId={postId} currentUserLoggedIn />
+        <PostCommentComposer
+          postId={postId}
+          currentUserLoggedIn
+          isAdmin={currentUser.role === 'ADMIN'}
+          authorAccountOptions={adminAuthorAccountOptions}
+        />
       ) : (
-        <PostCommentComposer postId={postId} currentUserLoggedIn={false} />
+        <PostCommentComposer
+          postId={postId}
+          currentUserLoggedIn={false}
+          isAdmin={false}
+          authorAccountOptions={[]}
+        />
       )}
 
       {visibleComments.length === 0 ? (
@@ -1260,9 +1285,18 @@ async function CommentsSection({
                       <div className="min-w-0 text-xs text-[#777]">
                         <p className="truncate text-sm font-medium text-[#444]">
                           {comment.author.displayName}
+                          {shouldShowOperatorBadge(comment.author) ? (
+                            <span className="ml-1 rounded bg-[#3c1e1e] px-1 py-0.5 text-[10px] font-bold text-white">
+                              운영자
+                            </span>
+                          ) : null}
                         </p>
                         <p className="truncate">
-                          <NeighbourWarmthLabel warmth={comment.author.neighbourWarmth} /> ·{' '}
+                          {shouldShowWarmth(comment.author) ? (
+                            <>
+                              <NeighbourWarmthLabel warmth={comment.author.neighbourWarmth} /> ·{' '}
+                            </>
+                          ) : null}
                           {new Date(comment.createdAt).toLocaleString('ko-KR')}
                         </p>
                       </div>

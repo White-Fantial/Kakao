@@ -10,6 +10,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   oauth: '카카오 로그인 중 오류가 발생했어요. 다시 시도해 주세요.',
   config: '카카오 로그인 설정이 올바르지 않아요. 관리자에게 문의하세요.',
   missing: '로그인 정보가 부족해요.',
+  forbidden: '해당 계정은 직접 로그인할 수 없는 운영 계정입니다.',
 };
 
 const kakaoConfigured =

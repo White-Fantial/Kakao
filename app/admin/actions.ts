@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { randomUUID } from 'node:crypto';
 import {
+  AccountType,
   CategoryType,
   CategoryVisibilityMode,
   Prisma,
@@ -28,6 +30,8 @@ const VALID_CATEGORY_TYPES = Object.values(CategoryType) as CategoryType[];
 const VALID_CATEGORY_VISIBILITY_MODES = Object.values(
   CategoryVisibilityMode,
 ) as CategoryVisibilityMode[];
+const VALID_ACCOUNT_TYPES = Object.values(AccountType) as AccountType[];
+const MANAGED_ACCOUNT_TYPES = new Set<AccountType>(['PERSONA', 'OPERATOR', 'SYSTEM']);
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 function normalizeHexColor(value: string) {
@@ -38,6 +42,38 @@ function normalizeHexColor(value: string) {
 
 function normalizeText(value: FormDataEntryValue | null) {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseBoolean(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  if (value === 'true') {
+    return true;
+  }
+
+  if (value === 'false') {
+    return false;
+  }
+
+  return null;
+}
+
+function parseAccountType(value: string): AccountType | null {
+  if (!value) {
+    return null;
+  }
+
+  if (!VALID_ACCOUNT_TYPES.includes(value as AccountType)) {
+    return null;
+  }
+
+  return value as AccountType;
+}
+
+function shouldBeManagedAccount(accountType: AccountType) {
+  return MANAGED_ACCOUNT_TYPES.has(accountType);
 }
 
 function redirectWithQuery(path: string, query: Record<string, string>): never {
@@ -179,6 +215,244 @@ export async function changeUserStatusAction(formData: FormData) {
 
   revalidatePath('/admin/users');
   await revalidateUserSessions(targetUserId);
+  redirect('/admin/users');
+}
+
+export async function changeUserAccountTypeAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const targetUserId = normalizeText(formData.get('targetUserId'));
+  const accountType = parseAccountType(normalizeText(formData.get('accountType')));
+  const reason = normalizeText(formData.get('reason'));
+
+  if (!targetUserId || !accountType) {
+    redirect('/admin/users?error=유효한 계정 타입 변경 요청이 아닙니다.');
+  }
+
+  if (targetUserId === user.id) {
+    redirect('/admin/users?error=본인 계정의 타입은 변경할 수 없습니다.');
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, accountType: true, isManagedAccount: true, isActive: true },
+  });
+
+  if (!targetUser) {
+    redirect('/admin/users?error=사용자를 찾을 수 없습니다.');
+  }
+
+  const nextIsManagedAccount = shouldBeManagedAccount(accountType);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: targetUserId },
+      data: {
+        accountType,
+        isManagedAccount: nextIsManagedAccount,
+        isActive: nextIsManagedAccount ? true : targetUser.isActive,
+      },
+    });
+
+    await tx.moderationAction.create({
+      data: {
+        actorId: user.id,
+        targetType: 'USER',
+        targetId: targetUserId,
+        actionType: `ACCOUNT_TYPE_CHANGE_TO_${accountType}`,
+        reason: reason || null,
+      },
+    });
+  });
+
+  revalidatePath('/admin/users');
+  revalidatePath('/posts/new');
+  await revalidateUserSessions(targetUserId);
+  redirect('/admin/users');
+}
+
+export async function createManagedAccountAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const displayName = normalizeText(formData.get('displayName'));
+  const parsedAccountType = parseAccountType(normalizeText(formData.get('accountType')));
+  const accountType =
+    parsedAccountType === 'PERSONA' || parsedAccountType === 'OPERATOR'
+      ? parsedAccountType
+      : null;
+  const cityId = normalizeText(formData.get('cityId')) || null;
+  const profileImageUrl = normalizeText(formData.get('profileImageUrl')) || null;
+  const shortBio = normalizeText(formData.get('shortBio')) || null;
+  const isActive = parseBoolean(formData.get('isActive')) ?? true;
+  const personaNotes = normalizeText(formData.get('personaNotes')) || null;
+  const toneNotes = normalizeText(formData.get('toneNotes')) || null;
+  const activityNotes = normalizeText(formData.get('activityNotes')) || null;
+
+  if (!displayName || !accountType) {
+    redirect('/admin/users?error=닉네임과 계정 타입(PERSONA/OPERATOR)을 입력해 주세요.');
+  }
+
+  if (cityId) {
+    const city = await prisma.city.findUnique({
+      where: { id: cityId },
+      select: { id: true, countryId: true },
+    });
+    if (!city) {
+      redirect('/admin/users?error=유효하지 않은 도시입니다.');
+    }
+  }
+
+  const created = await prisma.user.create({
+    data: {
+      kakaoId: `managed-${accountType.toLowerCase()}-${randomUUID()}`,
+      displayName,
+      role: 'USER',
+      status: 'ACTIVE',
+      accountType,
+      isManagedAccount: true,
+      isActive,
+      cityId,
+      profileImageUrl,
+      shortBio,
+      personaNotes,
+      toneNotes,
+      activityNotes,
+    },
+    select: {
+      id: true,
+      displayName: true,
+      accountType: true,
+      isActive: true,
+    },
+  });
+
+  await logModerationAction(
+    user.id,
+    'MANAGED_ACCOUNT',
+    created.id,
+    'MANAGED_ACCOUNT_CREATED',
+    JSON.stringify({
+      after: {
+        displayName: created.displayName,
+        accountType: created.accountType,
+        isActive: created.isActive,
+      },
+    }),
+  );
+
+  revalidatePath('/admin/users');
+  revalidatePath('/posts/new');
+  redirect('/admin/users');
+}
+
+export async function updateManagedAccountAction(formData: FormData) {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  const targetUserId = normalizeText(formData.get('targetUserId'));
+  const displayName = normalizeText(formData.get('displayName'));
+  const parsedAccountType = parseAccountType(normalizeText(formData.get('accountType')));
+  const accountType =
+    parsedAccountType === 'PERSONA' || parsedAccountType === 'OPERATOR'
+      ? parsedAccountType
+      : null;
+  const cityId = normalizeText(formData.get('cityId')) || null;
+  const profileImageUrl = normalizeText(formData.get('profileImageUrl')) || null;
+  const shortBio = normalizeText(formData.get('shortBio')) || null;
+  const isActive = parseBoolean(formData.get('isActive'));
+  const personaNotes = normalizeText(formData.get('personaNotes')) || null;
+  const toneNotes = normalizeText(formData.get('toneNotes')) || null;
+  const activityNotes = normalizeText(formData.get('activityNotes')) || null;
+
+  if (!targetUserId || !displayName || !accountType || isActive === null) {
+    redirect('/admin/users?error=운영 계정 수정 요청 값이 올바르지 않습니다.');
+  }
+
+  if (cityId) {
+    const city = await prisma.city.findUnique({
+      where: { id: cityId },
+      select: { id: true },
+    });
+    if (!city) {
+      redirect('/admin/users?error=유효하지 않은 도시입니다.');
+    }
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: {
+      id: true,
+      displayName: true,
+      accountType: true,
+      isManagedAccount: true,
+      isActive: true,
+      cityId: true,
+      profileImageUrl: true,
+      shortBio: true,
+      personaNotes: true,
+      toneNotes: true,
+      activityNotes: true,
+    },
+  });
+
+  if (
+    !existing ||
+    !existing.isManagedAccount ||
+    (existing.accountType !== 'PERSONA' && existing.accountType !== 'OPERATOR')
+  ) {
+    redirect('/admin/users?error=수정 가능한 운영 계정을 찾을 수 없습니다.');
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: targetUserId },
+    data: {
+      displayName,
+      accountType,
+      isManagedAccount: true,
+      isActive,
+      cityId,
+      profileImageUrl,
+      shortBio,
+      personaNotes,
+      toneNotes,
+      activityNotes,
+    },
+    select: {
+      id: true,
+      displayName: true,
+      accountType: true,
+      isActive: true,
+      cityId: true,
+      profileImageUrl: true,
+      shortBio: true,
+      personaNotes: true,
+      toneNotes: true,
+      activityNotes: true,
+    },
+  });
+
+  const actionType =
+    existing.isActive !== updated.isActive
+      ? updated.isActive
+        ? 'MANAGED_ACCOUNT_REACTIVATED'
+        : 'MANAGED_ACCOUNT_DEACTIVATED'
+      : 'MANAGED_ACCOUNT_UPDATED';
+
+  await logModerationAction(
+    user.id,
+    'MANAGED_ACCOUNT',
+    targetUserId,
+    actionType,
+    JSON.stringify({
+      before: existing,
+      after: updated,
+    }),
+  );
+
+  revalidatePath('/admin/users');
+  revalidatePath('/posts/new');
   redirect('/admin/users');
 }
 
@@ -954,63 +1228,6 @@ export async function toggleCityActiveAction(formData: FormData) {
 
   revalidatePath('/admin/cities');
   redirect('/admin/cities');
-}
-
-export async function createOperatorProfileAction(formData: FormData) {
-  const user = await requireUser();
-  requireAdmin(user);
-
-  const displayName = normalizeText(formData.get('displayName'));
-  const slug = normalizeText(formData.get('slug'));
-  const avatarUrl = normalizeText(formData.get('avatarUrl')) || null;
-  const bio = normalizeText(formData.get('bio')) || null;
-
-  if (!displayName || !slug) {
-    redirect('/admin/operator-profiles?error=프로필 이름과 슬러그를 입력해 주세요.');
-  }
-
-  const existing = await prisma.operatorProfile.findUnique({
-    where: { slug },
-    select: { id: true },
-  });
-  if (existing) {
-    redirect('/admin/operator-profiles?error=이미 존재하는 슬러그입니다.');
-  }
-
-  await prisma.operatorProfile.create({
-    data: {
-      displayName,
-      slug,
-      avatarUrl,
-      bio,
-      isActive: true,
-    },
-  });
-
-  revalidatePath('/admin/operator-profiles');
-  revalidatePath('/posts/new');
-  redirect('/admin/operator-profiles');
-}
-
-export async function toggleOperatorProfileActiveAction(formData: FormData) {
-  const user = await requireUser();
-  requireAdmin(user);
-
-  const profileId = normalizeText(formData.get('profileId'));
-  const isActive = formData.get('isActive') === 'true';
-
-  if (!profileId) {
-    redirect('/admin/operator-profiles?error=프로필 ID가 없습니다.');
-  }
-
-  await prisma.operatorProfile.update({
-    where: { id: profileId },
-    data: { isActive: !isActive },
-  });
-
-  revalidatePath('/admin/operator-profiles');
-  revalidatePath('/posts/new');
-  redirect('/admin/operator-profiles');
 }
 
 export async function createReportOptionAction(formData: FormData) {

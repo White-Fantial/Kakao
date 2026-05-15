@@ -21,8 +21,8 @@ import {
   canEditPost,
   isPostScopeValid,
   canReportPost,
-  canUseOperatorProfile,
 } from '@/lib/permissions';
+import { canBeSelectedAsAuthorByAdmin } from '@/lib/account-type';
 import {
   MAX_UPLOAD_IMAGE_COUNT,
   deleteImageFromCloudinary,
@@ -198,6 +198,59 @@ async function resolvePostScope(
   };
 }
 
+async function resolvePostAuthorUser(
+  actor: Awaited<ReturnType<typeof requireUser>>,
+  rawAuthorUserIdOverride: string,
+  fallbackAuthorId: string,
+  errorRedirectPath: string,
+): Promise<{ id: string; displayName: string }> {
+  if (!rawAuthorUserIdOverride) {
+    if (fallbackAuthorId === actor.id) {
+      return {
+        id: actor.id,
+        displayName: actor.displayName,
+      };
+    }
+
+    const fallbackAuthor = await prisma.user.findUnique({
+      where: { id: fallbackAuthorId },
+      select: { id: true, displayName: true },
+    });
+
+    if (!fallbackAuthor) {
+      redirect(`${errorRedirectPath}?error=${encodeURIComponent('작성 계정을 찾을 수 없습니다.')}`);
+    }
+
+    return fallbackAuthor;
+  }
+
+  if (actor.role !== 'ADMIN') {
+    redirect(`${errorRedirectPath}?error=${encodeURIComponent('작성 계정을 변경할 권한이 없습니다.')}`);
+  }
+
+  const targetAuthor = await prisma.user.findUnique({
+    where: { id: rawAuthorUserIdOverride },
+    select: {
+      id: true,
+      displayName: true,
+      accountType: true,
+      isManagedAccount: true,
+      isActive: true,
+    },
+  });
+
+  if (!targetAuthor || !canBeSelectedAsAuthorByAdmin(targetAuthor)) {
+    redirect(
+      `${errorRedirectPath}?error=${encodeURIComponent('PERSONA 또는 OPERATOR 운영 계정만 작성자로 선택할 수 있습니다.')}`,
+    );
+  }
+
+  return {
+    id: targetAuthor.id,
+    displayName: targetAuthor.displayName,
+  };
+}
+
 export async function createPostAction(formData: FormData) {
   const user = await requireUser();
   const hasCity = await hasValidProfileCity(user.cityId, user.countryId);
@@ -206,19 +259,8 @@ export async function createPostAction(formData: FormData) {
     redirect(getProfileCityRequiredHref('/posts/new'));
   }
 
-  const rawOperatorProfileId = normalizeText(formData.get('operatorProfileId'));
-  const operatorProfileId = canUseOperatorProfile(user) && rawOperatorProfileId ? rawOperatorProfileId : null;
-
-  let resolvedOperatorProfile: { id: string } | null = null;
-  if (operatorProfileId) {
-    resolvedOperatorProfile = await prisma.operatorProfile.findFirst({
-      where: { id: operatorProfileId, isActive: true },
-      select: { id: true },
-    });
-    if (!resolvedOperatorProfile) {
-      redirect(`/posts/new?error=${encodeURIComponent('선택한 운영자 프로필을 찾을 수 없습니다.')}`);
-    }
-  }
+  const authorUserIdOverride = normalizeText(formData.get('authorUserIdOverride'));
+  const resolvedAuthor = await resolvePostAuthorUser(user, authorUserIdOverride, user.id, '/posts/new');
 
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
@@ -296,7 +338,8 @@ export async function createPostAction(formData: FormData) {
   const postId = await prisma.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {
-        authorId: user.id,
+        authorId: resolvedAuthor.id,
+        createdByUserId: user.id,
         title: title || null,
         body,
         categoryId,
@@ -308,8 +351,6 @@ export async function createPostAction(formData: FormData) {
         requireCommentBeforeContact:
           requireCommentBeforeContactInput ??
           categoryResult.category.requireCommentBeforeContactDefault,
-        displayAuthorType: resolvedOperatorProfile ? 'OPERATOR_PROFILE' : 'USER',
-        displayAuthorId: resolvedOperatorProfile ? resolvedOperatorProfile.id : null,
       },
     });
 
@@ -343,7 +384,7 @@ export async function createPostAction(formData: FormData) {
     id: postId,
     title: title || null,
     body,
-    authorDisplayName: user.displayName,
+    authorDisplayName: resolvedAuthor.displayName,
     imageUrl: uploadedImages[0]?.url ?? null,
   }).catch((error) => {
     console.error('[createPostAction] failed to send search alerts', error);
@@ -372,20 +413,7 @@ export async function updatePostAction(formData: FormData) {
   }
 
   const postId = normalizeText(formData.get('postId'));
-
-  const rawOperatorProfileId = normalizeText(formData.get('operatorProfileId'));
-  const operatorProfileId = canUseOperatorProfile(user) && rawOperatorProfileId ? rawOperatorProfileId : null;
-
-  let resolvedOperatorProfile: { id: string } | null = null;
-  if (operatorProfileId) {
-    resolvedOperatorProfile = await prisma.operatorProfile.findFirst({
-      where: { id: operatorProfileId, isActive: true },
-      select: { id: true },
-    });
-    if (!resolvedOperatorProfile) {
-      redirect(`/posts/${postId}/edit?error=${encodeURIComponent('선택한 운영자 프로필을 찾을 수 없습니다.')}`);
-    }
-  }
+  const authorUserIdOverride = normalizeText(formData.get('authorUserIdOverride'));
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -395,6 +423,13 @@ export async function updatePostAction(formData: FormData) {
   if (!post || !canEditPost(user, post)) {
     redirect('/my/posts?error=권한이 없습니다.');
   }
+
+  const resolvedAuthor = await resolvePostAuthorUser(
+    user,
+    authorUserIdOverride,
+    post.authorId,
+    `/posts/${postId}/edit`,
+  );
 
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
@@ -485,14 +520,14 @@ export async function updatePostAction(formData: FormData) {
         categoryId,
         cityId: resolvedCityId,
         countryId: resolvedCountryId,
+        authorId: resolvedAuthor.id,
+        createdByUserId: user.id,
         price: isPostInSaleCategory ? categoryResult.price : null,
         status: 'PUBLISHED',
         contactUrl,
         requireCommentBeforeContact:
           requireCommentBeforeContactInput ??
           categoryResult.category.requireCommentBeforeContactDefault,
-        displayAuthorType: resolvedOperatorProfile ? 'OPERATOR_PROFILE' : 'USER',
-        displayAuthorId: resolvedOperatorProfile ? resolvedOperatorProfile.id : null,
       },
     });
 
