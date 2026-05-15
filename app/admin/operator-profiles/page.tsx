@@ -12,13 +12,13 @@ import { canMakeFinalUserDecision } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
-type AdminOperatorProfilesPageProps = {
+type PageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
 export default async function AdminOperatorProfilesPage({
   searchParams,
-}: AdminOperatorProfilesPageProps) {
+}: PageProps) {
   const currentUser = await getCurrentUser();
 
   if (!currentUser || !canMakeFinalUserDecision(currentUser)) {
@@ -35,7 +35,6 @@ export default async function AdminOperatorProfilesPage({
       avatarUrl: true,
       bio: true,
       isActive: true,
-      _count: { select: { postsByDisplayProfile: true } },
     },
   });
 
@@ -66,7 +65,7 @@ export default async function AdminOperatorProfilesPage({
               name="slug"
               required
               placeholder="슬러그 (영문 소문자/하이픈)"
-              pattern="[a-z0-9-]+"
+              pattern="^[a-z0-9]+(-[a-z0-9]+)*$"
               className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
             />
           </div>
@@ -108,9 +107,6 @@ export default async function AdminOperatorProfilesPage({
                     <p className="truncate text-xs text-[#888]">아바타: {profile.avatarUrl}</p>
                   ) : null}
                   {profile.bio ? <p className="text-xs text-[#666]">{profile.bio}</p> : null}
-                  <p className="text-xs text-[#888]">
-                    이 프로필로 작성된 게시글 {profile._count.postsByDisplayProfile}개
-                  </p>
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${

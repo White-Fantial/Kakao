@@ -983,6 +983,7 @@ export async function createOperatorProfileAction(formData: FormData) {
       slug,
       avatarUrl,
       bio,
+      isActive: true,
     },
   });
 
