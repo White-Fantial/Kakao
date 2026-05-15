@@ -127,8 +127,11 @@ export default async function AdminManagedAccountsPage({
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
       ) : null}
 
-      <div className="space-y-3 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
-        <h2 className="font-semibold">운영 계정 생성 (ADMIN 전용)</h2>
+      <details className="rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 font-semibold [&::-webkit-details-marker]:hidden">
+          운영 계정 생성 (ADMIN 전용)
+        </summary>
+        <div className="space-y-3 border-t border-[#f1f1f1] px-4 pb-4 pt-3">
         <p className="text-xs text-amber-700">
           운영 계정은 기본적으로 로그인 불가(isManagedAccount=true)로 생성됩니다. REAL_USER/SYSTEM 생성은 허용되지 않습니다.
         </p>
@@ -200,7 +203,8 @@ export default async function AdminManagedAccountsPage({
             className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
           />
         </form>
-      </div>
+        </div>
+      </details>
 
       <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
