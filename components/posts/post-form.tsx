@@ -509,7 +509,7 @@ export function PostForm({
             onChange={(e) => setOperatorProfileId(e.target.value)}
             className={FIELD_CLASS}
           >
-            <option value="">내 계정으로 작성</option>
+            <option value="">본인 (직접 작성)</option>
             {operatorProfiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.displayName}

@@ -4,6 +4,11 @@ export type ResolvedDisplayAuthor = {
   isOperator: boolean;
 };
 
+export type OperatorProfileLookup = {
+  displayName: string;
+  avatarUrl: string | null;
+};
+
 type PostWithAuthorFields = {
   displayAuthorType: 'USER' | 'OPERATOR_PROFILE';
   displayAuthorId: string | null;

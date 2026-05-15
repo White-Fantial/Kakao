@@ -12,6 +12,7 @@ import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
 import { measureServerTiming } from '@/lib/performance/server';
+import type { OperatorProfileLookup } from '@/lib/posts/display-author';
 
 
 
@@ -52,8 +53,6 @@ function toSingle(value: string | string[] | undefined) {
 
   return (Array.isArray(value) ? value[0] : value).trim();
 }
-
-type OperatorProfileLookup = { displayName: string; avatarUrl: string | null };
 
 async function resolveOperatorProfileMap(
   posts: Array<{ displayAuthorType: string; displayAuthorId: string | null }>,
