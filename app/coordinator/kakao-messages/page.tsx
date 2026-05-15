@@ -4,7 +4,7 @@ import { retryKakaoMessageDeliveryAction } from '@/app/coordinator/actions';
 import {
 
   coordinatorManagementNavItems,
-  ManagementSectionNav,
+  ManagementSectionHeader,
 } from '@/components/admin/management-section-nav';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -74,10 +74,11 @@ export default async function CoordinatorKakaoMessagesPage({
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">운영 관리 — 카카오 알림 로그</h1>
-        <ManagementSectionNav items={coordinatorManagementNavItems} />
-      </div>
+      <ManagementSectionHeader
+        sectionLabel="운영 관리"
+        pageLabel="카카오 알림 로그"
+        items={coordinatorManagementNavItems}
+      />
 
       {params.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{params.error}</p>
