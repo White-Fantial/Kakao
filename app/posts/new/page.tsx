@@ -6,7 +6,10 @@ import { requireUser } from '@/lib/auth/session';
 import { getPostCreationFormOptions } from '@/lib/permissions';
 import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 import { redirect } from 'next/navigation';
-import { getAdminAuthorAccountOptions } from '@/lib/posts/author-account-options';
+import {
+  canSelectAuthorAccount,
+  getAuthorAccountOptionsForActor,
+} from '@/lib/posts/author-account-options';
 
 
 
@@ -30,8 +33,16 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
 
   const params = await searchParams;
   const formOptions = await getPostCreationFormOptions(user);
-  const isAdmin = user.role === 'ADMIN';
-  const authorAccountOptions = isAdmin ? await getAdminAuthorAccountOptions() : [];
+  const canOverrideAuthor = canSelectAuthorAccount(user.role);
+  const authorAccountOptions = canOverrideAuthor
+    ? await getAuthorAccountOptionsForActor(
+        user.role,
+        formOptions.allowedTargets.map((target) => ({
+          countryId: target.countryId,
+          cityId: target.cityId,
+        })),
+      )
+    : [];
 
   return (
     <section className="space-y-4">
@@ -65,7 +76,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
           defaultCountryId={formOptions.defaultCountryId}
           defaultCityId={formOptions.defaultCityId}
           submitLabel="올리기"
-          isAdmin={isAdmin}
+          canSelectAuthorAccount={canOverrideAuthor}
           authorAccountOptions={authorAccountOptions}
           errorMessage={params.error}
         />

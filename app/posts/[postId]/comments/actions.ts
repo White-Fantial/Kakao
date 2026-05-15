@@ -17,7 +17,7 @@ import {
 } from '@/lib/community-score';
 import { createNotification } from '@/lib/notifications';
 import { getWarmthConfig } from '@/lib/reputation-settings';
-import { canBeSelectedAsAuthorByAdmin } from '@/lib/account-type';
+import { canActorUseAuthorForScope } from '@/lib/posts/author-account-options';
 
 const MAX_COMMENT_BODY_LENGTH = 500;
 const COMMENT_STATUS = {
@@ -101,6 +101,8 @@ async function createComment(
     where: { id: postId },
     select: {
       id: true,
+      countryId: true,
+      cityId: true,
       status: true,
       title: true,
       body: true,
@@ -118,7 +120,7 @@ async function createComment(
   };
 
   if (authorUserIdOverride) {
-    if (user.role !== 'ADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'COORDINATOR') {
       return { ok: false as const, message: '작성 계정을 선택할 권한이 없습니다.' };
     }
 
@@ -127,16 +129,31 @@ async function createComment(
       select: {
         id: true,
         displayName: true,
+        role: true,
         accountType: true,
         isManagedAccount: true,
         isActive: true,
+        status: true,
+        countryId: true,
+        cityId: true,
+        city: {
+          select: {
+            countryId: true,
+          },
+        },
       },
     });
 
-    if (!targetAuthor || !canBeSelectedAsAuthorByAdmin(targetAuthor)) {
+    if (
+      !targetAuthor ||
+      !canActorUseAuthorForScope(user.role, targetAuthor, {
+        countryId: post.countryId,
+        cityId: post.cityId,
+      })
+    ) {
       return {
         ok: false as const,
-        message: 'PERSONA 또는 OPERATOR 운영 계정만 댓글 작성자로 선택할 수 있습니다.',
+        message: '선택한 작성 계정으로 이 게시글에 댓글을 작성할 수 없습니다.',
       };
     }
 

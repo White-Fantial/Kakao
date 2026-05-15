@@ -64,7 +64,7 @@ type PostFormProps = {
   defaultCountryId: string | null;
   defaultCityId: string | null;
   submitLabel: string;
-  isAdmin?: boolean;
+  canSelectAuthorAccount?: boolean;
   authorAccountOptions?: AuthorAccountOption[];
   defaultAuthorUserIdOverride?: string | null;
   defaultValues?: {
@@ -198,7 +198,7 @@ export function PostForm({
   defaultCountryId,
   defaultCityId,
   submitLabel,
-  isAdmin,
+  canSelectAuthorAccount,
   authorAccountOptions,
   defaultAuthorUserIdOverride,
   defaultValues,
@@ -497,7 +497,7 @@ export function PostForm({
       <input type="hidden" name="countryId" value={selectedCountryId ?? ''} />
       <input type="hidden" name="cityId" value={selectedCityId ?? ''} />
 
-      {isAdmin ? (
+      {canSelectAuthorAccount ? (
         <div className="space-y-1">
           <label htmlFor="authorUserIdOverride" className="text-sm font-medium text-[#555]">
             작성 계정
@@ -534,7 +534,7 @@ export function PostForm({
             ))}
           </select>
           <p className="text-xs text-[#888]">
-            ADMIN만 PERSONA/OPERATOR 운영 계정으로 작성할 수 있어요.
+            관리자/코디네이터는 코디네이터·OPERATOR·PERSONA 계정으로 작성할 수 있어요.
           </p>
         </div>
       ) : null}
