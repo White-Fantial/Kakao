@@ -12,6 +12,7 @@ import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
 import { measureServerTiming } from '@/lib/performance/server';
+import type { OperatorProfileLookup } from '@/lib/posts/display-author';
 
 
 
@@ -51,6 +52,52 @@ function toSingle(value: string | string[] | undefined) {
   }
 
   return (Array.isArray(value) ? value[0] : value).trim();
+}
+
+async function resolveOperatorProfileMap(
+  posts: Array<{ displayAuthorType: string; displayAuthorId: string | null }>,
+): Promise<Map<string, OperatorProfileLookup>> {
+  const ids = Array.from(
+    new Set(
+      posts
+        .filter((p) => p.displayAuthorType === 'OPERATOR_PROFILE' && p.displayAuthorId)
+        .map((p) => p.displayAuthorId as string),
+    ),
+  );
+  const map = new Map<string, OperatorProfileLookup>();
+  if (ids.length > 0) {
+    const profiles = await prisma.operatorProfile.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, displayName: true, avatarUrl: true },
+    });
+    for (const profile of profiles) {
+      map.set(profile.id, profile);
+    }
+  }
+  return map;
+}
+
+function resolvePostAuthor(
+  post: {
+    displayAuthorType: string;
+    displayAuthorId: string | null;
+    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number };
+  },
+  operatorProfileMap: Map<string, OperatorProfileLookup>,
+): { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator: boolean } {
+  const opProfile =
+    post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId
+      ? operatorProfileMap.get(post.displayAuthorId) ?? null
+      : null;
+  if (opProfile) {
+    return {
+      displayName: opProfile.displayName,
+      profileImageUrl: opProfile.avatarUrl ?? null,
+      neighbourWarmth: post.author.neighbourWarmth,
+      isOperator: true,
+    };
+  }
+  return { ...post.author, isOperator: false };
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
@@ -200,7 +247,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     tags: { id: string; label: string }[];
     category: { name: string; type: CategoryType; color: string | null };
     city: { name: string } | null;
-    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number };
+    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator?: boolean };
   }> = [];
   let hasNextPage = false;
   let hasPrevPage = false;
@@ -235,6 +282,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               neighbourWarmth: true,
             },
           },
+          displayAuthorType: true,
+          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -274,25 +323,29 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    normalizedPosts = pagePosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
-      createdAt: post.createdAt,
-      isPinned: post.isPinned,
-      pinnedAt: post.pinnedAt,
-      tags: post.tags.map((tag) => tag.postTagOption),
-      price: post.price ? post.price.toString() : null,
-      thumbnailUrl: post.images[0]?.url ?? null,
-      commentCount: post._count.comments,
-      likeCount: post._count.postLikes,
-      isLikedByCurrentUser: post.postLikes.length > 0,
-      isSavedByCurrentUser: post.savedBy.length > 0,
-      reportCount: post._count.reports,
-      category: post.category,
-      city: post.city,
-      author: post.author,
-    }));
+    const operatorProfileMap = await resolveOperatorProfileMap(pagePosts);
+
+    normalizedPosts = pagePosts.map((post) => {
+      return {
+        id: post.id,
+        title: post.title,
+        bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
+        createdAt: post.createdAt,
+        isPinned: post.isPinned,
+        pinnedAt: post.pinnedAt,
+        tags: post.tags.map((tag) => tag.postTagOption),
+        price: post.price ? post.price.toString() : null,
+        thumbnailUrl: post.images[0]?.url ?? null,
+        commentCount: post._count.comments,
+        likeCount: post._count.postLikes,
+        isLikedByCurrentUser: post.postLikes.length > 0,
+        isSavedByCurrentUser: post.savedBy.length > 0,
+        reportCount: post._count.reports,
+        category: post.category,
+        city: post.city,
+        author: resolvePostAuthor(post, operatorProfileMap),
+      };
+    });
   } else {
     const posts = await measureServerTiming('posts:list', () =>
       prisma.post.findMany({
@@ -323,6 +376,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               neighbourWarmth: true,
             },
           },
+          displayAuthorType: true,
+          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -361,24 +416,28 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    normalizedPosts = pagePosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
-      createdAt: post.createdAt,
-      isPinned: post.isPinned,
-      pinnedAt: post.pinnedAt,
-      tags: post.tags.map((tag) => tag.postTagOption),
-      price: post.price ? post.price.toString() : null,
-      thumbnailUrl: post.images[0]?.url ?? null,
-      commentCount: post._count.comments,
-      likeCount: post._count.postLikes,
-      isLikedByCurrentUser: post.postLikes.length > 0,
-      isSavedByCurrentUser: post.savedBy.length > 0,
-      category: post.category,
-      city: post.city,
-      author: post.author,
-    }));
+    const operatorProfileMap = await resolveOperatorProfileMap(pagePosts);
+
+    normalizedPosts = pagePosts.map((post) => {
+      return {
+        id: post.id,
+        title: post.title,
+        bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
+        createdAt: post.createdAt,
+        isPinned: post.isPinned,
+        pinnedAt: post.pinnedAt,
+        tags: post.tags.map((tag) => tag.postTagOption),
+        price: post.price ? post.price.toString() : null,
+        thumbnailUrl: post.images[0]?.url ?? null,
+        commentCount: post._count.comments,
+        likeCount: post._count.postLikes,
+        isLikedByCurrentUser: post.postLikes.length > 0,
+        isSavedByCurrentUser: post.savedBy.length > 0,
+        category: post.category,
+        city: post.city,
+        author: resolvePostAuthor(post, operatorProfileMap),
+      };
+    });
   }
 
   const hasFilters = shouldFilterByCountry || shouldFilterByCategory || shouldFilterByCity || hasKeyword;

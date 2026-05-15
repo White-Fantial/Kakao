@@ -21,6 +21,7 @@ import {
   canEditPost,
   isPostScopeValid,
   canReportPost,
+  canUseOperatorProfile,
 } from '@/lib/permissions';
 import {
   MAX_UPLOAD_IMAGE_COUNT,
@@ -205,6 +206,20 @@ export async function createPostAction(formData: FormData) {
     redirect(getProfileCityRequiredHref('/posts/new'));
   }
 
+  const rawOperatorProfileId = normalizeText(formData.get('operatorProfileId'));
+  const operatorProfileId = canUseOperatorProfile(user) && rawOperatorProfileId ? rawOperatorProfileId : null;
+
+  let resolvedOperatorProfile: { id: string } | null = null;
+  if (operatorProfileId) {
+    resolvedOperatorProfile = await prisma.operatorProfile.findFirst({
+      where: { id: operatorProfileId, isActive: true },
+      select: { id: true },
+    });
+    if (!resolvedOperatorProfile) {
+      redirect(`/posts/new?error=${encodeURIComponent('선택한 운영자 프로필을 찾을 수 없습니다.')}`);
+    }
+  }
+
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
   const categoryId = normalizeText(formData.get('categoryId'));
@@ -293,6 +308,8 @@ export async function createPostAction(formData: FormData) {
         requireCommentBeforeContact:
           requireCommentBeforeContactInput ??
           categoryResult.category.requireCommentBeforeContactDefault,
+        displayAuthorType: resolvedOperatorProfile ? 'OPERATOR_PROFILE' : 'USER',
+        displayAuthorId: resolvedOperatorProfile ? resolvedOperatorProfile.id : null,
       },
     });
 
@@ -355,6 +372,20 @@ export async function updatePostAction(formData: FormData) {
   }
 
   const postId = normalizeText(formData.get('postId'));
+
+  const rawOperatorProfileId = normalizeText(formData.get('operatorProfileId'));
+  const operatorProfileId = canUseOperatorProfile(user) && rawOperatorProfileId ? rawOperatorProfileId : null;
+
+  let resolvedOperatorProfile: { id: string } | null = null;
+  if (operatorProfileId) {
+    resolvedOperatorProfile = await prisma.operatorProfile.findFirst({
+      where: { id: operatorProfileId, isActive: true },
+      select: { id: true },
+    });
+    if (!resolvedOperatorProfile) {
+      redirect(`/posts/${postId}/edit?error=${encodeURIComponent('선택한 운영자 프로필을 찾을 수 없습니다.')}`);
+    }
+  }
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -460,6 +491,8 @@ export async function updatePostAction(formData: FormData) {
         requireCommentBeforeContact:
           requireCommentBeforeContactInput ??
           categoryResult.category.requireCommentBeforeContactDefault,
+        displayAuthorType: resolvedOperatorProfile ? 'OPERATOR_PROFILE' : 'USER',
+        displayAuthorId: resolvedOperatorProfile ? resolvedOperatorProfile.id : null,
       },
     });
 

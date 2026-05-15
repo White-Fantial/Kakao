@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/session';
 import { getPostCreationFormOptions } from '@/lib/permissions';
 import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/db/prisma';
 
 
 
@@ -29,6 +30,14 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
 
   const params = await searchParams;
   const formOptions = await getPostCreationFormOptions(user);
+  const isAdmin = user.role === 'ADMIN';
+  const operatorProfiles = isAdmin
+    ? await prisma.operatorProfile.findMany({
+        where: { isActive: true },
+        select: { id: true, displayName: true },
+        orderBy: { displayName: 'asc' },
+      })
+    : [];
 
   return (
     <section className="space-y-4">
@@ -62,6 +71,8 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
           defaultCountryId={formOptions.defaultCountryId}
           defaultCityId={formOptions.defaultCityId}
           submitLabel="올리기"
+          isAdmin={isAdmin}
+          operatorProfiles={operatorProfiles}
           errorMessage={params.error}
         />
       )}

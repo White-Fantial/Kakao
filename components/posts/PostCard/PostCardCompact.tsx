@@ -72,6 +72,7 @@ export function PostCardCompact({
           compact
           createdAt={post.createdAt}
           authorName={post.author?.displayName}
+          isOperator={post.author?.isOperator}
           commentCount={post.commentCount}
           likeCount={post.likeCount}
           showCommentCount={config.showMetaStats}

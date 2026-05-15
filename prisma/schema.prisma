@@ -84,6 +84,11 @@ enum ReportReviewStatus {
   FALSE_REPORT
 }
 
+enum DisplayAuthorType {
+  USER
+  OPERATOR_PROFILE
+}
+
 model User {
   id                   String             @id @default(cuid())
   kakaoId              String             @unique
@@ -245,6 +250,8 @@ model Post {
   reports         PostReport[]
   savedBy         SavedPost[]
   scoreEvents     CommunityScoreEvent[]
+  displayAuthorType DisplayAuthorType @default(USER)
+  displayAuthorId   String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   publishedAt     DateTime?    @default(now())
@@ -523,4 +530,17 @@ model NeighbourWarmthLog {
   createdAt      DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+model OperatorProfile {
+  id          String   @id @default(cuid())
+  displayName String
+  slug        String   @unique
+  avatarUrl   String?
+  bio         String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
 }

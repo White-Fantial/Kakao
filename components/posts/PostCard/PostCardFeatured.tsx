@@ -50,6 +50,9 @@ export function PostCardFeatured({
                 sizes="24px"
               />
               <span className="text-sm text-[#666]">{post.author.displayName}</span>
+              {post.author.isOperator ? (
+                <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">운영자</span>
+              ) : null}
             </>
           ) : null}
           <PostCardMeta
