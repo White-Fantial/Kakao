@@ -309,6 +309,11 @@ export async function createPostAction(formData: FormData) {
           categoryResult.category.requireCommentBeforeContactDefault,
         displayAuthorType: resolvedOperatorProfile ? 'OPERATOR_PROFILE' : 'USER',
         displayAuthorId: resolvedOperatorProfile ? resolvedOperatorProfile.id : null,
+      },
+    });
+
+    if (categoryResult.postTagOptionIds.length > 0) {
+      await tx.postTag.createMany({
         data: categoryResult.postTagOptionIds.map((postTagOptionId) => ({
           postId: post.id,
           postTagOptionId,

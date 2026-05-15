@@ -398,11 +398,11 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    const operatorProfileMap2 = await resolveOperatorProfileMap(pagePosts);
+    const operatorProfileMap = await resolveOperatorProfileMap(pagePosts);
 
     normalizedPosts = pagePosts.map((post) => {
-      const isOperatorPost = post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId && operatorProfileMap2.has(post.displayAuthorId);
-      const opProfile = isOperatorPost ? operatorProfileMap2.get(post.displayAuthorId as string) : null;
+      const isOperatorPost = post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId && operatorProfileMap.has(post.displayAuthorId);
+      const opProfile = isOperatorPost ? operatorProfileMap.get(post.displayAuthorId as string) : null;
       return {
         id: post.id,
         title: post.title,
