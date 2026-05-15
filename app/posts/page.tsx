@@ -115,12 +115,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const selectedCityIdsFromParams = Array.from(
     new Set(toArray(params.city).filter((id) => cityIds.has(id))),
   );
-  const selectedCityIdsBase =
-    selectedCityIdsFromParams.length > 0
-      ? selectedCityIdsFromParams
-      : hasActiveProfileCity
-        ? [activeProfileCityId]
-        : cities.map((city) => city.id);
+  let selectedCityIdsBase: string[];
+  if (selectedCityIdsFromParams.length > 0) {
+    selectedCityIdsBase = selectedCityIdsFromParams;
+  } else if (hasActiveProfileCity) {
+    selectedCityIdsBase = [activeProfileCityId];
+  } else {
+    selectedCityIdsBase = cities.map((city) => city.id);
+  }
   const shouldIncludeProfileCity = hasActiveProfileCity
     ? !selectedCityIdsBase.includes(activeProfileCityId)
     : false;
