@@ -21,6 +21,7 @@ export type PostCardEntity = {
   author?: {
     displayName: string;
     profileImageUrl: string | null;
+    isOperator?: boolean;
   };
   commentCount?: number;
   likeCount?: number;

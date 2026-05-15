@@ -50,6 +50,8 @@ export default async function EditPostPage({
         status: true,
         contactUrl: true,
         requireCommentBeforeContact: true,
+        displayAuthorType: true,
+        displayAuthorId: true,
         images: {
           select: { id: true, url: true },
           orderBy: { sortOrder: 'asc' },
@@ -62,6 +64,17 @@ export default async function EditPostPage({
   if (!post || !canEditPost(user, post)) {
     notFound();
   }
+
+  const isAdmin = user.role === 'ADMIN';
+  const operatorProfiles = isAdmin
+    ? await prisma.operatorProfile.findMany({
+        where: { isActive: true },
+        select: { id: true, displayName: true },
+        orderBy: { displayName: 'asc' },
+      })
+    : [];
+  const defaultOperatorProfileId =
+    isAdmin && post.displayAuthorType === 'OPERATOR_PROFILE' ? post.displayAuthorId : null;
 
   return (
     <section className="space-y-4">
@@ -95,6 +108,9 @@ export default async function EditPostPage({
           defaultCountryId={formOptions.defaultCountryId}
           defaultCityId={formOptions.defaultCityId}
           submitLabel="수정하기"
+          isAdmin={isAdmin}
+          operatorProfiles={operatorProfiles}
+          defaultOperatorProfileId={defaultOperatorProfileId}
           errorMessage={query.error}
           defaultValues={{
             postId: post.id,

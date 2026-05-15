@@ -690,6 +690,29 @@ async function main() {
     ),
   );
 
+  const operatorProfiles = [
+    { displayName: '오클랜드 생활지기', slug: 'auckland-life' },
+    { displayName: '오클랜드 중고소식', slug: 'auckland-market' },
+    { displayName: '오클랜드 잡담지기', slug: 'auckland-talk' },
+    { displayName: '웰링턴 생활지기', slug: 'wellington-life' },
+    { displayName: '웰링턴 구직도우미', slug: 'wellington-jobs' },
+    { displayName: '웰링턴 잡담지기', slug: 'wellington-talk' },
+  ];
+
+  await Promise.all(
+    operatorProfiles.map((profile) =>
+      prisma.operatorProfile.upsert({
+        where: { slug: profile.slug },
+        update: { displayName: profile.displayName, isActive: true },
+        create: {
+          displayName: profile.displayName,
+          slug: profile.slug,
+          isActive: true,
+        },
+      }),
+    ),
+  );
+
   const adminKakaoId = process.env.ADMIN_KAKAO_ID ?? 'seed-admin-placeholder';
   const adminDisplayName = process.env.ADMIN_DISPLAY_NAME ?? 'nomadongho';
   const profileImageUrl = process.env.ADMIN_PROFILE_IMAGE_URL ?? null;
@@ -705,7 +728,7 @@ async function main() {
     },
   });
 
-  console.log('✅ Seed complete: countries, cities, categories, and admin user inserted/updated.');
+  console.log('✅ Seed complete: countries, cities, categories, operator profiles, and admin user inserted/updated.');
 }
 
 main()

@@ -200,7 +200,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     tags: { id: string; label: string }[];
     category: { name: string; type: CategoryType; color: string | null };
     city: { name: string } | null;
-    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number };
+    author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator?: boolean };
   }> = [];
   let hasNextPage = false;
   let hasPrevPage = false;
@@ -235,6 +235,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               neighbourWarmth: true,
             },
           },
+          displayAuthorType: true,
+          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -274,25 +276,49 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    normalizedPosts = pagePosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
-      createdAt: post.createdAt,
-      isPinned: post.isPinned,
-      pinnedAt: post.pinnedAt,
-      tags: post.tags.map((tag) => tag.postTagOption),
-      price: post.price ? post.price.toString() : null,
-      thumbnailUrl: post.images[0]?.url ?? null,
-      commentCount: post._count.comments,
-      likeCount: post._count.postLikes,
-      isLikedByCurrentUser: post.postLikes.length > 0,
-      isSavedByCurrentUser: post.savedBy.length > 0,
-      reportCount: post._count.reports,
-      category: post.category,
-      city: post.city,
-      author: post.author,
-    }));
+    const operatorProfileIds = Array.from(
+      new Set(
+        pagePosts
+          .filter((p) => p.displayAuthorType === 'OPERATOR_PROFILE' && p.displayAuthorId)
+          .map((p) => p.displayAuthorId as string),
+      ),
+    );
+    const operatorProfileMap = new Map<string, { displayName: string; avatarUrl: string | null }>();
+    if (operatorProfileIds.length > 0) {
+      const profiles = await prisma.operatorProfile.findMany({
+        where: { id: { in: operatorProfileIds } },
+        select: { id: true, displayName: true, avatarUrl: true },
+      });
+      for (const profile of profiles) {
+        operatorProfileMap.set(profile.id, profile);
+      }
+    }
+
+    normalizedPosts = pagePosts.map((post) => {
+      const isOperatorPost = post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId && operatorProfileMap.has(post.displayAuthorId);
+      const opProfile = isOperatorPost ? operatorProfileMap.get(post.displayAuthorId as string) : null;
+      return {
+        id: post.id,
+        title: post.title,
+        bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
+        createdAt: post.createdAt,
+        isPinned: post.isPinned,
+        pinnedAt: post.pinnedAt,
+        tags: post.tags.map((tag) => tag.postTagOption),
+        price: post.price ? post.price.toString() : null,
+        thumbnailUrl: post.images[0]?.url ?? null,
+        commentCount: post._count.comments,
+        likeCount: post._count.postLikes,
+        isLikedByCurrentUser: post.postLikes.length > 0,
+        isSavedByCurrentUser: post.savedBy.length > 0,
+        reportCount: post._count.reports,
+        category: post.category,
+        city: post.city,
+        author: opProfile
+          ? { displayName: opProfile.displayName, profileImageUrl: opProfile.avatarUrl ?? null, neighbourWarmth: post.author.neighbourWarmth, isOperator: true }
+          : { ...post.author, isOperator: false },
+      };
+    });
   } else {
     const posts = await measureServerTiming('posts:list', () =>
       prisma.post.findMany({
@@ -323,6 +349,8 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               neighbourWarmth: true,
             },
           },
+          displayAuthorType: true,
+          displayAuthorId: true,
           postLikes: {
             where: { userId: currentUser?.id ?? '__anonymous__' },
             select: { id: true },
@@ -361,24 +389,48 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         ? Boolean(paginationCursor)
         : hasExtra;
 
-    normalizedPosts = pagePosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
-      createdAt: post.createdAt,
-      isPinned: post.isPinned,
-      pinnedAt: post.pinnedAt,
-      tags: post.tags.map((tag) => tag.postTagOption),
-      price: post.price ? post.price.toString() : null,
-      thumbnailUrl: post.images[0]?.url ?? null,
-      commentCount: post._count.comments,
-      likeCount: post._count.postLikes,
-      isLikedByCurrentUser: post.postLikes.length > 0,
-      isSavedByCurrentUser: post.savedBy.length > 0,
-      category: post.category,
-      city: post.city,
-      author: post.author,
-    }));
+    const operatorProfileIds2 = Array.from(
+      new Set(
+        pagePosts
+          .filter((p) => p.displayAuthorType === 'OPERATOR_PROFILE' && p.displayAuthorId)
+          .map((p) => p.displayAuthorId as string),
+      ),
+    );
+    const operatorProfileMap2 = new Map<string, { displayName: string; avatarUrl: string | null }>();
+    if (operatorProfileIds2.length > 0) {
+      const profiles = await prisma.operatorProfile.findMany({
+        where: { id: { in: operatorProfileIds2 } },
+        select: { id: true, displayName: true, avatarUrl: true },
+      });
+      for (const profile of profiles) {
+        operatorProfileMap2.set(profile.id, profile);
+      }
+    }
+
+    normalizedPosts = pagePosts.map((post) => {
+      const isOperatorPost = post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId && operatorProfileMap2.has(post.displayAuthorId);
+      const opProfile = isOperatorPost ? operatorProfileMap2.get(post.displayAuthorId as string) : null;
+      return {
+        id: post.id,
+        title: post.title,
+        bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
+        createdAt: post.createdAt,
+        isPinned: post.isPinned,
+        pinnedAt: post.pinnedAt,
+        tags: post.tags.map((tag) => tag.postTagOption),
+        price: post.price ? post.price.toString() : null,
+        thumbnailUrl: post.images[0]?.url ?? null,
+        commentCount: post._count.comments,
+        likeCount: post._count.postLikes,
+        isLikedByCurrentUser: post.postLikes.length > 0,
+        isSavedByCurrentUser: post.savedBy.length > 0,
+        category: post.category,
+        city: post.city,
+        author: opProfile
+          ? { displayName: opProfile.displayName, profileImageUrl: opProfile.avatarUrl ?? null, neighbourWarmth: post.author.neighbourWarmth, isOperator: true }
+          : { ...post.author, isOperator: false },
+      };
+    });
   }
 
   const hasFilters = shouldFilterByCountry || shouldFilterByCategory || shouldFilterByCity || hasKeyword;

@@ -287,6 +287,23 @@ export default async function PostDetailPage({
   }
 
   const isCoordinator = currentUser ? canHoldPost(currentUser) : false;
+  const isAdmin = currentUser?.role === 'ADMIN';
+
+  // Resolve display author (operator profile or actual user)
+  let displayAuthorName = post.author.displayName;
+  let displayAuthorImageUrl: string | null = post.author.profileImageUrl;
+  let isOperatorPost = false;
+  if (post.displayAuthorType === 'OPERATOR_PROFILE' && post.displayAuthorId) {
+    const opProfile = await prisma.operatorProfile.findUnique({
+      where: { id: post.displayAuthorId },
+      select: { displayName: true, avatarUrl: true },
+    });
+    if (opProfile) {
+      displayAuthorName = opProfile.displayName;
+      displayAuthorImageUrl = opProfile.avatarUrl ?? null;
+      isOperatorPost = true;
+    }
+  }
 
   // Non-coordinators see a pending-review message for HELD posts
   if (post.status === 'HELD' && !isCoordinator) {
@@ -593,20 +610,37 @@ export default async function PostDetailPage({
 
       <div className="flex items-center gap-2 text-sm text-[#888]">
         <UserAvatar
-          displayName={post.author.displayName}
-          profileImageUrl={post.author.profileImageUrl}
+          displayName={displayAuthorName}
+          profileImageUrl={displayAuthorImageUrl}
           className="h-7 w-7"
           sizes="28px"
         />
         <span>
           작성자:{' '}
-          <Link href={`/users/${post.author.id}`} className="font-medium text-[#3c1e1e] hover:underline">
-            {post.author.displayName}
-          </Link>
-          {' '}· <NeighbourWarmthLabel warmth={post.author.neighbourWarmth} />
+          {isOperatorPost ? (
+            <span className="font-medium text-[#3c1e1e]">
+              {displayAuthorName}
+              <span className="ml-1 rounded bg-[#3c1e1e] px-1 py-0.5 text-[10px] font-bold text-white">운영자</span>
+            </span>
+          ) : (
+            <Link href={`/users/${post.author.id}`} className="font-medium text-[#3c1e1e] hover:underline">
+              {displayAuthorName}
+            </Link>
+          )}
+          {!isOperatorPost && (
+            <>{' '}· <NeighbourWarmthLabel warmth={post.author.neighbourWarmth} /></>
+          )}
           {' '}· {new Date(post.createdAt).toLocaleString('ko-KR')}
         </span>
       </div>
+      {isAdmin && isOperatorPost && (
+        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span className="font-semibold">[관리자 확인]</span> 실제 작성자:{' '}
+          <Link href={`/users/${post.author.id}`} className="font-medium underline">
+            {post.author.displayName}
+          </Link>
+        </div>
+      )}
 
       <PostActionButtons>
         {currentUser ? (

@@ -54,6 +54,11 @@ type SelectOption = {
   label: string;
 };
 
+type OperatorProfileOption = {
+  id: string;
+  displayName: string;
+};
+
 type PostFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   countries: CountryOption[];
@@ -63,6 +68,9 @@ type PostFormProps = {
   defaultCountryId: string | null;
   defaultCityId: string | null;
   submitLabel: string;
+  isAdmin?: boolean;
+  operatorProfiles?: OperatorProfileOption[];
+  defaultOperatorProfileId?: string | null;
   defaultValues?: {
     postId?: string;
     title?: string | null;
@@ -194,6 +202,9 @@ export function PostForm({
   defaultCountryId,
   defaultCityId,
   submitLabel,
+  isAdmin,
+  operatorProfiles,
+  defaultOperatorProfileId,
   defaultValues,
   errorMessage,
 }: PostFormProps) {
@@ -218,6 +229,7 @@ export function PostForm({
   const [commentGateOverride, setCommentGateOverride] = useState<boolean | null>(
     defaultValues?.postId ? (defaultValues.requireCommentBeforeContact ?? false) : null,
   );
+  const [operatorProfileId, setOperatorProfileId] = useState(defaultOperatorProfileId ?? '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -484,6 +496,31 @@ export function PostForm({
 
       <input type="hidden" name="countryId" value={selectedCountryId ?? ''} />
       <input type="hidden" name="cityId" value={selectedCityId ?? ''} />
+
+      {isAdmin && operatorProfiles && operatorProfiles.length > 0 ? (
+        <div className="space-y-1">
+          <label htmlFor="operatorProfileId" className="text-sm font-medium text-[#555]">
+            작성자
+          </label>
+          <select
+            id="operatorProfileId"
+            name="operatorProfileId"
+            value={operatorProfileId}
+            onChange={(e) => setOperatorProfileId(e.target.value)}
+            className={FIELD_CLASS}
+          >
+            <option value="">내 계정으로 작성</option>
+            {operatorProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.displayName}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-[#888]">
+            운영자 프로필을 선택하면 해당 프로필 이름으로 게시글이 표시됩니다.
+          </p>
+        </div>
+      ) : null}
 
       <div className="space-y-1">
         <label htmlFor="title" className="text-sm font-medium text-[#555]">
