@@ -70,8 +70,8 @@ export type PostCreationFormOptions = {
 const ROLE_RANK: Record<UserRole, number> = {
   USER: 0,
   MODERATOR: 1,
-  COORDINATOR: 1,
-  ADMIN: 2,
+  COORDINATOR: 2,
+  ADMIN: 3,
 };
 const DEFAULT_USER_POST_VISIBILITY = CategoryVisibilityMode.NORMAL;
 
