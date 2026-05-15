@@ -67,6 +67,10 @@ import { decodeCursor, encodeCursor } from '@/lib/posts/cursor';
 import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DESC } from '@/lib/posts/pinned-order';
 import { measureServerTiming } from '@/lib/performance/server';
 import { shouldShowOperatorBadge, shouldShowWarmth } from '@/lib/account-type';
+import {
+  canSelectAuthorAccount,
+  getAuthorAccountOptionsForActor,
+} from '@/lib/posts/author-account-options';
 
 
 const TITLE_PREVIEW_LENGTH = 40;
@@ -742,6 +746,8 @@ export default async function PostDetailPage({
         >
           <CommentsSection
             postId={post.id}
+            postCountryId={post.countryId}
+            postCityId={post.cityId}
             postAuthorId={post.authorId}
             bestCommentId={post.bestCommentId}
             commentCount={post._count.comments}
@@ -1012,6 +1018,8 @@ async function AdjacentPostsSection({
 
 type CommentsSectionProps = {
   postId: string;
+  postCountryId: string | null;
+  postCityId: string | null;
   postAuthorId: string;
   bestCommentId: string | null;
   commentCount: number;
@@ -1023,6 +1031,8 @@ type CommentsSectionProps = {
 
 async function CommentsSection({
   postId,
+  postCountryId,
+  postCityId,
   postAuthorId,
   bestCommentId,
   commentCount,
@@ -1054,23 +1064,15 @@ async function CommentsSection({
   const myCommentReportMap = new Map(
     myCommentReports.map((r) => [r.commentId, r]),
   );
-  const adminAuthorAccountOptionsRaw =
-    currentUser?.role === 'ADMIN'
-      ? await prisma.user.findMany({
-          where: {
-            accountType: { in: ['PERSONA', 'OPERATOR'] },
-            isManagedAccount: true,
-            isActive: true,
+  const authorAccountOptions =
+    currentUser && canSelectAuthorAccount(currentUser.role)
+      ? await getAuthorAccountOptionsForActor(currentUser.role, [
+          {
+            countryId: postCountryId,
+            cityId: postCityId,
           },
-          select: { id: true, displayName: true, accountType: true },
-          orderBy: [{ accountType: 'asc' }, { displayName: 'asc' }],
-        })
+        ])
       : [];
-  const adminAuthorAccountOptions = adminAuthorAccountOptionsRaw.map((authorAccount) => ({
-    ...authorAccount,
-    accountType:
-      authorAccount.accountType === 'OPERATOR' ? ('OPERATOR' as const) : ('PERSONA' as const),
-  }));
 
   const createCommentPageHref = (nextCursor: string, nextDirection: 'next' | 'prev') => {
     const queryString = new URLSearchParams();
@@ -1122,14 +1124,14 @@ async function CommentsSection({
         <PostCommentComposer
           postId={postId}
           currentUserLoggedIn
-          isAdmin={currentUser.role === 'ADMIN'}
-          authorAccountOptions={adminAuthorAccountOptions}
+          canSelectAuthorAccount={Boolean(currentUser && canSelectAuthorAccount(currentUser.role))}
+          authorAccountOptions={authorAccountOptions}
         />
       ) : (
         <PostCommentComposer
           postId={postId}
           currentUserLoggedIn={false}
-          isAdmin={false}
+          canSelectAuthorAccount={false}
           authorAccountOptions={[]}
         />
       )}

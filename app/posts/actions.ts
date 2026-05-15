@@ -22,7 +22,7 @@ import {
   isPostScopeValid,
   canReportPost,
 } from '@/lib/permissions';
-import { canBeSelectedAsAuthorByAdmin } from '@/lib/account-type';
+import { canActorUseAuthorForScope } from '@/lib/posts/author-account-options';
 import {
   MAX_UPLOAD_IMAGE_COUNT,
   deleteImageFromCloudinary,
@@ -202,6 +202,8 @@ async function resolvePostAuthorUser(
   actor: Awaited<ReturnType<typeof requireUser>>,
   rawAuthorUserIdOverride: string,
   fallbackAuthorId: string,
+  scopeCountryId: string | null,
+  scopeCityId: string | null,
   errorRedirectPath: string,
 ): Promise<{ id: string; displayName: string }> {
   if (!rawAuthorUserIdOverride) {
@@ -224,7 +226,7 @@ async function resolvePostAuthorUser(
     return fallbackAuthor;
   }
 
-  if (actor.role !== 'ADMIN') {
+  if (actor.role !== 'ADMIN' && actor.role !== 'COORDINATOR') {
     redirect(`${errorRedirectPath}?error=${encodeURIComponent('작성 계정을 변경할 권한이 없습니다.')}`);
   }
 
@@ -233,15 +235,30 @@ async function resolvePostAuthorUser(
     select: {
       id: true,
       displayName: true,
+      role: true,
       accountType: true,
       isManagedAccount: true,
       isActive: true,
+      status: true,
+      countryId: true,
+      cityId: true,
+      city: {
+        select: {
+          countryId: true,
+        },
+      },
     },
   });
 
-  if (!targetAuthor || !canBeSelectedAsAuthorByAdmin(targetAuthor)) {
+  if (
+    !targetAuthor ||
+    !canActorUseAuthorForScope(actor.role, targetAuthor, {
+      countryId: scopeCountryId,
+      cityId: scopeCityId,
+    })
+  ) {
     redirect(
-      `${errorRedirectPath}?error=${encodeURIComponent('PERSONA 또는 OPERATOR 운영 계정만 작성자로 선택할 수 있습니다.')}`,
+      `${errorRedirectPath}?error=${encodeURIComponent('선택한 작성 계정으로 이 지역에 글을 작성할 수 없습니다.')}`,
     );
   }
 
@@ -260,7 +277,6 @@ export async function createPostAction(formData: FormData) {
   }
 
   const authorUserIdOverride = normalizeText(formData.get('authorUserIdOverride'));
-  const resolvedAuthor = await resolvePostAuthorUser(user, authorUserIdOverride, user.id, '/posts/new');
 
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
@@ -328,6 +344,14 @@ export async function createPostAction(formData: FormData) {
   if (!canWriteToScope) {
     redirect('/posts/new?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.');
   }
+  const resolvedAuthor = await resolvePostAuthorUser(
+    user,
+    authorUserIdOverride,
+    user.id,
+    resolvedCountryId,
+    resolvedCityId,
+    '/posts/new',
+  );
 
   const isPostInSaleCategory = categoryResult.category.type === CategoryType.SALE;
 
@@ -424,13 +448,6 @@ export async function updatePostAction(formData: FormData) {
     redirect('/my/posts?error=권한이 없습니다.');
   }
 
-  const resolvedAuthor = await resolvePostAuthorUser(
-    user,
-    authorUserIdOverride,
-    post.authorId,
-    `/posts/${postId}/edit`,
-  );
-
   const title = normalizeText(formData.get('title'));
   const body = normalizeText(formData.get('body'));
   const categoryId = normalizeText(formData.get('categoryId'));
@@ -483,6 +500,14 @@ export async function updatePostAction(formData: FormData) {
   if (!canWriteToScope) {
     redirect(`/posts/${postId}/edit?error=이 카테고리/지역에 글을 작성할 권한이 없습니다.`);
   }
+  const resolvedAuthor = await resolvePostAuthorUser(
+    user,
+    authorUserIdOverride,
+    post.authorId,
+    resolvedCountryId,
+    resolvedCityId,
+    `/posts/${postId}/edit`,
+  );
   const isPostInSaleCategory = categoryResult.category.type === CategoryType.SALE;
 
   const remainingImageCount = existingImageCount - deleteImageIds.length;

@@ -1,24 +1,158 @@
+import type { AccountType, UserRole, UserStatus } from '@prisma/client';
+
 import { prisma } from '@/lib/db/prisma';
+
+export type AuthorAccountKind = 'COORDINATOR' | 'PERSONA' | 'OPERATOR';
 
 export type AuthorAccountOption = {
   id: string;
   displayName: string;
-  accountType: 'PERSONA' | 'OPERATOR';
+  accountType: AuthorAccountKind;
   countryId: string | null;
   cityId: string | null;
 };
 
-export async function getAdminAuthorAccountOptions(): Promise<AuthorAccountOption[]> {
+export type AuthorScope = {
+  countryId: string | null;
+  cityId: string | null;
+};
+
+export type AuthorSelectionCandidate = {
+  id: string;
+  role: UserRole;
+  accountType: AccountType;
+  isManagedAccount: boolean;
+  isActive: boolean;
+  status: UserStatus;
+  countryId: string | null;
+  cityId: string | null;
+  city: {
+    countryId: string | null;
+  } | null;
+};
+
+function resolveAuthorCountryId(candidate: AuthorSelectionCandidate) {
+  return candidate.countryId ?? candidate.city?.countryId ?? null;
+}
+
+function toAuthorAccountKind(candidate: AuthorSelectionCandidate): AuthorAccountKind | null {
+  if (
+    candidate.accountType === 'PERSONA' &&
+    candidate.isManagedAccount &&
+    candidate.isActive &&
+    candidate.status === 'ACTIVE'
+  ) {
+    return 'PERSONA';
+  }
+
+  if (
+    candidate.accountType === 'OPERATOR' &&
+    candidate.isManagedAccount &&
+    candidate.isActive &&
+    candidate.status === 'ACTIVE'
+  ) {
+    return 'OPERATOR';
+  }
+
+  if (candidate.role === 'COORDINATOR' && candidate.isActive && candidate.status === 'ACTIVE') {
+    return 'COORDINATOR';
+  }
+
+  return null;
+}
+
+function canAccountCoverScope(
+  accountType: AuthorAccountKind,
+  candidateCountryId: string | null,
+  candidateCityId: string | null,
+  scope: AuthorScope,
+) {
+  if (scope.countryId && candidateCountryId !== scope.countryId) {
+    return false;
+  }
+
+  if (!scope.cityId) {
+    return true;
+  }
+
+  if (accountType === 'PERSONA') {
+    return candidateCityId === scope.cityId;
+  }
+
+  return candidateCityId === null || candidateCityId === scope.cityId;
+}
+
+function normalizeScopes(scopes: AuthorScope[]) {
+  const map = new Map<string, AuthorScope>();
+  for (const scope of scopes) {
+    map.set(`${scope.countryId ?? '*'}:${scope.cityId ?? '*'}`, scope);
+  }
+  return [...map.values()];
+}
+
+export function canSelectAuthorAccount(role: UserRole) {
+  return role === 'ADMIN' || role === 'COORDINATOR';
+}
+
+export function canActorUseAuthorForScope(
+  actorRole: UserRole,
+  candidate: AuthorSelectionCandidate,
+  scope: AuthorScope,
+) {
+  const authorAccountKind = toAuthorAccountKind(candidate);
+  if (!authorAccountKind) {
+    return false;
+  }
+
+  if (actorRole === 'ADMIN') {
+    return true;
+  }
+
+  if (actorRole !== 'COORDINATOR') {
+    return false;
+  }
+
+  const candidateCountryId = resolveAuthorCountryId(candidate);
+  return canAccountCoverScope(authorAccountKind, candidateCountryId, candidate.cityId, scope);
+}
+
+export async function getAuthorAccountOptionsForActor(
+  actorRole: UserRole,
+  allowedScopes: AuthorScope[],
+): Promise<AuthorAccountOption[]> {
+  if (!canSelectAuthorAccount(actorRole)) {
+    return [];
+  }
+
+  const normalizedScopes = normalizeScopes(allowedScopes);
+  if (actorRole === 'COORDINATOR' && normalizedScopes.length === 0) {
+    return [];
+  }
+
   const authorAccountOptionsRaw = await prisma.user.findMany({
     where: {
-      accountType: { in: ['PERSONA', 'OPERATOR'] },
-      isManagedAccount: true,
-      isActive: true,
+      OR: [
+        {
+          accountType: { in: ['PERSONA', 'OPERATOR'] },
+          isManagedAccount: true,
+          isActive: true,
+          status: 'ACTIVE',
+        },
+        {
+          role: 'COORDINATOR',
+          isActive: true,
+          status: 'ACTIVE',
+        },
+      ],
     },
     select: {
       id: true,
       displayName: true,
+      role: true,
       accountType: true,
+      isManagedAccount: true,
+      isActive: true,
+      status: true,
       countryId: true,
       cityId: true,
       city: {
@@ -27,15 +161,33 @@ export async function getAdminAuthorAccountOptions(): Promise<AuthorAccountOptio
         },
       },
     },
-    orderBy: [{ accountType: 'asc' }, { displayName: 'asc' }],
+    orderBy: [{ displayName: 'asc' }],
   });
 
-  return authorAccountOptionsRaw.map((authorAccount) => ({
-    id: authorAccount.id,
-    displayName: authorAccount.displayName,
-    accountType:
-      authorAccount.accountType === 'OPERATOR' ? ('OPERATOR' as const) : ('PERSONA' as const),
-    countryId: authorAccount.countryId ?? authorAccount.city?.countryId ?? null,
-    cityId: authorAccount.cityId,
-  }));
+  return authorAccountOptionsRaw
+    .map((candidate) => {
+      const accountType = toAuthorAccountKind(candidate);
+      if (!accountType) {
+        return null;
+      }
+
+      const countryId = resolveAuthorCountryId(candidate);
+      if (
+        actorRole === 'COORDINATOR' &&
+        !normalizedScopes.some((scope) =>
+          canAccountCoverScope(accountType, countryId, candidate.cityId, scope),
+        )
+      ) {
+        return null;
+      }
+
+      return {
+        id: candidate.id,
+        displayName: candidate.displayName,
+        accountType,
+        countryId,
+        cityId: candidate.cityId,
+      } satisfies AuthorAccountOption;
+    })
+    .filter((candidate): candidate is AuthorAccountOption => candidate !== null);
 }

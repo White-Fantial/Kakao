@@ -6,7 +6,10 @@ import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canEditPost, getPostCreationFormOptions } from '@/lib/permissions';
 import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
-import { getAdminAuthorAccountOptions } from '@/lib/posts/author-account-options';
+import {
+  canSelectAuthorAccount,
+  getAuthorAccountOptionsForActor,
+} from '@/lib/posts/author-account-options';
 
 
 
@@ -65,10 +68,18 @@ export default async function EditPostPage({
     notFound();
   }
 
-  const isAdmin = user.role === 'ADMIN';
-  const authorAccountOptions = isAdmin ? await getAdminAuthorAccountOptions() : [];
+  const canOverrideAuthor = canSelectAuthorAccount(user.role);
+  const authorAccountOptions = canOverrideAuthor
+    ? await getAuthorAccountOptionsForActor(
+        user.role,
+        formOptions.allowedTargets.map((target) => ({
+          countryId: target.countryId,
+          cityId: target.cityId,
+        })),
+      )
+    : [];
   const defaultAuthorUserIdOverride =
-    isAdmin && authorAccountOptions.some((option) => option.id === post.authorId)
+    canOverrideAuthor && authorAccountOptions.some((option) => option.id === post.authorId)
       ? post.authorId
       : null;
 
@@ -104,7 +115,7 @@ export default async function EditPostPage({
           defaultCountryId={formOptions.defaultCountryId}
           defaultCityId={formOptions.defaultCityId}
           submitLabel="수정하기"
-          isAdmin={isAdmin}
+          canSelectAuthorAccount={canOverrideAuthor}
           authorAccountOptions={authorAccountOptions}
           defaultAuthorUserIdOverride={defaultAuthorUserIdOverride}
           errorMessage={query.error}

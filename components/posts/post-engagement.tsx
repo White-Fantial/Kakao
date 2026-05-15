@@ -167,18 +167,18 @@ export function PostContactAction({
 type PostCommentComposerProps = {
   postId: string;
   currentUserLoggedIn: boolean;
-  isAdmin: boolean;
+  canSelectAuthorAccount: boolean;
   authorAccountOptions: Array<{
     id: string;
     displayName: string;
-    accountType: 'PERSONA' | 'OPERATOR';
+    accountType: 'COORDINATOR' | 'PERSONA' | 'OPERATOR';
   }>;
 };
 
 export function PostCommentComposer({
   postId,
   currentUserLoggedIn,
-  isAdmin,
+  canSelectAuthorAccount,
   authorAccountOptions,
 }: PostCommentComposerProps) {
   const router = useRouter();
@@ -224,7 +224,7 @@ export function PostCommentComposer({
     <form id={POST_COMMENT_COMPOSER_ID} action={formAction} className="space-y-2">
       <input type="hidden" name="postId" value={postId} />
 
-      {isAdmin ? (
+      {canSelectAuthorAccount ? (
         <div className="space-y-1">
           <label htmlFor={`${POST_COMMENT_COMPOSER_ID}-author`} className="text-xs font-medium text-[#555]">
             작성 계정
