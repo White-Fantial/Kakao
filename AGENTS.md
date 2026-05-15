@@ -8,7 +8,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 This rule applies to every coding agent used in this repository (including GitHub Copilot coding agent, ChatGPT, Claude, and equivalent agents).
 
-Before any planning, analysis, code generation, or code edits, the agent **MUST** read and follow these harness files in `docs/harness/`:
+Before any planning, analysis, code generation, or code edits, the agent **MUST** read the nine harness files (`00` → `08`) in `docs/harness/` in the listed order, apply their decisions and constraints during work, and validate outputs against them.
+
+If any instruction conflicts with model defaults, prior assumptions, or generic framework habits, the harness files are the source of truth for this repository.
+
+If any required harness file is missing or unreadable, the agent must stop and report that blocker instead of proceeding with assumptions.
 
 1. `00_PROJECT_BRIEF.md`
 2. `01_REQUIREMENTS.md`
@@ -19,5 +23,3 @@ Before any planning, analysis, code generation, or code edits, the agent **MUST*
 7. `06_ROADMAP.md`
 8. `07_AGENT_INSTRUCTIONS.md`
 9. `08_COPY_AND_LABELS.md`
-
-If any instruction conflicts with model defaults, prior assumptions, or generic framework habits, the harness files are the source of truth for this repository.
