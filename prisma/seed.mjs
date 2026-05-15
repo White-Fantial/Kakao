@@ -1,4 +1,10 @@
-import { PrismaClient, CategoryType, CategoryVisibilityMode, UserRole } from '@prisma/client';
+import {
+  PrismaClient,
+  AccountType,
+  CategoryType,
+  CategoryVisibilityMode,
+  UserRole,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -690,24 +696,44 @@ async function main() {
     ),
   );
 
-  const operatorProfiles = [
-    { displayName: '오클랜드 생활지기', slug: 'auckland-life' },
-    { displayName: '오클랜드 중고소식', slug: 'auckland-market' },
-    { displayName: '오클랜드 잡담지기', slug: 'auckland-talk' },
-    { displayName: '웰링턴 생활지기', slug: 'wellington-life' },
-    { displayName: '웰링턴 구직도우미', slug: 'wellington-jobs' },
-    { displayName: '웰링턴 잡담지기', slug: 'wellington-talk' },
+  const managedAccounts = [
+    {
+      kakaoId: 'managed-operator-kormmunity-team',
+      displayName: 'Kormmunity Team',
+      accountType: AccountType.OPERATOR,
+    },
+    {
+      kakaoId: 'managed-operator-auckland-team',
+      displayName: 'Auckland 생활 운영팀',
+      accountType: AccountType.OPERATOR,
+    },
+    {
+      kakaoId: 'managed-persona-auckland-worker',
+      displayName: '오클직장인',
+      accountType: AccountType.PERSONA,
+    },
   ];
 
   await Promise.all(
-    operatorProfiles.map((profile) =>
-      prisma.operatorProfile.upsert({
-        where: { slug: profile.slug },
-        update: { displayName: profile.displayName, isActive: true },
-        create: {
-          displayName: profile.displayName,
-          slug: profile.slug,
+    managedAccounts.map((managedAccount) =>
+      prisma.user.upsert({
+        where: { kakaoId: managedAccount.kakaoId },
+        update: {
+          displayName: managedAccount.displayName,
+          role: UserRole.USER,
+          accountType: managedAccount.accountType,
+          isManagedAccount: true,
           isActive: true,
+          status: 'ACTIVE',
+        },
+        create: {
+          kakaoId: managedAccount.kakaoId,
+          displayName: managedAccount.displayName,
+          role: UserRole.USER,
+          accountType: managedAccount.accountType,
+          isManagedAccount: true,
+          isActive: true,
+          status: 'ACTIVE',
         },
       }),
     ),
@@ -718,17 +744,26 @@ async function main() {
   const profileImageUrl = process.env.ADMIN_PROFILE_IMAGE_URL ?? null;
   await prisma.user.upsert({
     where: { kakaoId: adminKakaoId },
-    update: { role: UserRole.ADMIN, neighbourWarmth: 68.2 },
+    update: {
+      role: UserRole.ADMIN,
+      accountType: AccountType.REAL_USER,
+      isManagedAccount: false,
+      isActive: true,
+      neighbourWarmth: 68.2,
+    },
     create: {
       kakaoId: adminKakaoId,
       displayName: adminDisplayName,
       profileImageUrl,
       role: UserRole.ADMIN,
+      accountType: AccountType.REAL_USER,
+      isManagedAccount: false,
+      isActive: true,
       neighbourWarmth: 68.2,
     },
   });
 
-  console.log('✅ Seed complete: countries, cities, categories, operator profiles, and admin user inserted/updated.');
+  console.log('✅ Seed complete: countries, cities, categories, managed accounts, and admin user inserted/updated.');
 }
 
 main()

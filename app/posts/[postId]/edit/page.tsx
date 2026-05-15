@@ -50,8 +50,7 @@ export default async function EditPostPage({
         status: true,
         contactUrl: true,
         requireCommentBeforeContact: true,
-        displayAuthorType: true,
-        displayAuthorId: true,
+        createdByUserId: true,
         images: {
           select: { id: true, url: true },
           orderBy: { sortOrder: 'asc' },
@@ -66,15 +65,26 @@ export default async function EditPostPage({
   }
 
   const isAdmin = user.role === 'ADMIN';
-  const operatorProfiles = isAdmin
-    ? await prisma.operatorProfile.findMany({
-        where: { isActive: true },
-        select: { id: true, displayName: true },
-        orderBy: { displayName: 'asc' },
+  const authorAccountOptionsRaw = isAdmin
+    ? await prisma.user.findMany({
+        where: {
+          accountType: { in: ['PERSONA', 'OPERATOR'] },
+          isManagedAccount: true,
+          isActive: true,
+        },
+        select: { id: true, displayName: true, accountType: true },
+        orderBy: [{ accountType: 'asc' }, { displayName: 'asc' }],
       })
     : [];
-  const defaultOperatorProfileId =
-    isAdmin && post.displayAuthorType === 'OPERATOR_PROFILE' ? post.displayAuthorId : null;
+  const authorAccountOptions = authorAccountOptionsRaw.map((authorAccount) => ({
+    ...authorAccount,
+    accountType:
+      authorAccount.accountType === 'OPERATOR' ? ('OPERATOR' as const) : ('PERSONA' as const),
+  }));
+  const defaultAuthorUserIdOverride =
+    isAdmin && authorAccountOptions.some((option) => option.id === post.authorId)
+      ? post.authorId
+      : null;
 
   return (
     <section className="space-y-4">
@@ -109,8 +119,8 @@ export default async function EditPostPage({
           defaultCityId={formOptions.defaultCityId}
           submitLabel="수정하기"
           isAdmin={isAdmin}
-          operatorProfiles={operatorProfiles}
-          defaultOperatorProfileId={defaultOperatorProfileId}
+          authorAccountOptions={authorAccountOptions}
+          defaultAuthorUserIdOverride={defaultAuthorUserIdOverride}
           errorMessage={query.error}
           defaultValues={{
             postId: post.id,

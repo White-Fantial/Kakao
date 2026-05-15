@@ -96,6 +96,20 @@
 - `COORDINATOR`: 지역 운영/공지/커뮤니티 활성화 담당(기본 moderation 권한 없음)
 - `ADMIN`: 전체 권한(MODERATOR + COORDINATOR 포함, 역할 부여/시스템 설정)
 
+## AccountType Policy
+- `REAL_USER`: 실제 사용자 계정
+- `PERSONA`: 운영자가 관리하는 커뮤니티 활성화용 일반형 계정
+- `OPERATOR`: 운영팀/공지/안내용 운영 계정
+- `SYSTEM`: 자동 시스템 메시지용 계정
+
+## 작성자 선택 정책
+- 일반 사용자(`USER`/`MODERATOR`/`COORDINATOR`)는 항상 본인 계정으로만 글/댓글 작성 가능
+- `ADMIN`만 글/댓글 작성 시 `PERSONA` 또는 `OPERATOR` + `isManagedAccount=true` + `isActive=true` 계정을 선택 가능
+- `SYSTEM`, `REAL_USER`, 비활성 managed 계정은 대리 작성 대상으로 선택 불가
+- 게시글/댓글에는 `authorId`(공개 작성자)와 `createdByUserId`(실제 작성자)를 분리 저장해 내부 감사 추적
+- `OPERATOR` 작성자는 공개 UI에서 운영자 배지를 표시하며 온기/신뢰성 지표를 노출하지 않음
+- `PERSONA`는 공개 UI에서 일반 사용자처럼 표시(별도 페르소나 라벨 비노출)
+
 ## RBAC Change Log
 - 기존 `COORDINATOR`가 담당하던 신고 처리/보류 복구/콘텐츠 제재 중심 moderation 권한을 `MODERATOR`로 이전했습니다.
 - 일반 사용자는 삭제/보류되지 않은 댓글 1개만 남겨도 Kakao 연락 버튼이 즉시 열립니다.

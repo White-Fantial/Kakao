@@ -11,6 +11,7 @@ import { WarmthLogViewer } from '@/components/moderation/warmth-log-viewer';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canModerate } from '@/lib/permissions';
+import { shouldShowOperatorBadge, shouldShowWarmth } from '@/lib/account-type';
 
 
 
@@ -31,6 +32,7 @@ const getUserProfile = cache(async (userId: string) => {
       displayName: true,
       profileImageUrl: true,
       neighbourWarmth: true,
+      accountType: true,
       createdAt: true,
       city: { select: { name: true } },
       country: { select: { name: true } },
@@ -149,9 +151,16 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           />
           <div>
             <p className="text-base font-semibold">{user.displayName}</p>
-            <p className="text-sm text-[#666]">
-              <NeighbourWarmthLabel warmth={user.neighbourWarmth} />
-            </p>
+            {shouldShowOperatorBadge(user) ? (
+              <p className="text-sm text-[#666]">
+                <span className="rounded bg-[#3c1e1e] px-1 py-0.5 text-[10px] font-bold text-white">운영자</span>
+              </p>
+            ) : null}
+            {shouldShowWarmth(user) ? (
+              <p className="text-sm text-[#666]">
+                <NeighbourWarmthLabel warmth={user.neighbourWarmth} />
+              </p>
+            ) : null}
             {(user.country || user.city) ? (
               <p className="text-sm text-[#888]">
                 {[user.country?.name, user.city?.name].filter(Boolean).join(' · ')}
@@ -168,18 +177,22 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
             <dt className="font-medium text-[#333]">게시물 수</dt>
             <dd>{user._count.posts}개</dd>
           </div>
-          <div className="flex gap-2">
-            <dt className="font-medium text-[#333]">게시글 좋아요</dt>
-            <dd>{receivedPostLikesCount}개</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="font-medium text-[#333]">댓글 좋아요</dt>
-            <dd>{receivedCommentLikesCount}개</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="font-medium text-[#333]">베스트 댓글</dt>
-            <dd>{receivedBestCommentsCount}개</dd>
-          </div>
+          {shouldShowWarmth(user) ? (
+            <>
+              <div className="flex gap-2">
+                <dt className="font-medium text-[#333]">게시글 좋아요</dt>
+                <dd>{receivedPostLikesCount}개</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="font-medium text-[#333]">댓글 좋아요</dt>
+                <dd>{receivedCommentLikesCount}개</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="font-medium text-[#333]">베스트 댓글</dt>
+                <dd>{receivedBestCommentsCount}개</dd>
+              </div>
+            </>
+          ) : null}
         </dl>
         {canModerate(currentUser) ? (
           <WarmthLogViewer userId={userId} />

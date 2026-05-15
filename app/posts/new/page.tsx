@@ -31,13 +31,22 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
   const params = await searchParams;
   const formOptions = await getPostCreationFormOptions(user);
   const isAdmin = user.role === 'ADMIN';
-  const operatorProfiles = isAdmin
-    ? await prisma.operatorProfile.findMany({
-        where: { isActive: true },
-        select: { id: true, displayName: true },
-        orderBy: { displayName: 'asc' },
+  const authorAccountOptionsRaw = isAdmin
+    ? await prisma.user.findMany({
+        where: {
+          accountType: { in: ['PERSONA', 'OPERATOR'] },
+          isManagedAccount: true,
+          isActive: true,
+        },
+        select: { id: true, displayName: true, accountType: true },
+        orderBy: [{ accountType: 'asc' }, { displayName: 'asc' }],
       })
     : [];
+  const authorAccountOptions = authorAccountOptionsRaw.map((authorAccount) => ({
+    ...authorAccount,
+    accountType:
+      authorAccount.accountType === 'OPERATOR' ? ('OPERATOR' as const) : ('PERSONA' as const),
+  }));
 
   return (
     <section className="space-y-4">
@@ -72,7 +81,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
           defaultCityId={formOptions.defaultCityId}
           submitLabel="올리기"
           isAdmin={isAdmin}
-          operatorProfiles={operatorProfiles}
+          authorAccountOptions={authorAccountOptions}
           errorMessage={params.error}
         />
       )}

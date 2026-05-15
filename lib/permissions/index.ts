@@ -469,7 +469,3 @@ export function canMakeFinalUserDecision(
 ) {
   return isAdmin(user?.role);
 }
-
-export function canUseOperatorProfile(user: PermissionUser | null | undefined) {
-  return user?.role === 'ADMIN';
-}

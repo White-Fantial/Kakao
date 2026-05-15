@@ -54,9 +54,10 @@ type SelectOption = {
   label: string;
 };
 
-type OperatorProfileOption = {
+type AuthorAccountOption = {
   id: string;
   displayName: string;
+  accountType: 'PERSONA' | 'OPERATOR';
 };
 
 type PostFormProps = {
@@ -69,8 +70,8 @@ type PostFormProps = {
   defaultCityId: string | null;
   submitLabel: string;
   isAdmin?: boolean;
-  operatorProfiles?: OperatorProfileOption[];
-  defaultOperatorProfileId?: string | null;
+  authorAccountOptions?: AuthorAccountOption[];
+  defaultAuthorUserIdOverride?: string | null;
   defaultValues?: {
     postId?: string;
     title?: string | null;
@@ -203,8 +204,8 @@ export function PostForm({
   defaultCityId,
   submitLabel,
   isAdmin,
-  operatorProfiles,
-  defaultOperatorProfileId,
+  authorAccountOptions,
+  defaultAuthorUserIdOverride,
   defaultValues,
   errorMessage,
 }: PostFormProps) {
@@ -229,7 +230,7 @@ export function PostForm({
   const [commentGateOverride, setCommentGateOverride] = useState<boolean | null>(
     defaultValues?.postId ? (defaultValues.requireCommentBeforeContact ?? false) : null,
   );
-  const [operatorProfileId, setOperatorProfileId] = useState(defaultOperatorProfileId ?? '');
+  const [authorUserIdOverride, setAuthorUserIdOverride] = useState(defaultAuthorUserIdOverride ?? '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -497,27 +498,27 @@ export function PostForm({
       <input type="hidden" name="countryId" value={selectedCountryId ?? ''} />
       <input type="hidden" name="cityId" value={selectedCityId ?? ''} />
 
-      {isAdmin && operatorProfiles && operatorProfiles.length > 0 ? (
+      {isAdmin ? (
         <div className="space-y-1">
-          <label htmlFor="operatorProfileId" className="text-sm font-medium text-[#555]">
-            작성자
+          <label htmlFor="authorUserIdOverride" className="text-sm font-medium text-[#555]">
+            작성 계정
           </label>
           <select
-            id="operatorProfileId"
-            name="operatorProfileId"
-            value={operatorProfileId}
-            onChange={(e) => setOperatorProfileId(e.target.value)}
+            id="authorUserIdOverride"
+            name="authorUserIdOverride"
+            value={authorUserIdOverride}
+            onChange={(e) => setAuthorUserIdOverride(e.target.value)}
             className={FIELD_CLASS}
           >
-            <option value="">본인 (직접 작성)</option>
-            {operatorProfiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.displayName}
+            <option value="">내 계정으로 작성</option>
+            {(authorAccountOptions ?? []).map((authorAccount) => (
+              <option key={authorAccount.id} value={authorAccount.id}>
+                [{authorAccount.accountType}] {authorAccount.displayName}
               </option>
             ))}
           </select>
           <p className="text-xs text-[#888]">
-            운영자 프로필을 선택하면 해당 프로필 이름으로 게시글이 표시됩니다.
+            ADMIN만 PERSONA/OPERATOR 운영 계정으로 작성할 수 있어요.
           </p>
         </div>
       ) : null}

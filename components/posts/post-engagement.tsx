@@ -167,11 +167,19 @@ export function PostContactAction({
 type PostCommentComposerProps = {
   postId: string;
   currentUserLoggedIn: boolean;
+  isAdmin: boolean;
+  authorAccountOptions: Array<{
+    id: string;
+    displayName: string;
+    accountType: 'PERSONA' | 'OPERATOR';
+  }>;
 };
 
 export function PostCommentComposer({
   postId,
   currentUserLoggedIn,
+  isAdmin,
+  authorAccountOptions,
 }: PostCommentComposerProps) {
   const router = useRouter();
   const {
@@ -215,6 +223,27 @@ export function PostCommentComposer({
   return (
     <form id={POST_COMMENT_COMPOSER_ID} action={formAction} className="space-y-2">
       <input type="hidden" name="postId" value={postId} />
+
+      {isAdmin ? (
+        <div className="space-y-1">
+          <label htmlFor={`${POST_COMMENT_COMPOSER_ID}-author`} className="text-xs font-medium text-[#555]">
+            작성 계정
+          </label>
+          <select
+            id={`${POST_COMMENT_COMPOSER_ID}-author`}
+            name="authorUserIdOverride"
+            defaultValue=""
+            className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
+          >
+            <option value="">내 계정으로 작성</option>
+            {authorAccountOptions.map((authorAccount) => (
+              <option key={authorAccount.id} value={authorAccount.id}>
+                [{authorAccount.accountType}] {authorAccount.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       {quickCommentTemplates.length > 0 ? (
         <div className="flex flex-wrap gap-2">

@@ -14,6 +14,13 @@ enum UserRole {
   ADMIN
 }
 
+enum AccountType {
+  REAL_USER
+  PERSONA
+  OPERATOR
+  SYSTEM
+}
+
 enum UserStatus {
   ACTIVE
   LIMITED
@@ -85,16 +92,12 @@ enum ReportReviewStatus {
   FALSE_REPORT
 }
 
-enum DisplayAuthorType {
-  USER
-  OPERATOR_PROFILE
-}
-
 model User {
   id                   String             @id @default(cuid())
   kakaoId              String             @unique
   displayName          String
   profileImageUrl      String?
+  shortBio             String?
   neighbourWarmth      Float              @default(36.5)
   kakaoAccessToken     String?
   kakaoRefreshToken    String?
@@ -103,11 +106,19 @@ model User {
   cityId               String?
   countryId            String?
   role                 UserRole           @default(USER)
+  accountType          AccountType        @default(REAL_USER)
+  isManagedAccount     Boolean            @default(false)
+  isActive             Boolean            @default(true)
   status               UserStatus         @default(ACTIVE)
+  personaNotes         String?
+  toneNotes            String?
+  activityNotes        String?
   city                 City?              @relation(fields: [cityId], references: [id])
   country              Country?           @relation(fields: [countryId], references: [id])
   posts                Post[]
+  createdPosts         Post[]             @relation("PostCreatedBy")
   comments             Comment[]
+  createdComments      Comment[]          @relation("CommentCreatedBy")
   sessions             Session[]
   moderationLogs       ModerationAction[] @relation("ModerationActor")
   restrictions         UserRestriction[]  @relation("RestrictedUser")
@@ -224,6 +235,7 @@ model PostPermission {
 model Post {
   id              String       @id @default(cuid())
   authorId        String
+  createdByUserId String?
   cityId          String?
   countryId       String?
   categoryId      String
@@ -238,6 +250,7 @@ model Post {
   heldReason      String?
   deletedReason   String?
   author          User         @relation(fields: [authorId], references: [id])
+  createdByUser   User?        @relation("PostCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   city            City?        @relation(fields: [cityId], references: [id])
   country         Country?     @relation(fields: [countryId], references: [id])
   category        Category     @relation(fields: [categoryId], references: [id])
@@ -251,8 +264,6 @@ model Post {
   reports         PostReport[]
   savedBy         SavedPost[]
   scoreEvents     CommunityScoreEvent[]
-  displayAuthorType DisplayAuthorType @default(USER)
-  displayAuthorId   String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   publishedAt     DateTime?    @default(now())
@@ -267,6 +278,7 @@ model Post {
   @@index([status, cityId, createdAt, id])
   @@index([status, categoryId, createdAt, id])
   @@index([authorId, status, createdAt])
+  @@index([createdByUserId, createdAt])
   @@index([bestCommentId])
 }
 
@@ -369,11 +381,13 @@ model Comment {
   id             String          @id @default(cuid())
   postId         String
   authorId       String
+  createdByUserId String?
   body           String
   status         CommentStatus   @default(PUBLISHED)
   communityScore Float           @default(0)
   post           Post            @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
   author         User            @relation(fields: [authorId], references: [id])
+  createdByUser  User?           @relation("CommentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   commentLikes   CommentLike[]
   bestForPosts   Post[]          @relation("PostBestComment")
   reports        CommentReport[]
@@ -383,6 +397,7 @@ model Comment {
 
   @@index([postId, status, createdAt])
   @@index([postId, status, id])
+  @@index([createdByUserId, createdAt])
 }
 
 model PostLike {
@@ -531,17 +546,4 @@ model NeighbourWarmthLog {
   createdAt      DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
-}
-
-model OperatorProfile {
-  id          String   @id @default(cuid())
-  displayName String
-  slug        String   @unique
-  avatarUrl   String?
-  bio         String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([isActive])
 }
