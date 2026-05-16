@@ -10,6 +10,7 @@ import {
 import { adminManagementNavItems, ManagementSectionNav } from '@/components/admin/management-section-nav';
 import { ColorPaletteInput } from '@/components/admin/color-palette-input';
 import { TagDragList } from '@/components/admin/tag-drag-list';
+import { CategoryDragList } from '@/components/admin/category-drag-list';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { canMakeFinalUserDecision } from '@/lib/permissions';
@@ -194,148 +195,159 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
         {categories.length === 0 ? (
           <p className="text-sm text-[#888]">카테고리가 없습니다.</p>
         ) : (
-          <ul className="space-y-2">
-            {categories.map((category) => {
-              const tags = tagOptionsByType.get(category.type) ?? [];
-              const quickCommentTemplates = Array.isArray(category.quickCommentTemplates)
-                ? category.quickCommentTemplates
-                    .filter((template): template is string => typeof template === 'string')
-                    .map((template) => template.trim())
-                    .filter((template) => template.length > 0)
-                : [];
+          <div className="space-y-3">
+            <CategoryDragList
+              initialCategories={categories.map((category) => ({
+                id: category.id,
+                name: category.name,
+                slug: category.slug,
+                isActive: category.isActive,
+                sortOrder: category.sortOrder,
+              }))}
+            />
+            <ul className="space-y-2">
+              {categories.map((category) => {
+                const tags = tagOptionsByType.get(category.type) ?? [];
+                const quickCommentTemplates = Array.isArray(category.quickCommentTemplates)
+                  ? category.quickCommentTemplates
+                      .filter((template): template is string => typeof template === 'string')
+                      .map((template) => template.trim())
+                      .filter((template) => template.length > 0)
+                  : [];
 
-              return (
-                <li key={category.id}>
-                  <details name="admin-category-accordion" className="group rounded-xl border border-[#e8e8e8]">
-                    <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 select-none">
-                      {category.color ? (
+                return (
+                  <li key={category.id}>
+                    <details name="admin-category-accordion" className="group rounded-xl border border-[#e8e8e8]">
+                      <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 select-none">
+                        {category.color ? (
+                          <span
+                            className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-[#e8e8e8]"
+                            style={{ backgroundColor: category.color }}
+                          />
+                        ) : (
+                          <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-[#e8e8e8] bg-white" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{category.name}</p>
+                          <p className="truncate text-xs text-[#aaa]">
+                            {category.slug} · {CATEGORY_TYPE_LABELS[category.type]} ·{' '}
+                            {VISIBILITY_MODE_LABELS[category.visibilityMode]} · 글 {category._count.posts}개
+                          </p>
+                        </div>
                         <span
-                          className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-[#e8e8e8]"
-                          style={{ backgroundColor: category.color }}
-                        />
-                      ) : (
-                        <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-[#e8e8e8] bg-white" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{category.name}</p>
-                        <p className="truncate text-xs text-[#aaa]">
-                          {category.slug} · {CATEGORY_TYPE_LABELS[category.type]} ·{' '}
-                          {VISIBILITY_MODE_LABELS[category.visibilityMode]} · 글 {category._count.posts}개
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-                          category.isActive
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-[#f5f5f5] text-[#888]'
-                        }`}
-                      >
-                        {category.isActive ? '활성' : '비활성'}
-                      </span>
-                      <span className="shrink-0 text-sm text-[#aaa] transition-transform group-open:rotate-180">
-                        ▼
-                      </span>
-                    </summary>
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+                            category.isActive
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-[#f5f5f5] text-[#888]'
+                          }`}
+                        >
+                          {category.isActive ? '활성' : '비활성'}
+                        </span>
+                        <span className="shrink-0 text-sm text-[#aaa] transition-transform group-open:rotate-180">
+                          ▼
+                        </span>
+                      </summary>
 
-                    <div className="space-y-4 border-t border-[#f0f0f0] px-3 pb-4 pt-3">
-                      {/* Settings + active toggle */}
-                      <div className="flex flex-wrap gap-4">
-                        <form action={updateCategorySettingsAction} className="flex-1 space-y-3 min-w-[240px]">
-                          <input type="hidden" name="categoryId" value={category.id} />
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="space-y-1">
-                              <label className="text-xs font-medium text-[#555]">카테고리 타입</label>
-                              <select
-                                name="type"
-                                defaultValue={category.type}
-                                className={SELECT_CLASS}
-                              >
-                                {Object.entries(CATEGORY_TYPE_LABELS).map(([value, label]) => (
-                                  <option key={value} value={value}>
-                                    {label} ({value})
-                                  </option>
-                                ))}
-                              </select>
+                      <div className="space-y-4 border-t border-[#f0f0f0] px-3 pb-4 pt-3">
+                        {/* Settings + active toggle */}
+                        <div className="flex flex-wrap gap-4">
+                          <form action={updateCategorySettingsAction} className="flex-1 space-y-3 min-w-[240px]">
+                            <input type="hidden" name="categoryId" value={category.id} />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div className="space-y-1">
+                                <label className="text-xs font-medium text-[#555]">카테고리 타입</label>
+                                <select
+                                  name="type"
+                                  defaultValue={category.type}
+                                  className={SELECT_CLASS}
+                                >
+                                  {Object.entries(CATEGORY_TYPE_LABELS).map(([value, label]) => (
+                                    <option key={value} value={value}>
+                                      {label} ({value})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs font-medium text-[#555]">노출 방식</label>
+                                <select
+                                  name="visibilityMode"
+                                  defaultValue={category.visibilityMode}
+                                  className={SELECT_CLASS}
+                                >
+                                  {Object.entries(VISIBILITY_MODE_LABELS).map(([value, label]) => (
+                                    <option key={value} value={value}>
+                                      {label} ({value})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
+                            <ColorPaletteInput
+                              name="color"
+                              defaultValue={category.color ?? ''}
+                              label="카테고리 색상"
+                            />
+                            <label className="flex items-center gap-2 text-sm text-[#555]">
+                              <input
+                                type="checkbox"
+                                name="requireCommentBeforeContactDefault"
+                                defaultChecked={category.requireCommentBeforeContactDefault}
+                                className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
+                              />
+                              댓글 작성 후 연락 기본값 활성화
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-[#555]">
+                              <input
+                                type="checkbox"
+                                name="contactSectionDefaultExpanded"
+                                defaultChecked={category.contactSectionDefaultExpanded}
+                                className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
+                              />
+                              연락 방법 섹션 기본 펼침
+                            </label>
                             <div className="space-y-1">
-                              <label className="text-xs font-medium text-[#555]">노출 방식</label>
-                              <select
-                                name="visibilityMode"
-                                defaultValue={category.visibilityMode}
-                                className={SELECT_CLASS}
-                              >
-                                {Object.entries(VISIBILITY_MODE_LABELS).map(([value, label]) => (
-                                  <option key={value} value={value}>
-                                    {label} ({value})
-                                  </option>
-                                ))}
-                              </select>
+                              <label className="text-xs font-medium text-[#555]">빠른 댓글 템플릿 (줄바꿈으로 구분)</label>
+                              <textarea
+                                name="quickCommentTemplates"
+                                rows={4}
+                                defaultValue={quickCommentTemplates.join('\n')}
+                                className={INPUT_CLASS}
+                              />
                             </div>
-                          </div>
-                          <ColorPaletteInput
-                            name="color"
-                            defaultValue={category.color ?? ''}
-                            label="카테고리 색상"
-                          />
-                          <label className="flex items-center gap-2 text-sm text-[#555]">
-                            <input
-                              type="checkbox"
-                              name="requireCommentBeforeContactDefault"
-                              defaultChecked={category.requireCommentBeforeContactDefault}
-                              className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
+                            <FormSubmitButton
+                              idleLabel="설정 저장"
+                              pendingLabel="저장 중..."
+                              className="rounded-xl bg-[#fee500] px-3 py-1.5 text-xs font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
                             />
-                            댓글 작성 후 연락 기본값 활성화
-                          </label>
-                          <label className="flex items-center gap-2 text-sm text-[#555]">
-                            <input
-                              type="checkbox"
-                              name="contactSectionDefaultExpanded"
-                              defaultChecked={category.contactSectionDefaultExpanded}
-                              className="h-4 w-4 rounded border-[#d9d9d9] text-[#3c1e1e] focus:ring-[#fee500]"
-                            />
-                            연락 방법 섹션 기본 펼침
-                          </label>
-                          <div className="space-y-1">
-                            <label className="text-xs font-medium text-[#555]">빠른 댓글 템플릿 (줄바꿈으로 구분)</label>
-                            <textarea
-                              name="quickCommentTemplates"
-                              rows={4}
-                              defaultValue={quickCommentTemplates.join('\n')}
-                              className={INPUT_CLASS}
-                            />
-                          </div>
-                          <FormSubmitButton
-                            idleLabel="설정 저장"
-                            pendingLabel="저장 중..."
-                            className="rounded-xl bg-[#fee500] px-3 py-1.5 text-xs font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
-                          />
-                        </form>
+                          </form>
 
-                        <form action={toggleCategoryActiveAction} className="self-start pt-1">
-                          <input type="hidden" name="categoryId" value={category.id} />
-                          <input type="hidden" name="isActive" value={String(category.isActive)} />
-                          <FormSubmitButton
-                            idleLabel={category.isActive ? '비활성화' : '활성화'}
-                            pendingLabel="처리 중..."
-                            className="whitespace-nowrap rounded-xl border border-[#e8e8e8] px-3 py-1.5 text-xs font-medium hover:bg-[#f9f9f9]"
-                          />
-                        </form>
-                      </div>
+                          <form action={toggleCategoryActiveAction} className="self-start pt-1">
+                            <input type="hidden" name="categoryId" value={category.id} />
+                            <input type="hidden" name="isActive" value={String(category.isActive)} />
+                            <FormSubmitButton
+                              idleLabel={category.isActive ? '비활성화' : '활성화'}
+                              pendingLabel="처리 중..."
+                              className="whitespace-nowrap rounded-xl border border-[#e8e8e8] px-3 py-1.5 text-xs font-medium hover:bg-[#f9f9f9]"
+                            />
+                          </form>
+                        </div>
 
-                      {/* Tag options for this category type */}
-                      <div className="rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-3 pb-3">
-                        <TagDragList
-                          categoryType={category.type}
-                          categoryTypeLabel={CATEGORY_TYPE_LABELS[category.type]}
-                          initialTags={tags}
-                        />
+                        {/* Tag options for this category type */}
+                        <div className="rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-3 pb-3">
+                          <TagDragList
+                            categoryType={category.type}
+                            categoryTypeLabel={CATEGORY_TYPE_LABELS[category.type]}
+                            initialTags={tags}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </details>
-                </li>
-              );
-            })}
-          </ul>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </div>
     </section>
