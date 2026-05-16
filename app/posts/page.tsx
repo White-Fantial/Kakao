@@ -2,9 +2,10 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import type { CategoryType } from '@prisma/client';
 import { PublicHomeHero } from '@/components/home/PublicHomeHero';
-import { PostCard } from '@/components/posts/post-card';
 import { EmptyStateMessage } from '@/components/ui/empty-state-message';
 import { CategoryFilterFieldset } from '@/components/posts/category-filter-fieldset';
+import { InfinitePostList } from '@/components/posts/infinite-post-list';
+import type { InfinitePostItem } from '@/components/posts/infinite-post-list';
 import { saveSearchAlertAction } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -150,18 +151,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const returnTo = `/posts${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`;
   const canViewReportStats = currentUser ? canMakeFinalUserDecision(currentUser) : false;
   const paginationBaseParams = new URLSearchParams(returnToParams);
-  const createListHref = (cursor: string, direction: 'next' | 'prev') => {
-    const query = new URLSearchParams(paginationBaseParams);
-    query.set('cursor', cursor);
-    if (direction === 'prev') {
-      query.set('direction', direction);
-    } else {
-      query.delete('direction');
-    }
 
-    const queryString = query.toString();
-    return `/posts${queryString ? `?${queryString}` : ''}`;
-  };
   const createDetailHref = (postId: string) => {
     const query = new URLSearchParams(paginationBaseParams);
     if (cursorToken) {
@@ -224,8 +214,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     city: { name: string } | null;
     author: { displayName: string; profileImageUrl: string | null; neighbourWarmth: number; isOperator?: boolean };
   }> = [];
-  let hasNextPage = false;
-  let hasPrevPage = false;
 
   if (canViewReportStats) {
     const posts = await measureServerTiming('posts:list:with-reports', () =>
@@ -288,14 +276,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     const hasExtra = posts.length > PAGE_SIZE;
     const slicedPosts = hasExtra ? posts.slice(0, PAGE_SIZE) : posts;
     const pagePosts = paginationDirection === 'prev' ? [...slicedPosts].reverse() : slicedPosts;
-    hasPrevPage =
-      paginationDirection === 'prev'
-        ? hasExtra
-        : Boolean(paginationCursor);
-    hasNextPage =
-      paginationDirection === 'prev'
-        ? Boolean(paginationCursor)
-        : hasExtra;
+
 
     normalizedPosts = pagePosts.map((post) => {
       return {
@@ -378,14 +359,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     const hasExtra = posts.length > PAGE_SIZE;
     const slicedPosts = hasExtra ? posts.slice(0, PAGE_SIZE) : posts;
     const pagePosts = paginationDirection === 'prev' ? [...slicedPosts].reverse() : slicedPosts;
-    hasPrevPage =
-      paginationDirection === 'prev'
-        ? hasExtra
-        : Boolean(paginationCursor);
-    hasNextPage =
-      paginationDirection === 'prev'
-        ? Boolean(paginationCursor)
-        : hasExtra;
+
 
     normalizedPosts = pagePosts.map((post) => {
       return {
@@ -410,16 +384,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
 
   const hasFilters = shouldFilterByCountry || shouldFilterByCategory || shouldFilterByCity || hasKeyword;
-  const firstPost = normalizedPosts[0];
   const lastPost = normalizedPosts[normalizedPosts.length - 1];
-  const prevCursor = firstPost
-    ? encodeCursor({
-        id: firstPost.id,
-        createdAt: firstPost.createdAt,
-        isPinned: firstPost.isPinned,
-        pinnedAt: firstPost.pinnedAt,
-      })
-    : null;
   const nextCursor = lastPost
     ? encodeCursor({
         id: lastPost.id,
@@ -556,56 +521,24 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       ) : null}
 
       {normalizedPosts.length === 0 ? (
-        <div className="space-y-3">
-          <EmptyStateMessage title={emptyState.title} description={emptyState.description} />
-          {hasPrevPage ? (
-            <div className="flex justify-center">
-              <Link
-                href={prevCursor ? createListHref(prevCursor, 'prev') : '/posts'}
-                className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
-              >
-                이전 페이지로 이동
-              </Link>
-            </div>
-          ) : null}
-        </div>
+        <EmptyStateMessage title={emptyState.title} description={emptyState.description} />
       ) : (
-        <>
-          <div className="space-y-3">
-            {normalizedPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                variant="featured"
-                displayVariant="feed"
-                post={{ ...post, href: createDetailHref(post.id), isRecommended: post.likeCount >= 10 }}
-                showLikeAction={Boolean(currentUser)}
-                showSaveAction={Boolean(currentUser)}
-                returnTo={returnTo}
-              />
-            ))}
-          </div>
-          {hasPrevPage || hasNextPage ? (
-            <nav className="flex items-center justify-center gap-2" aria-label="게시글 목록 페이지 이동">
-              {hasPrevPage && prevCursor ? (
-                <Link
-                  href={createListHref(prevCursor, 'prev')}
-                  className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
-                >
-                  이전
-                </Link>
-              ) : null}
-              <span className="text-sm text-[#666]">커서 페이지네이션</span>
-              {hasNextPage && nextCursor ? (
-                <Link
-                  href={createListHref(nextCursor, 'next')}
-                  className="rounded-xl border border-[#e8e8e8] px-4 py-2 text-sm hover:bg-[#f9f9f9]"
-                >
-                  다음
-                </Link>
-              ) : null}
-            </nav>
-          ) : null}
-        </>
+        <InfinitePostList
+          initialPosts={normalizedPosts.map((post) => ({
+            ...post,
+            href: createDetailHref(post.id),
+            createdAt: post.createdAt.toISOString(),
+            pinnedAt: post.pinnedAt?.toISOString() ?? null,
+          } satisfies InfinitePostItem))}
+          initialNextCursor={nextCursor}
+          fetchApiUrl={`/api/posts/feed${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`}
+          cardConfig={{
+            mode: 'feed',
+            showLikeAction: Boolean(currentUser),
+            showSaveAction: Boolean(currentUser),
+            returnTo,
+          }}
+        />
       )}
     </section>
   );

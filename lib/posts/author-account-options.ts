@@ -2,7 +2,7 @@ import type { AccountType, UserRole, UserStatus } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 
-export type AuthorAccountKind = 'OPERATOR';
+export type AuthorAccountKind = 'PERSONA' | 'OPERATOR';
 
 export type AuthorAccountOption = {
   id: string;
@@ -36,13 +36,16 @@ function resolveAuthorCountryId(candidate: AuthorSelectionCandidate) {
 }
 
 function toAuthorAccountKind(candidate: AuthorSelectionCandidate): AuthorAccountKind | null {
-  if (
-    candidate.accountType === 'OPERATOR' &&
-    candidate.isManagedAccount &&
-    candidate.isActive &&
-    candidate.status === 'ACTIVE'
-  ) {
+  if (!candidate.isManagedAccount || !candidate.isActive || candidate.status !== 'ACTIVE') {
+    return null;
+  }
+
+  if (candidate.accountType === 'OPERATOR') {
     return 'OPERATOR';
+  }
+
+  if (candidate.accountType === 'PERSONA') {
+    return 'PERSONA';
   }
 
   return null;
@@ -113,7 +116,7 @@ export async function getAuthorAccountOptionsForActor(
 
   const authorAccountOptionsRaw = await prisma.user.findMany({
     where: {
-      accountType: 'OPERATOR',
+      accountType: { in: ['PERSONA', 'OPERATOR'] },
       isManagedAccount: true,
       isActive: true,
       status: 'ACTIVE',
