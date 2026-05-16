@@ -55,6 +55,7 @@ import {
   canModerate,
   canReportPost,
   canReportComment,
+  canUseAutoContentGeneration,
 } from '@/lib/permissions';
 import {
   getActiveCategories,
@@ -1112,6 +1113,7 @@ async function CommentsSection({
           postId={postId}
           currentUserLoggedIn
           canSelectAuthorAccount={Boolean(currentUser && canSelectAuthorAccount(currentUser.role))}
+          canGenerateDraft={Boolean(currentUser && canUseAutoContentGeneration(currentUser))}
           authorAccountOptions={authorAccountOptions}
         />
       ) : (
@@ -1119,6 +1121,7 @@ async function CommentsSection({
           postId={postId}
           currentUserLoggedIn={false}
           canSelectAuthorAccount={false}
+          canGenerateDraft={false}
           authorAccountOptions={[]}
         />
       )}

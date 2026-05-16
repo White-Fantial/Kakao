@@ -76,6 +76,17 @@ const ROLE_RANK: Record<UserRole, number> = {
 
 export { ROLE_RANK };
 export const USER_ROLES = Object.values(UserRole) as UserRole[];
+export const AUTO_CONTENT_GENERATION_ROLES: UserRole[] = ['ADMIN'];
+
+export function canUseAutoContentGeneration(
+  user: PermissionUser | null | undefined,
+) {
+  if (!user || user.status === 'SUSPENDED' || user.status === 'DELETED') {
+    return false;
+  }
+
+  return AUTO_CONTENT_GENERATION_ROLES.includes(user.role);
+}
 
 export function isAdmin(role: UserRole | null | undefined) {
   return role === 'ADMIN';

@@ -4,7 +4,11 @@ import { PostForm } from '@/components/posts/post-form';
 import { updatePostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canEditPost, getPostCreationFormOptions } from '@/lib/permissions';
+import {
+  canEditPost,
+  canUseAutoContentGeneration,
+  getPostCreationFormOptions,
+} from '@/lib/permissions';
 import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 import {
   canSelectAuthorAccount,
@@ -68,6 +72,7 @@ export default async function EditPostPage({
     notFound();
   }
 
+  const canGenerateDraft = canUseAutoContentGeneration(user);
   const canOverrideAuthor = canSelectAuthorAccount(user.role);
   const authorAccountOptions = canOverrideAuthor
     ? await getAuthorAccountOptionsForActor(
@@ -116,6 +121,7 @@ export default async function EditPostPage({
           defaultCityId={formOptions.defaultCityId}
           submitLabel="수정하기"
           canSelectAuthorAccount={canOverrideAuthor}
+          canGenerateDraft={canGenerateDraft}
           authorAccountOptions={authorAccountOptions}
           defaultAuthorUserIdOverride={defaultAuthorUserIdOverride}
           errorMessage={query.error}
