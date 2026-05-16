@@ -45,7 +45,7 @@ export default async function NotificationsPage() {
   const hasUnread = notifications.some((n) => !n.isRead);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold">알림</h1>
         {notifications.length > 0 && (
