@@ -174,7 +174,7 @@ type PostCommentComposerProps = {
   authorAccountOptions: Array<{
     id: string;
     displayName: string;
-    accountType: 'OPERATOR';
+    accountType: 'OPERATOR' | 'PERSONA';
   }>;
 };
 

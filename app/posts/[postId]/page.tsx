@@ -1269,30 +1269,49 @@ async function CommentsSection({
                 <div className="mt-3 space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <UserAvatar
-                        displayName={comment.author.displayName}
-                        profileImageUrl={comment.author.profileImageUrl}
-                        className="h-7 w-7"
-                        sizes="28px"
-                      />
-                      <div className="min-w-0 text-xs text-[#777]">
-                        <p className="truncate text-sm font-medium text-[#444]">
-                          {comment.author.displayName}
-                          {shouldShowOperatorBadge(comment.author) ? (
-                            <span className="ml-1 rounded bg-[#3c1e1e] px-1 py-0.5 text-[10px] font-bold text-white">
-                              운영자
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="truncate">
-                          {shouldShowWarmth(comment.author) ? (
-                            <>
-                              <NeighbourWarmthLabel warmth={comment.author.neighbourWarmth} /> ·{' '}
-                            </>
-                          ) : null}
-                          <DateTimeText value={comment.createdAt} />
-                        </p>
-                      </div>
+                      {shouldShowOperatorBadge(comment.author) ? (
+                        <>
+                          <UserAvatar
+                            displayName={comment.author.displayName}
+                            profileImageUrl={comment.author.profileImageUrl}
+                            className="h-7 w-7"
+                            sizes="28px"
+                          />
+                          <div className="min-w-0 text-xs text-[#777]">
+                            <p className="truncate text-sm font-medium text-[#444]">
+                              {comment.author.displayName}
+                              <span className="ml-1 rounded bg-[#3c1e1e] px-1 py-0.5 text-[10px] font-bold text-white">
+                                운영자
+                              </span>
+                            </p>
+                            <p className="truncate">
+                              <DateTimeText value={comment.createdAt} />
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <Link href={`/users/${comment.authorId}`} className="flex min-w-0 items-center gap-2 hover:opacity-80">
+                          <UserAvatar
+                            displayName={comment.author.displayName}
+                            profileImageUrl={comment.author.profileImageUrl}
+                            className="h-7 w-7"
+                            sizes="28px"
+                          />
+                          <div className="min-w-0 text-xs text-[#777]">
+                            <p className="truncate text-sm font-medium text-[#444]">
+                              {comment.author.displayName}
+                            </p>
+                            <p className="truncate">
+                              {shouldShowWarmth(comment.author) ? (
+                                <>
+                                  <NeighbourWarmthLabel warmth={comment.author.neighbourWarmth} /> ·{' '}
+                                </>
+                              ) : null}
+                              <DateTimeText value={comment.createdAt} />
+                            </p>
+                          </div>
+                        </Link>
+                      )}
                     </div>
                   </div>
                   <CommentActionButtons>
