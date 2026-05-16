@@ -757,12 +757,15 @@ export async function createCategoryAction(formData: FormData) {
     redirect('/admin/categories?error=이미 존재하는 슬러그입니다.');
   }
 
+  const sortOrder = await prisma.category.count();
+
   await prisma.category.create({
     data: {
       name,
       slug,
       type,
       visibilityMode,
+      sortOrder,
       color,
       requireCommentBeforeContactDefault,
       contactSectionDefaultExpanded,
@@ -851,6 +854,30 @@ export async function updateCategorySettingsAction(formData: FormData) {
 
   revalidatePath('/admin/categories');
   redirect('/admin/categories');
+}
+
+export async function reorderCategoriesAction(ids: string[]): Promise<void> {
+  const user = await requireUser();
+  requireAdmin(user);
+
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+    return;
+  }
+
+  await Promise.all(
+    ids.map((id, index) =>
+      prisma.category.update({
+        where: { id },
+        data: { sortOrder: index },
+      }),
+    ),
+  );
+
+  await logModerationAction(user.id, 'CATEGORY', ids.join(','), 'REORDER');
+
+  revalidatePath('/admin/categories');
+  revalidatePath('/posts');
+  revalidatePath('/posts/new');
 }
 
 export async function createPostTagOptionAction(formData: FormData) {
