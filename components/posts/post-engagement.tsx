@@ -10,6 +10,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ import {
   createInteractiveCommentAction,
   type CreateInteractiveCommentState,
 } from '@/app/posts/[postId]/comments/actions';
+import { generateCommentDraftAction } from '@/app/posts/[postId]/comments/ai-actions';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 const POST_COMMENT_COMPOSER_ID = 'post-comment-composer';
@@ -168,6 +170,7 @@ type PostCommentComposerProps = {
   postId: string;
   currentUserLoggedIn: boolean;
   canSelectAuthorAccount: boolean;
+  canGenerateDraft: boolean;
   authorAccountOptions: Array<{
     id: string;
     displayName: string;
@@ -179,6 +182,7 @@ export function PostCommentComposer({
   postId,
   currentUserLoggedIn,
   canSelectAuthorAccount,
+  canGenerateDraft,
   authorAccountOptions,
 }: PostCommentComposerProps) {
   const router = useRouter();
@@ -191,6 +195,10 @@ export function PostCommentComposer({
     unlockContact,
   } = usePostEngagement();
   const [state, formAction] = useActionState(createInteractiveCommentAction, INITIAL_COMMENT_STATE);
+  const [isDraftPending, startDraftTransition] = useTransition();
+  const [authorUserIdOverride, setAuthorUserIdOverride] = useState('');
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const lastHandledCommentIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -223,6 +231,7 @@ export function PostCommentComposer({
   return (
     <form id={POST_COMMENT_COMPOSER_ID} action={formAction} className="space-y-2">
       <input type="hidden" name="postId" value={postId} />
+      <input type="hidden" name="authorUserIdOverride" value={authorUserIdOverride} />
 
       {canSelectAuthorAccount ? (
         <div className="space-y-1">
@@ -231,8 +240,8 @@ export function PostCommentComposer({
           </label>
           <select
             id={`${POST_COMMENT_COMPOSER_ID}-author`}
-            name="authorUserIdOverride"
-            defaultValue=""
+            value={authorUserIdOverride}
+            onChange={(event) => setAuthorUserIdOverride(event.target.value)}
             className="w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40"
           >
             <option value="">내 계정으로 작성</option>
@@ -257,6 +266,46 @@ export function PostCommentComposer({
               {template}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {canGenerateDraft ? (
+        <div className="space-y-1 rounded-lg border border-[#f0f0f0] bg-[#fafafa] p-3">
+          <button
+            type="button"
+            disabled={isDraftPending}
+            onClick={() => {
+              setDraftError(null);
+              setDraftMessage(null);
+              if (!authorUserIdOverride) {
+                setDraftError('운영 계정을 먼저 선택해 주세요.');
+                return;
+              }
+
+              startDraftTransition(async () => {
+                const result = await generateCommentDraftAction({
+                  postId,
+                  authorUserIdOverride,
+                  currentCommentBody: commentBody,
+                });
+
+                if (!result.ok) {
+                  setDraftMessage(null);
+                  setDraftError(result.message);
+                  return;
+                }
+
+                setCommentBody(result.commentBody);
+                setDraftError(null);
+                setDraftMessage(result.message);
+              });
+            }}
+            className="rounded-lg border border-[#e0e0e0] bg-white px-3 py-2 text-xs font-semibold text-[#444] hover:border-[#fee500] hover:bg-[#fffde7] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDraftPending ? '댓글 초안 생성 중...' : '자동 댓글 추천'}
+          </button>
+          {draftError ? <p className="text-xs text-red-700">{draftError}</p> : null}
+          {draftMessage ? <p className="text-xs text-green-700">{draftMessage}</p> : null}
         </div>
       ) : null}
 

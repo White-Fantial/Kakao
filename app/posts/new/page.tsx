@@ -3,7 +3,10 @@ import type { Metadata } from 'next';
 import { PostForm } from '@/components/posts/post-form';
 import { createPostAction } from '@/app/posts/actions';
 import { requireUser } from '@/lib/auth/session';
-import { getPostCreationFormOptions } from '@/lib/permissions';
+import {
+  canUseAutoContentGeneration,
+  getPostCreationFormOptions,
+} from '@/lib/permissions';
 import { getProfileCityRequiredHref, hasValidProfileCity } from '@/lib/posts/profile-city';
 import { redirect } from 'next/navigation';
 import {
@@ -33,6 +36,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
 
   const params = await searchParams;
   const formOptions = await getPostCreationFormOptions(user);
+  const canGenerateDraft = canUseAutoContentGeneration(user);
   const canOverrideAuthor = canSelectAuthorAccount(user.role);
   const authorAccountOptions = canOverrideAuthor
     ? await getAuthorAccountOptionsForActor(
@@ -77,6 +81,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
           defaultCityId={formOptions.defaultCityId}
           submitLabel="올리기"
           canSelectAuthorAccount={canOverrideAuthor}
+          canGenerateDraft={canGenerateDraft}
           authorAccountOptions={authorAccountOptions}
           errorMessage={params.error}
         />

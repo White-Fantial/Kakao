@@ -11,6 +11,10 @@ import {
 import { INVALID_KAKAO_OPEN_LINK_MESSAGE_KO } from '@/lib/kakao-open-link';
 import { KakaoOpenLinkInput } from '@/components/ui/kakao-open-link-input';
 import type { AuthorAccountOption } from '@/lib/posts/author-account-options';
+import {
+  generatePostDraftAction,
+  type GeneratePostDraftResult,
+} from '@/app/posts/ai-actions';
 
 const SALE_CATEGORY_TYPE = 'SALE';
 const DISABLED_STATE_CLASSES = 'disabled:cursor-not-allowed disabled:opacity-60';
@@ -67,6 +71,7 @@ type PostFormProps = {
   canSelectAuthorAccount?: boolean;
   authorAccountOptions?: AuthorAccountOption[];
   defaultAuthorUserIdOverride?: string | null;
+  canGenerateDraft?: boolean;
   defaultValues?: {
     postId?: string;
     title?: string | null;
@@ -201,11 +206,13 @@ export function PostForm({
   canSelectAuthorAccount,
   authorAccountOptions,
   defaultAuthorUserIdOverride,
+  canGenerateDraft,
   defaultValues,
   errorMessage,
 }: PostFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isDraftPending, startDraftTransition] = useTransition();
   const [countryValue, setCountryValue] = useState(
     toCountryValue(defaultValues?.countryId ?? defaultCountryId),
   );
@@ -226,6 +233,10 @@ export function PostForm({
     defaultValues?.postId ? (defaultValues.requireCommentBeforeContact ?? false) : null,
   );
   const [authorUserIdOverride, setAuthorUserIdOverride] = useState(defaultAuthorUserIdOverride ?? '');
+  const [titleValue, setTitleValue] = useState(defaultValues?.title ?? '');
+  const [bodyValue, setBodyValue] = useState(defaultValues?.body ?? '');
+  const [draftStatusMessage, setDraftStatusMessage] = useState<string | null>(null);
+  const [draftErrorMessage, setDraftErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -338,6 +349,47 @@ export function PostForm({
     startTransition(() => action(formData));
   }
 
+  function applyGeneratedPostDraft(result: GeneratePostDraftResult) {
+    if (!result.ok) {
+      setDraftStatusMessage(null);
+      setDraftErrorMessage(result.message);
+      return;
+    }
+
+    setDraftErrorMessage(null);
+    setDraftStatusMessage(result.message);
+    setTitleValue(result.title);
+    setBodyValue(result.body);
+  }
+
+  function handleGenerateDraft() {
+    setDraftErrorMessage(null);
+    setDraftStatusMessage(null);
+
+    if (!authorUserIdOverride) {
+      setDraftErrorMessage('자동 생성을 위해 운영 계정을 먼저 선택해 주세요.');
+      return;
+    }
+
+    if (!selectedCategoryId) {
+      setDraftErrorMessage('자동 생성을 위해 카테고리를 먼저 선택해 주세요.');
+      return;
+    }
+
+    startDraftTransition(async () => {
+      const result = await generatePostDraftAction({
+        authorUserIdOverride,
+        countryId: selectedCountryId,
+        cityId: selectedCityId,
+        categoryId: selectedCategoryId,
+        postTagOptionIds: validatedSelectedPostTagOptionIds,
+        currentTitle: titleValue,
+        currentBody: bodyValue,
+      });
+      applyGeneratedPostDraft(result);
+    });
+  }
+
   const shouldShowPrice = selectedCategory?.type === SALE_CATEGORY_TYPE;
   const showCountrySelector = countryOptions.length > 1;
   const showCitySelector = cityOptions.length > 1;
@@ -382,7 +434,7 @@ export function PostForm({
     }
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.max(textarea.scrollHeight, 220)}px`;
-  }, [defaultValues?.body]);
+  }, [bodyValue]);
 
   useEffect(
     () => () => {
@@ -546,7 +598,8 @@ export function PostForm({
         <input
           id="title"
           name="title"
-          defaultValue={defaultValues?.title ?? ''}
+          value={titleValue}
+          onChange={(event) => setTitleValue(event.target.value)}
           placeholder="짧은 제목을 추가할 수 있어요"
           className={`${FIELD_CLASS} py-2`}
           maxLength={100}
@@ -561,13 +614,12 @@ export function PostForm({
           id="body"
           name="body"
           ref={bodyTextareaRef}
-          defaultValue={defaultValues?.body ?? ''}
+          value={bodyValue}
           required
           rows={10}
           placeholder="무슨 이야기를 나누고 싶나요?"
-          onInput={(event) => {
-            event.currentTarget.style.height = 'auto';
-            event.currentTarget.style.height = `${Math.max(event.currentTarget.scrollHeight, 220)}px`;
+          onChange={(event) => {
+            setBodyValue(event.target.value);
           }}
           className={`${FIELD_CLASS} min-h-[220px] resize-none leading-relaxed`}
         />
@@ -799,13 +851,37 @@ export function PostForm({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting || !!fileError || categoryOptions.length === 0}
+          disabled={isSubmitting || !!fileError || categoryOptions.length === 0 || isDraftPending}
           aria-busy={isSubmitting}
           className={`flex-1 rounded-xl bg-[#fee500] px-4 py-3 text-base font-bold text-[#3c1e1e] hover:bg-[#f5db00] ${DISABLED_STATE_CLASSES}`}
         >
           {submitButtonLabel}
         </button>
       </div>
+
+      {canGenerateDraft ? (
+        <div className="space-y-2 rounded-xl border border-[#f0f0f0] bg-[#fafafa] p-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleGenerateDraft}
+              disabled={isSubmitting || isDraftPending}
+              className={`rounded-lg border border-[#e0e0e0] bg-white px-3 py-2 text-sm font-semibold text-[#444] hover:border-[#fee500] hover:bg-[#fffde7] ${DISABLED_STATE_CLASSES}`}
+            >
+              {isDraftPending ? '자동 초안 생성 중...' : '자동 게시글 초안 생성'}
+            </button>
+            {!authorUserIdOverride ? (
+              <p className="text-xs text-[#888] self-center">운영 계정을 선택해야 생성할 수 있어요.</p>
+            ) : null}
+          </div>
+          {draftErrorMessage ? (
+            <p className="text-sm text-red-700">{draftErrorMessage}</p>
+          ) : null}
+          {draftStatusMessage ? (
+            <p className="text-sm text-green-700">{draftStatusMessage}</p>
+          ) : null}
+        </div>
+      ) : null}
     </form>
   );
 }

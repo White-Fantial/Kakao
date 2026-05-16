@@ -193,11 +193,16 @@ components/posts/
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
+- `AI_TEXT_API_KEY` (자동 게시글/댓글 초안 생성용 ChatGPT/OpenAI 호환 API 키)
+- `AI_TEXT_MODEL` (선택, 기본값 `gpt-4o-mini`)
+- `AI_TEXT_API_BASE_URL` (선택, 기본값 `https://api.openai.com/v1`)
+- `AI_TEXT_TIMEOUT_MS` (선택, 기본값 20000)
 
 ## Important Notes
 - 카카오 로그인은 `KAKAO_CLIENT_ID`와 `KAKAO_REDIRECT_URI` 환경 변수가 설정된 경우 실제 OAuth 흐름을 사용합니다. 미설정 시 개발용 임시 로그인으로 폴백됩니다.
 - 카카오 개발자 콘솔(https://developers.kakao.com)에서 앱을 등록하고, `KAKAO_REDIRECT_URI`에 `/api/auth/kakao/callback` 경로를 등록해야 합니다.
 - 이미지 업로드는 현재 Cloudinary API 환경 변수 설정이 필요합니다.
+- AI 환경 변수가 없으면 ADMIN 자동 생성 버튼은 보여도 생성 요청은 실패 메시지를 반환합니다.
 - AWS Amplify 배포 시 `NEXT_PUBLIC_SITE_URL`(권장) 또는 `NEXTAUTH_URL`을 반드시 설정해야 SEO 메타데이터와 카카오 알림 링크가 올바른 절대 URL을 사용합니다.
 
 ## Next Focus
