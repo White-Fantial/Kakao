@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import {
+  canAccessCoordinatorSection,
   canAccessOperatorBoard,
   canMakeFinalUserDecision,
   canModerate,
@@ -13,6 +14,9 @@ export async function HeaderNavConditional() {
     <>
       {currentUser && canAccessOperatorBoard(currentUser) ? (
         <HeaderNavLink href="/coordinator/board">운영진 게시판</HeaderNavLink>
+      ) : null}
+      {currentUser && canAccessCoordinatorSection(currentUser) ? (
+        <HeaderNavLink href="/coordination">코디네이션</HeaderNavLink>
       ) : null}
       {currentUser && canModerate(currentUser) ? (
         <HeaderNavLink href="/moderator">모더레이션</HeaderNavLink>

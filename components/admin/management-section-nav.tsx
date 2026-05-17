@@ -5,6 +5,10 @@ type ManagementNavItem = {
   label: string;
 };
 
+export const coordinatorSectionNavItems = [
+  { href: '/coordination/managed-accounts', label: '운영 계정 조회' },
+] as const satisfies readonly ManagementNavItem[];
+
 export const moderatorManagementNavItems = [
   { href: '/moderator', label: '대시보드' },
   { href: '/moderator/reports', label: '신고 내역' },

@@ -488,6 +488,10 @@ export function canCoordinate(user: PermissionUser | null | undefined) {
   return isCoordinator(user?.role);
 }
 
+export function canAccessCoordinatorSection(user: PermissionUser | null | undefined) {
+  return isCoordinator(user?.role);
+}
+
 export function canAccessOperatorBoard(user: PermissionUser | null | undefined) {
   return canCoordinate(user) || canModerate(user);
 }
