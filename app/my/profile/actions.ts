@@ -85,10 +85,10 @@ export async function updateProfileAction(formData: FormData) {
     }
   }
 
-  const isCityOnlyChange = isCityChanged && !isCountryChanged;
+  const isLocationChanged = isCityChanged || isCountryChanged;
 
-  // Cooldown check for non-admin users (city-only changes)
-  if (isCityOnlyChange && !isAdmin) {
+  // Cooldown check for non-admin users (any location changes)
+  if (isLocationChanged && !isAdmin) {
     const cooldownSince = new Date(Date.now() - LOCATION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
     const recentChange = await prisma.locationChangeLog.findFirst({
       where: {
