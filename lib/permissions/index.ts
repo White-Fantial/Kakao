@@ -513,3 +513,11 @@ export function canMakeFinalUserDecision(
 ) {
   return isAdmin(user?.role);
 }
+
+export function canUseContactFeature(user: PermissionUser | null | undefined) {
+  if (!user) {
+    return true;
+  }
+
+  return user.status !== 'SUSPENDED' && user.status !== 'DELETED';
+}

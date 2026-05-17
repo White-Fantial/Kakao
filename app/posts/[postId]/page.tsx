@@ -57,6 +57,7 @@ import {
   canReportPost,
   canReportComment,
   canUseAutoContentGeneration,
+  canUseContactFeature,
 } from '@/lib/permissions';
 import {
   getActiveCategories,
@@ -319,7 +320,9 @@ export default async function PostDetailPage({
     );
   }
 
-  const contactUrl = post.contactUrl ?? post.author.openChatUrl;
+  const contactUrl = canUseContactFeature(currentUser)
+    ? (post.contactUrl ?? post.author.openChatUrl)
+    : null;
   const canSubmitReport = currentUser ? canReportPost(currentUser, post) : false;
   const canSubmitCommentReport = currentUser
     ? currentUser.status === 'ACTIVE'
