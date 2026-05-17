@@ -37,10 +37,10 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
 
   const existingUser = await prisma.user.findUnique({
     where: { kakaoId },
-    select: { id: true, isManagedAccount: true, isActive: true },
+    select: { id: true, isManagedAccount: true, isActive: true, status: true },
   });
 
-  if (existingUser?.isManagedAccount || existingUser?.isActive === false) {
+  if (existingUser?.isManagedAccount || existingUser?.isActive === false || existingUser?.status === 'DELETED') {
     redirect('/login?error=forbidden');
   }
 
@@ -52,7 +52,6 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
       accountType: AccountType.REAL_USER,
       isManagedAccount: false,
       isActive: true,
-      status: UserStatus.ACTIVE,
     },
     create: {
       kakaoId,
