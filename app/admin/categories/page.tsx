@@ -40,7 +40,9 @@ const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
 const VISIBILITY_MODE_LABELS: Record<CategoryVisibilityMode, string> = {
   NORMAL: '일반 필터',
   ALWAYS_INCLUDED: '항상 포함',
-  HIDDEN: '숨김',
+  HIDDEN: '관리자 숨김',
+  OPERATOR_BOARD: '운영진 게시판',
+  OPERATOR_NOTICE: '운영진 공지',
 };
 
 const SELECT_CLASS =

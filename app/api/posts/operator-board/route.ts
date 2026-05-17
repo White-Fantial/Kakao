@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
   const paginationCursor = cursorToken ? decodeCursor(cursorToken) : null;
 
   const hiddenCategories = await prisma.category.findMany({
-    where: { isActive: true, visibilityMode: 'HIDDEN' },
+    where: {
+      isActive: true,
+      visibilityMode: { in: ['OPERATOR_BOARD', 'OPERATOR_NOTICE'] },
+    },
     select: { id: true },
   });
   const hiddenCategoryIds = hiddenCategories.map((c) => c.id);

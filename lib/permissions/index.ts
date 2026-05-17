@@ -109,8 +109,16 @@ function hasDefaultCategoryWriteAccess(role: UserRole) {
 }
 
 function getDefaultWriteVisibilityModes(role: UserRole): CategoryVisibilityMode[] {
-  if (role === 'MODERATOR' || role === 'COORDINATOR') {
-    return [CategoryVisibilityMode.NORMAL, CategoryVisibilityMode.HIDDEN];
+  if (role === 'MODERATOR') {
+    return [
+      CategoryVisibilityMode.NORMAL,
+      CategoryVisibilityMode.OPERATOR_BOARD,
+      CategoryVisibilityMode.OPERATOR_NOTICE,
+    ];
+  }
+
+  if (role === 'COORDINATOR') {
+    return [CategoryVisibilityMode.NORMAL, CategoryVisibilityMode.OPERATOR_BOARD];
   }
 
   if (role === 'USER') {
