@@ -30,9 +30,12 @@ export default async function CoordinatorBoardPage() {
     redirect('/posts');
   }
 
-  // HIDDEN 카테고리 = 운영진 전용 카테고리 (일반 피드에 노출되지 않음)
+  // 운영진 카테고리 = 운영진 전용 카테고리 (일반 피드에 노출되지 않음)
   const hiddenCategories = await prisma.category.findMany({
-    where: { isActive: true, visibilityMode: 'HIDDEN' },
+    where: {
+      isActive: true,
+      visibilityMode: { in: ['OPERATOR_BOARD', 'OPERATOR_NOTICE'] },
+    },
     orderBy: { sortOrder: 'asc' },
     select: { id: true, name: true },
   });
@@ -147,7 +150,7 @@ export default async function CoordinatorBoardPage() {
       {hiddenCategoryIds.length === 0 ? (
         <EmptyStateMessage
           title="운영진 카테고리가 없습니다."
-          description="관리자 페이지에서 HIDDEN 카테고리를 생성해 주세요."
+          description="관리자 페이지에서 OPERATOR_BOARD 또는 OPERATOR_NOTICE 카테고리를 생성해 주세요."
         />
       ) : initialPosts.length === 0 ? (
         <EmptyStateMessage

@@ -38,7 +38,7 @@ type CategoryOption = {
   id: string;
   label: string;
   type: string;
-  visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN';
+  visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN' | 'OPERATOR_BOARD' | 'OPERATOR_NOTICE';
   requireCommentBeforeContactDefault: boolean;
   contactSectionDefaultExpanded: boolean;
   postTagOptions: {
@@ -170,7 +170,15 @@ function getCategoryLabel(category: CategoryOption) {
   }
 
   if (category.visibilityMode === 'HIDDEN') {
-    return `${category.label} · 숨김`;
+    return `${category.label} · 관리자 숨김`;
+  }
+
+  if (category.visibilityMode === 'OPERATOR_BOARD') {
+    return `${category.label} · 운영진 게시판`;
+  }
+
+  if (category.visibilityMode === 'OPERATOR_NOTICE') {
+    return `${category.label} · 운영진 공지`;
   }
 
   return category.label;

@@ -59,6 +59,8 @@ enum CategoryVisibilityMode {
   NORMAL
   ALWAYS_INCLUDED
   HIDDEN
+  OPERATOR_BOARD
+  OPERATOR_NOTICE
 }
 
 enum PermissionSubjectType {

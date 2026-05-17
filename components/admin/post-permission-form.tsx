@@ -28,7 +28,7 @@ type CityOption = {
 type CategoryOption = {
   id: string;
   name: string;
-  visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN';
+  visibilityMode: 'NORMAL' | 'ALWAYS_INCLUDED' | 'HIDDEN' | 'OPERATOR_BOARD' | 'OPERATOR_NOTICE';
 };
 
 type PostPermissionFormProps = {
@@ -46,7 +46,15 @@ function getCategoryLabel(category: CategoryOption) {
   }
 
   if (category.visibilityMode === 'HIDDEN') {
-    return `${category.name} · 숨김`;
+    return `${category.name} · 관리자 숨김`;
+  }
+
+  if (category.visibilityMode === 'OPERATOR_BOARD') {
+    return `${category.name} · 운영진 게시판`;
+  }
+
+  if (category.visibilityMode === 'OPERATOR_NOTICE') {
+    return `${category.name} · 운영진 공지`;
   }
 
   return category.name;
