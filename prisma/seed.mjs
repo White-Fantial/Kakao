@@ -383,6 +383,26 @@ const categories = [
     contactSectionDefaultExpanded: false,
     quickCommentTemplates: ['업데이트 계속 확인하고 있어요.', '공지해 주셔서 감사합니다.'],
   },
+  {
+    name: '운영진 게시판',
+    slug: 'operator-board',
+    type: CategoryType.GENERAL,
+    visibilityMode: CategoryVisibilityMode.OPERATOR_BOARD,
+    color: '#6D28D9',
+    requireCommentBeforeContactDefault: false,
+    contactSectionDefaultExpanded: false,
+    quickCommentTemplates: ['확인했습니다.', '논의가 필요해요.', '운영팀 의견을 남겨 주세요.'],
+  },
+  {
+    name: '운영진 공지',
+    slug: 'operator-notice',
+    type: CategoryType.NOTICE,
+    visibilityMode: CategoryVisibilityMode.OPERATOR_NOTICE,
+    color: '#7C3AED',
+    requireCommentBeforeContactDefault: false,
+    contactSectionDefaultExpanded: false,
+    quickCommentTemplates: ['공지 확인했습니다.', '반영 일정 공유 부탁드려요.'],
+  },
 ];
 
 const recommendedTagsByCategoryType = {
