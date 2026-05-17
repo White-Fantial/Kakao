@@ -68,7 +68,7 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
     }),
     !isAdmin
       ? prisma.locationChangeLog.findFirst({
-          where: { userId: user.id, createdAt: { gt: cooldownSince } },
+          where: { userId: user.id, changeType: 'CITY_CHANGED', createdAt: { gt: cooldownSince } },
           orderBy: { createdAt: 'desc' },
           select: { createdAt: true },
         })
@@ -110,7 +110,7 @@ export default async function MyProfilePage({ searchParams }: MyProfilePageProps
 
       {isLocationCooldown && !params.notice && !params.error ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          국가/도시는 7일마다 한 번만 변경할 수 있어요.{' '}
+          기본 지역은 7일마다 한 번만 변경할 수 있어요.{' '}
           다음 변경 가능일:{' '}
           <DateTimeText value={nextLocationChangeAt!} mode="date" />
         </p>

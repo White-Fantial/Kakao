@@ -35,6 +35,8 @@ export function ProfileLocationSelects({
 }: ProfileLocationSelectsProps) {
   const [selectedCountryId, setSelectedCountryId] = useState(defaultCountryId ?? '');
   const [selectedCityId, setSelectedCityId] = useState(defaultCityId ?? '');
+  const isCountryChanged = selectedCountryId !== (defaultCountryId ?? '');
+  const isCityDisabled = Boolean(disabled) && !isCountryChanged;
 
   const filteredCities = selectedCountryId
     ? cities.filter((c) => c.countryId === selectedCountryId)
@@ -56,7 +58,6 @@ export function ProfileLocationSelects({
           name="countryId"
           value={selectedCountryId}
           onChange={handleCountryChange}
-          disabled={disabled}
           className={SELECT_CLASS}
         >
           <option value="">국가를 선택해 주세요.</option>
@@ -79,7 +80,7 @@ export function ProfileLocationSelects({
           name="cityId"
           value={selectedCityId}
           onChange={(e) => setSelectedCityId(e.target.value)}
-          disabled={disabled}
+          disabled={isCityDisabled}
           className={SELECT_CLASS}
         >
           <option value="">지역을 선택해 주세요.</option>
@@ -91,7 +92,7 @@ export function ProfileLocationSelects({
         </select>
         <p className="text-xs text-[#888]">
           글쓰기는 여기에서 설정한 지역으로만 등록돼요.{' '}
-          {showCooldownNote ? '국가/도시는 7일마다 한 번만 변경할 수 있어요.' : null}
+          {showCooldownNote ? '기본 지역은 7일마다 한 번만 변경할 수 있어요.' : null}
         </p>
       </div>
     </>

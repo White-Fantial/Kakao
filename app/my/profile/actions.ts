@@ -68,7 +68,6 @@ export async function updateProfileAction(formData: FormData) {
 
   const isCountryChanged = targetCountryId !== user.countryId;
   const isCityChanged = cityId !== user.cityId;
-  const isLocationChanged = isCountryChanged || isCityChanged;
   const isAdmin = user.role === 'ADMIN';
 
   if (cityId) {
@@ -86,12 +85,15 @@ export async function updateProfileAction(formData: FormData) {
     }
   }
 
-  // Cooldown check for non-admin users
-  if (isLocationChanged && !isAdmin) {
+  const isCityOnlyChange = isCityChanged && !isCountryChanged;
+
+  // Cooldown check for non-admin users (city-only changes)
+  if (isCityOnlyChange && !isAdmin) {
     const cooldownSince = new Date(Date.now() - LOCATION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
     const recentChange = await prisma.locationChangeLog.findFirst({
       where: {
         userId: user.id,
+        changeType: 'CITY_CHANGED',
         createdAt: { gt: cooldownSince },
       },
       orderBy: { createdAt: 'desc' },
@@ -103,7 +105,7 @@ export async function updateProfileAction(formData: FormData) {
         recentChange.createdAt.getTime() + LOCATION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
       );
       redirect(
-        `/my/profile?error=${encodeURIComponent(`국가/도시는 7일마다 한 번만 변경할 수 있어요. 다음 변경 가능일: ${formatKoreanDate(nextAllowedAt)}`)}`,
+        `/my/profile?error=${encodeURIComponent(`기본 지역은 7일마다 한 번만 변경할 수 있어요. 다음 변경 가능일: ${formatKoreanDate(nextAllowedAt)}`)}`,
       );
     }
   }
@@ -140,9 +142,7 @@ export async function updateProfileAction(formData: FormData) {
     redirect(
       '/my/profile?notice=' +
         encodeURIComponent(
-          isAdmin
-            ? '국가가 변경되어 기본 지역을 다시 선택해 주세요.'
-            : `국가가 변경되어 기본 지역이 초기화되었어요. 다음 변경 가능일: ${formatKoreanDate(new Date(Date.now() + LOCATION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000))}`,
+          '국가가 변경되어 기본 지역을 다시 선택해 주세요.',
         ),
     );
   }
