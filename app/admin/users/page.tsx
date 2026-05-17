@@ -355,15 +355,30 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
           <ul className="space-y-2">
             {userModerationActions.map((action) => (
               <li key={action.id} className="rounded-lg border border-[#e8e8e8] p-2 text-xs">
-                <span className="font-medium">{action.actor.displayName}</span>
-                {' → '}
-                <span className="text-[#555]">{formatUserActionType(action.actionType)}</span>
-                {' · '}
-                <span className="font-mono text-[#aaa]">{action.targetId.slice(0, 8)}…</span>
-                {action.reason ? <span className="ml-2 text-[#888]">({action.reason})</span> : null}
-                <span className="ml-2 text-[#aaa]">
-                  <DateTimeText value={action.createdAt} />
-                </span>
+                <details>
+                  <summary className="cursor-pointer list-none">
+                    <span className="font-medium">{action.actor.displayName}</span>
+                    {' → '}
+                    <span className="text-[#555]">{formatUserActionType(action.actionType)}</span>
+                    {' · '}
+                    <span className="font-mono text-[#aaa]">{action.targetId.slice(0, 8)}…</span>
+                    <span className="ml-2 text-[#aaa]">
+                      <DateTimeText value={action.createdAt} />
+                    </span>
+                  </summary>
+                  <div className="mt-2 space-y-1 rounded-md bg-[#fafafa] p-2 text-[#666]">
+                    <p>
+                      <span className="font-medium">액션 코드:</span> {action.actionType}
+                    </p>
+                    <p>
+                      <span className="font-medium">대상 ID:</span>{' '}
+                      <span className="font-mono">{action.targetId}</span>
+                    </p>
+                    <p>
+                      <span className="font-medium">사유:</span> {action.reason ?? '없음'}
+                    </p>
+                  </div>
+                </details>
               </li>
             ))}
           </ul>
