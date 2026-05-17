@@ -35,8 +35,7 @@ export function ProfileLocationSelects({
 }: ProfileLocationSelectsProps) {
   const [selectedCountryId, setSelectedCountryId] = useState(defaultCountryId ?? '');
   const [selectedCityId, setSelectedCityId] = useState(defaultCityId ?? '');
-  const isCountryChanged = selectedCountryId !== (defaultCountryId ?? '');
-  const isCityDisabled = Boolean(disabled) && !isCountryChanged;
+  const isCityDisabled = Boolean(disabled);
 
   const filteredCities = selectedCountryId
     ? cities.filter((c) => c.countryId === selectedCountryId)
@@ -58,6 +57,7 @@ export function ProfileLocationSelects({
           name="countryId"
           value={selectedCountryId}
           onChange={handleCountryChange}
+          disabled={disabled}
           className={SELECT_CLASS}
         >
           <option value="">국가를 선택해 주세요.</option>
