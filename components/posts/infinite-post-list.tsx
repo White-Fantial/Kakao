@@ -117,6 +117,11 @@ export function InfinitePostList({
 }: InfinitePostListProps) {
   const [posts, setPosts] = useState<InfinitePostItem[]>(initialPosts);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+
+  useEffect(() => {
+    const freshMap = new Map(initialPosts.map((p) => [p.id, p]));
+    setPosts((prev) => prev.map((post) => freshMap.get(post.id) ?? post));
+  }, [initialPosts]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
   const sentinelRef = useRef<HTMLDivElement>(null);
