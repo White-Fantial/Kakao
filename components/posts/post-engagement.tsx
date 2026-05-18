@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import {
   createContext,
-  useActionState,
   useCallback,
   useContext,
   useEffect,
@@ -16,11 +15,10 @@ import {
 import { useRouter } from 'next/navigation';
 
 import {
-  createInteractiveCommentAction,
   type CreateInteractiveCommentState,
+  submitInteractiveCommentAction,
 } from '@/app/posts/[postId]/comments/actions';
 import { generateCommentDraftAction } from '@/app/posts/[postId]/comments/ai-actions';
-import { FormSubmitButton } from '@/components/ui/form-submit-button';
 
 const POST_COMMENT_COMPOSER_ID = 'post-comment-composer';
 const INITIAL_COMMENT_STATE: CreateInteractiveCommentState = {
@@ -194,7 +192,8 @@ export function PostCommentComposer({
     shouldLockContact,
     unlockContact,
   } = usePostEngagement();
-  const [state, formAction] = useActionState(createInteractiveCommentAction, INITIAL_COMMENT_STATE);
+  const [state, setState] = useState(INITIAL_COMMENT_STATE);
+  const [isSubmitPending, startSubmitTransition] = useTransition();
   const [isDraftPending, startDraftTransition] = useTransition();
   const [authorUserIdOverride, setAuthorUserIdOverride] = useState('');
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
@@ -229,7 +228,20 @@ export function PostCommentComposer({
   }
 
   return (
-    <form id={POST_COMMENT_COMPOSER_ID} action={formAction} className="space-y-2">
+    <form
+      id={POST_COMMENT_COMPOSER_ID}
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+
+        setState(INITIAL_COMMENT_STATE);
+        startSubmitTransition(async () => {
+          const result = await submitInteractiveCommentAction(formData);
+          setState(result);
+        });
+      }}
+    >
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="authorUserIdOverride" value={authorUserIdOverride} />
 
@@ -337,11 +349,14 @@ export function PostCommentComposer({
         </p>
       ) : null}
 
-      <FormSubmitButton
-        idleLabel="댓글 작성"
-        pendingLabel="등록 중..."
-        className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00]"
-      />
+      <button
+        type="submit"
+        disabled={isSubmitPending}
+        aria-busy={isSubmitPending}
+        className="rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSubmitPending ? '등록 중...' : '댓글 작성'}
+      </button>
     </form>
   );
 }
