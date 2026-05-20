@@ -21,6 +21,7 @@ import {
   canEditPost,
   isPostScopeValid,
   canReportPost,
+  isAdmin,
 } from '@/lib/permissions';
 import { canActorUseAuthorForScope } from '@/lib/posts/author-account-options';
 import {
