@@ -28,6 +28,11 @@ const demoUsers = [
     displayName: '데모 운영진',
     role: 'COORDINATOR',
   },
+  {
+    kakaoId: 'demo-ad-manager-001',
+    displayName: '데모 광고 매니저',
+    role: 'AD_MANAGER',
+  },
   { kakaoId: 'demo-admin-001', displayName: '데모 관리자', role: 'ADMIN' },
 ];
 

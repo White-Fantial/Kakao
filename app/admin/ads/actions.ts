@@ -6,17 +6,17 @@ import type { AdCampaignStatus, AdPlacementType } from '@prisma/client';
 
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { canMakeFinalUserDecision } from '@/lib/permissions';
+import { canAccessAdsManager } from '@/lib/permissions';
 
-const ADS_PATH = '/admin/ads';
+const ADS_PATH = '/ads-manager';
 
 function normalizeText(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function requireAdminUser() {
+function requireAdsManagerUser() {
   return getCurrentUser().then((user) => {
-    if (!user || !canMakeFinalUserDecision(user)) {
+    if (!user || !canAccessAdsManager(user)) {
       redirect('/posts');
     }
 
@@ -27,7 +27,7 @@ function requireAdminUser() {
 // ─── AdProduct ────────────────────────────────────────────────────────────────
 
 export async function createAdProductAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const code = normalizeText(formData.get('code'));
   const name = normalizeText(formData.get('name'));
@@ -62,7 +62,7 @@ export async function createAdProductAction(formData: FormData) {
 }
 
 export async function updateAdProductAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const id = normalizeText(formData.get('id'));
   const name = normalizeText(formData.get('name'));
@@ -97,7 +97,7 @@ export async function updateAdProductAction(formData: FormData) {
 }
 
 export async function toggleAdProductActiveAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const id = normalizeText(formData.get('id'));
   if (!id) {
@@ -118,7 +118,7 @@ export async function toggleAdProductActiveAction(formData: FormData) {
 // ─── AdCampaign ───────────────────────────────────────────────────────────────
 
 export async function createAdCampaignAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const postId = normalizeText(formData.get('postId'));
   const adProductId = normalizeText(formData.get('adProductId'));
@@ -170,7 +170,7 @@ export async function createAdCampaignAction(formData: FormData) {
 }
 
 export async function updateAdCampaignStatusAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const id = normalizeText(formData.get('id'));
   const status = normalizeText(formData.get('status')) as AdCampaignStatus;
@@ -191,7 +191,7 @@ export async function updateAdCampaignStatusAction(formData: FormData) {
 }
 
 export async function updateAdCampaignAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const id = normalizeText(formData.get('id'));
   const priority = parseInt(normalizeText(formData.get('priority')) || '0', 10);
@@ -228,7 +228,7 @@ export async function updateAdCampaignAction(formData: FormData) {
 // ─── AdPlacementRule ──────────────────────────────────────────────────────────
 
 export async function upsertAdPlacementRuleAction(formData: FormData) {
-  await requireAdminUser();
+  await requireAdsManagerUser();
 
   const placementType = normalizeText(formData.get('placementType')) as AdPlacementType;
   const insertAfter = parseInt(normalizeText(formData.get('insertAfter')) || '5', 10);

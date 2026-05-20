@@ -97,6 +97,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     USER: '일반',
     MODERATOR: '모더레이터',
     COORDINATOR: '운영',
+    AD_MANAGER: '광고 매니저',
+    PARTNER_MANAGER: '파트너 매니저',
     ADMIN: '관리자',
   };
 
@@ -192,6 +194,10 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                             ? 'bg-emerald-50 text-emerald-700'
                             : u.role === 'COORDINATOR'
                               ? 'bg-blue-50 text-blue-700'
+                              : u.role === 'AD_MANAGER'
+                                ? 'bg-amber-50 text-amber-700'
+                                : u.role === 'PARTNER_MANAGER'
+                                  ? 'bg-pink-50 text-pink-700'
                               : 'bg-[#f5f5f5] text-[#555]'
                       }`}
                     >
@@ -238,6 +244,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                             <option value="USER">일반 (USER)</option>
                             <option value="MODERATOR">모더레이터 (MODERATOR)</option>
                             <option value="COORDINATOR">운영 (COORDINATOR)</option>
+                            <option value="AD_MANAGER">광고 매니저 (AD_MANAGER)</option>
+                            <option value="PARTNER_MANAGER">파트너 매니저 (PARTNER_MANAGER)</option>
                             <option value="ADMIN">관리자 (ADMIN)</option>
                           </select>
                           <input
