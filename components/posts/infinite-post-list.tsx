@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PostCard } from '@/components/posts/post-card';
+import { AdCard } from '@/components/posts/AdCard';
+import type { AdFeedItem } from '@/lib/ads/types';
 
 export type InfinitePostItem = {
   id: string;
@@ -29,7 +31,16 @@ export type InfinitePostItem = {
     isOperator?: boolean;
   };
   editHref?: string;
+  // Ad-specific fields (only present when isAd: true)
+  isAd?: boolean;
+  adCampaignId?: string;
+  adPostId?: string;
+  adLayout?: string;
+  adSize?: string;
+  adPlacementType?: string;
 };
+
+export type FeedItem = InfinitePostItem | AdFeedItem;
 
 type FeedCardConfig = {
   mode: 'feed' | 'operator-board';
@@ -49,7 +60,7 @@ type SavedCardConfig = {
 export type InfiniteListCardConfig = FeedCardConfig | MyPostsCardConfig | SavedCardConfig;
 
 type InfinitePostListProps = {
-  initialPosts: InfinitePostItem[];
+  initialPosts: FeedItem[];
   initialNextCursor: string | null;
   fetchApiUrl: string;
   cardConfig: InfiniteListCardConfig;
@@ -67,10 +78,14 @@ function PostCardItem({
   post,
   cardConfig,
 }: {
-  post: InfinitePostItem;
+  post: FeedItem;
   cardConfig: InfiniteListCardConfig;
 }) {
-  const base = deserializePost(post);
+  if ('isAd' in post && post.isAd) {
+    return <AdCard ad={post as AdFeedItem} />;
+  }
+
+  const base = deserializePost(post as InfinitePostItem);
 
   if (cardConfig.mode === 'feed' || cardConfig.mode === 'operator-board') {
     return (
@@ -115,12 +130,22 @@ export function InfinitePostList({
   fetchApiUrl,
   cardConfig,
 }: InfinitePostListProps) {
-  const [posts, setPosts] = useState<InfinitePostItem[]>(initialPosts);
+  const [posts, setPosts] = useState<FeedItem[]>(initialPosts);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
 
   useEffect(() => {
-    const freshMap = new Map(initialPosts.map((p) => [p.id, p]));
-    setPosts((prev) => prev.map((post) => freshMap.get(post.id) ?? post));
+    const freshMap = new Map(
+      initialPosts
+        .filter((p): p is InfinitePostItem => !('isAd' in p && p.isAd))
+        .map((p) => [p.id, p]),
+    );
+    setPosts((prev) =>
+      prev.map((item) => {
+        if ('isAd' in item && item.isAd) return item;
+        const post = item as InfinitePostItem;
+        return freshMap.get(post.id) ?? post;
+      }),
+    );
   }, [initialPosts]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
@@ -141,7 +166,7 @@ export function InfinitePostList({
       if (!res.ok) return;
 
       const data = (await res.json()) as {
-        posts: InfinitePostItem[];
+        posts: FeedItem[];
         nextCursor: string | null;
         hasNextPage: boolean;
       };
@@ -178,11 +203,16 @@ export function InfinitePostList({
 
   return (
     <div className="space-y-3">
-      {posts.map((post) => (
-        <div key={post.id}>
-          <PostCardItem post={post} cardConfig={cardConfig} />
-        </div>
-      ))}
+      {posts.map((post, index) => {
+        const key = 'isAd' in post && post.isAd
+          ? `ad-${(post as AdFeedItem).adCampaignId}-${index}`
+          : (post as InfinitePostItem).id;
+        return (
+          <div key={key}>
+            <PostCardItem post={post} cardConfig={cardConfig} />
+          </div>
+        );
+      })}
       {hasMore && (
         <div ref={sentinelRef} aria-hidden="true" className="py-3 text-center text-sm text-[#aaa]">
           {isLoading ? '로딩 중...' : ''}

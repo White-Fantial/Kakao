@@ -5,7 +5,7 @@ import { PublicHomeHero } from '@/components/home/PublicHomeHero';
 import { EmptyStateMessage } from '@/components/ui/empty-state-message';
 import { CategoryFilterFieldset } from '@/components/posts/category-filter-fieldset';
 import { InfinitePostList } from '@/components/posts/infinite-post-list';
-import type { InfinitePostItem } from '@/components/posts/infinite-post-list';
+import type { InfinitePostItem, FeedItem } from '@/components/posts/infinite-post-list';
 import { saveSearchAlertAction } from '@/app/posts/search-alert-actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -15,6 +15,11 @@ import { buildPinnedPostCursorWhere, PINNED_POST_ORDER_ASC, PINNED_POST_ORDER_DE
 import { getActiveCategories, getActiveCities, getActiveCitiesByCountry } from '@/lib/posts/reference-data';
 import { measureServerTiming } from '@/lib/performance/server';
 import { shouldShowOperatorBadge } from '@/lib/account-type';
+import {
+  fetchActiveAdSlots,
+  getInlinePlacementRule,
+  insertAdsIntoFeed,
+} from '@/lib/ads/feed-inserter';
 
 export const metadata: Metadata = {
   title: '홈',
@@ -398,6 +403,27 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         pinnedAt: lastPost.pinnedAt,
       })
     : null;
+
+  const isFirstPage = !paginationCursor;
+  const [adSlots, inlinePlacementRule] = await Promise.all([
+    fetchActiveAdSlots({ countryId: userCountryId, cityId: currentUser?.cityId ?? null }),
+    getInlinePlacementRule(),
+  ]);
+
+  const serializedPosts: InfinitePostItem[] = normalizedPosts.map((post) => ({
+    ...post,
+    href: createDetailHref(post.id),
+    createdAt: post.createdAt.toISOString(),
+    pinnedAt: post.pinnedAt?.toISOString() ?? null,
+  } satisfies InfinitePostItem));
+
+  const feedItems: FeedItem[] = insertAdsIntoFeed(
+    serializedPosts,
+    adSlots,
+    inlinePlacementRule,
+    isFirstPage,
+  );
+
   const emptyState = hasFilters
     ? {
         title: '선택한 조건에 맞는 글이 없어요.',
@@ -529,12 +555,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         <EmptyStateMessage title={emptyState.title} description={emptyState.description} />
       ) : (
         <InfinitePostList
-          initialPosts={normalizedPosts.map((post) => ({
-            ...post,
-            href: createDetailHref(post.id),
-            createdAt: post.createdAt.toISOString(),
-            pinnedAt: post.pinnedAt?.toISOString() ?? null,
-          } satisfies InfinitePostItem))}
+          initialPosts={feedItems}
           initialNextCursor={nextCursor}
           fetchApiUrl={`/api/posts/feed${returnToParams.toString() ? `?${returnToParams.toString()}` : ''}`}
           cardConfig={{

@@ -15,6 +15,11 @@ import {
   getActiveCities,
   getActiveCitiesByCountry,
 } from '@/lib/posts/reference-data';
+import {
+  fetchActiveAdSlots,
+  getInlinePlacementRule,
+  insertAdsIntoFeed,
+} from '@/lib/ads/feed-inserter';
 
 const PAGE_SIZE = 20;
 const BODY_PREVIEW_LENGTH = 220;
@@ -192,34 +197,44 @@ export async function GET(request: NextRequest) {
         })
       : null;
 
+  const serializedPosts = visiblePosts.map((post) => ({
+    id: post.id,
+    title: post.title,
+    bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
+    href: `/posts/${post.id}`,
+    createdAt: post.createdAt.toISOString(),
+    isPinned: post.isPinned,
+    pinnedAt: post.pinnedAt?.toISOString() ?? null,
+    price: post.price ? post.price.toString() : null,
+    thumbnailUrl: post.images[0]?.url ?? null,
+    commentCount: post._count.comments,
+    likeCount: post._count.postLikes,
+    viewCount: post.viewCount,
+    reportCount: canViewReportStats
+      ? (post._count as { reports?: number }).reports ?? 0
+      : undefined,
+    isLikedByCurrentUser: post.postLikes.length > 0,
+    isSavedByCurrentUser: post.savedBy.length > 0,
+    tags: post.tags.map((tag) => tag.postTagOption),
+    category: post.category as { name: string; type: CategoryType; color: string | null },
+    city: post.city,
+    author: {
+      displayName: post.author.displayName,
+      profileImageUrl: post.author.profileImageUrl,
+      isOperator: shouldShowOperatorBadge(post.author),
+    },
+  }));
+
+  const isFirstPage = !paginationCursor;
+  const [adSlots, inlinePlacementRule] = await Promise.all([
+    fetchActiveAdSlots({ countryId: userCountryId, cityId: currentUser?.cityId ?? null }),
+    getInlinePlacementRule(),
+  ]);
+
+  const feedItems = insertAdsIntoFeed(serializedPosts, adSlots, inlinePlacementRule, isFirstPage);
+
   return NextResponse.json({
-    posts: visiblePosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      bodyPreview: post.body.slice(0, BODY_PREVIEW_LENGTH),
-      href: `/posts/${post.id}`,
-      createdAt: post.createdAt.toISOString(),
-      isPinned: post.isPinned,
-      pinnedAt: post.pinnedAt?.toISOString() ?? null,
-      price: post.price ? post.price.toString() : null,
-      thumbnailUrl: post.images[0]?.url ?? null,
-      commentCount: post._count.comments,
-      likeCount: post._count.postLikes,
-      viewCount: post.viewCount,
-      reportCount: canViewReportStats
-        ? (post._count as { reports?: number }).reports ?? 0
-        : undefined,
-      isLikedByCurrentUser: post.postLikes.length > 0,
-      isSavedByCurrentUser: post.savedBy.length > 0,
-      tags: post.tags.map((tag) => tag.postTagOption),
-      category: post.category as { name: string; type: CategoryType; color: string | null },
-      city: post.city,
-      author: {
-        displayName: post.author.displayName,
-        profileImageUrl: post.author.profileImageUrl,
-        isOperator: shouldShowOperatorBadge(post.author),
-      },
-    })),
+    posts: feedItems,
     nextCursor,
     hasNextPage: hasExtra,
   });
