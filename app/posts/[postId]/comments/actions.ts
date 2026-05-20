@@ -120,7 +120,7 @@ async function createComment(
   };
 
   if (authorUserIdOverride) {
-    if (user.role !== 'ADMIN' && user.role !== 'COORDINATOR') {
+    if (user.role !== 'ADMIN') {
       return { ok: false as const, message: '작성 계정을 선택할 권한이 없습니다.' };
     }
 

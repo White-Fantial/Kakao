@@ -23,6 +23,10 @@ export default async function CoordinationManagedAccountsPage() {
     redirect('/posts');
   }
 
+  if (currentUser.role !== 'ADMIN') {
+    redirect('/coordination');
+  }
+
   const cityId = currentUser.cityId ?? null;
   const countryId = currentUser.countryId ?? null;
 
