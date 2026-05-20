@@ -126,25 +126,6 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
         <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{query.success}</p>
       ) : null}
 
-      <nav className="flex gap-2 border-b border-[#e8e8e8]">
-        {AD_MANAGER_SECTIONS.map((section) => {
-          const labels = { campaigns: '캠페인', products: '광고 상품', rules: '노출 규칙' };
-          return (
-            <a
-              key={section}
-              href={`/ads-manager/${section}`}
-              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-                activeSection === section
-                  ? 'border-[#fee500] text-[#3c1e1e]'
-                  : 'border-transparent text-[#888] hover:text-[#555]'
-              }`}
-            >
-              {labels[section]}
-            </a>
-          );
-        })}
-      </nav>
-
       {/* ── Campaigns tab ──────────────────────────────────────────────────── */}
       {activeSection === 'campaigns' && (
         <div className="space-y-6">
