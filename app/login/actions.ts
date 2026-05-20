@@ -1,6 +1,6 @@
 'use server';
 
-import { AccountType, UserStatus, StaffRole } from '@prisma/client';
+import { AccountType, UserRole, UserStatus, StaffRole } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { randomUUID } from 'node:crypto';
@@ -19,7 +19,13 @@ function getSessionMaxAgeSeconds() {
   return DEFAULT_SESSION_MAX_AGE_SECONDS;
 }
 
-const STAFF_ROLES = new Set<StaffRole>(['MODERATOR', 'COORDINATOR', 'ADMIN']);
+const STAFF_ROLES = new Set<StaffRole>([
+  'MODERATOR',
+  'COORDINATOR',
+  'AD_MANAGER',
+  'PARTNER_MANAGER',
+  'ADMIN',
+]);
 
 /**
  * Dev-only fallback login used when Kakao OAuth environment variables are not configured.
@@ -37,6 +43,10 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
   const staffRole: StaffRole | null = STAFF_ROLES.has(roleInput as StaffRole)
     ? (roleInput as StaffRole)
     : null;
+  const legacyUserRole: UserRole =
+    staffRole === 'MODERATOR' || staffRole === 'COORDINATOR' || staffRole === 'ADMIN'
+      ? staffRole
+      : UserRole.USER;
 
   const existingUser = await prisma.user.findUnique({
     where: { kakaoId },
@@ -51,7 +61,7 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
     where: { kakaoId },
     update: {
       displayName,
-      role: staffRole ?? 'USER',
+      role: legacyUserRole,
       accountType: AccountType.REAL_USER,
       isManagedAccount: false,
       isActive: true,
@@ -59,7 +69,7 @@ export async function loginWithKakaoPlaceholder(formData: FormData) {
     create: {
       kakaoId,
       displayName,
-      role: staffRole ?? 'USER',
+      role: legacyUserRole,
       accountType: AccountType.REAL_USER,
       isManagedAccount: false,
       isActive: true,
