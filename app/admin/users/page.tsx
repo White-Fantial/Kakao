@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Prisma, type UserRole } from '@prisma/client';
 
 import {
   addStaffAssignmentAction,
@@ -25,6 +26,36 @@ type AdminUsersPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
+function isMissingStaffAssignmentTableError(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== 'P2021') {
+    return false;
+  }
+
+  const table = (error.meta?.table as string | undefined) ?? '';
+  return table.endsWith('StaffAssignment');
+}
+
+function toLegacyStaffAssignments(role: UserRole, countryId: string | null, cityId: string | null) {
+  if (role === 'ADMIN' || role === 'MODERATOR' || role === 'COORDINATOR') {
+    return [
+      {
+        id: `legacy:${role}`,
+        role,
+        countryId,
+        cityId,
+        isActive: true,
+        createdAt: new Date(0),
+      },
+    ];
+  }
+
+  return [];
+}
+
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
   const currentUser = await getCurrentUser();
 
@@ -33,24 +64,33 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
   }
 
   const params = await searchParams;
-  const [users, countries, cities] = await Promise.all([
-    prisma.user.findMany({
+  const userQuerySelect = {
+    id: true,
+    displayName: true,
+    role: true,
+    accountType: true,
+    isManagedAccount: true,
+    isActive: true,
+    status: true,
+    shortBio: true,
+    personaNotes: true,
+    toneNotes: true,
+    activityNotes: true,
+    profileImageUrl: true,
+    countryId: true,
+    cityId: true,
+    createdAt: true,
+    _count: {
+      select: { posts: true, comments: true },
+    },
+  } as const;
+
+  const usersPromise = prisma.user
+    .findMany({
       where: { isManagedAccount: false },
       orderBy: { createdAt: 'desc' },
       select: {
-        id: true,
-        displayName: true,
-        role: true,
-        accountType: true,
-        isManagedAccount: true,
-        isActive: true,
-        status: true,
-        shortBio: true,
-        personaNotes: true,
-        toneNotes: true,
-        activityNotes: true,
-        profileImageUrl: true,
-        createdAt: true,
+        ...userQuerySelect,
         staffAssignments: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -62,11 +102,27 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
             createdAt: true,
           },
         },
-        _count: {
-          select: { posts: true, comments: true },
-        },
       },
-    }),
+    })
+    .catch(async (error) => {
+      if (!isMissingStaffAssignmentTableError(error)) {
+        throw error;
+      }
+
+      const usersWithoutAssignments = await prisma.user.findMany({
+        where: { isManagedAccount: false },
+        orderBy: { createdAt: 'desc' },
+        select: userQuerySelect,
+      });
+
+      return usersWithoutAssignments.map((user) => ({
+        ...user,
+        staffAssignments: toLegacyStaffAssignments(user.role, user.countryId, user.cityId),
+      }));
+    });
+
+  const [users, countries, cities] = await Promise.all([
+    usersPromise,
     prisma.country.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
