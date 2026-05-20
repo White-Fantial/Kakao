@@ -51,39 +51,16 @@ function toAuthorAccountKind(candidate: AuthorSelectionCandidate): AuthorAccount
   return null;
 }
 
-function canAccountCoverScope(
-  candidateCountryId: string | null,
-  candidateCityId: string | null,
-  scope: AuthorScope,
-) {
-  if (scope.countryId && candidateCountryId !== scope.countryId) {
-    return false;
-  }
-
-  if (!scope.cityId) {
-    return true;
-  }
-
-  return candidateCityId === null || candidateCityId === scope.cityId;
-}
-
-function normalizeScopes(scopes: AuthorScope[]) {
-  const map = new Map<string, AuthorScope>();
-  for (const scope of scopes) {
-    map.set(`${scope.countryId ?? '*'}:${scope.cityId ?? '*'}`, scope);
-  }
-  return [...map.values()];
-}
-
 export function canSelectAuthorAccount(role: UserRole) {
-  return role === 'ADMIN' || role === 'COORDINATOR';
+  return role === 'ADMIN';
 }
 
 export function canActorUseAuthorForScope(
   actorRole: UserRole,
   candidate: AuthorSelectionCandidate,
-  scope: AuthorScope,
+  _scope: AuthorScope,
 ) {
+  void _scope;
   const authorAccountKind = toAuthorAccountKind(candidate);
   if (!authorAccountKind) {
     return false;
@@ -93,24 +70,15 @@ export function canActorUseAuthorForScope(
     return true;
   }
 
-  if (actorRole !== 'COORDINATOR') {
-    return false;
-  }
-
-  const candidateCountryId = resolveAuthorCountryId(candidate);
-  return canAccountCoverScope(candidateCountryId, candidate.cityId, scope);
+  return false;
 }
 
 export async function getAuthorAccountOptionsForActor(
   actorRole: UserRole,
-  allowedScopes: AuthorScope[],
+  _allowedScopes: AuthorScope[],
 ): Promise<AuthorAccountOption[]> {
+  void _allowedScopes;
   if (!canSelectAuthorAccount(actorRole)) {
-    return [];
-  }
-
-  const normalizedScopes = normalizeScopes(allowedScopes);
-  if (actorRole === 'COORDINATOR' && normalizedScopes.length === 0) {
     return [];
   }
 
@@ -148,15 +116,6 @@ export async function getAuthorAccountOptionsForActor(
       }
 
       const countryId = resolveAuthorCountryId(candidate);
-      if (
-        actorRole === 'COORDINATOR' &&
-        !normalizedScopes.some((scope) =>
-          canAccountCoverScope(countryId, candidate.cityId, scope),
-        )
-      ) {
-        return null;
-      }
-
       return {
         id: candidate.id,
         displayName: candidate.displayName,

@@ -8,7 +8,6 @@ type ManagementNavItem = {
 export const coordinatorSectionNavItems = [
   { href: '/coordination', label: '대시보드' },
   { href: '/coordination/posts', label: '게시글 목록' },
-  { href: '/coordination/managed-accounts', label: '운영 계정 조회' },
 ] as const satisfies readonly ManagementNavItem[];
 
 export const moderatorManagementNavItems = [

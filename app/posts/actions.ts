@@ -226,7 +226,7 @@ async function resolvePostAuthorUser(
     return fallbackAuthor;
   }
 
-  if (actor.role !== 'ADMIN' && actor.role !== 'COORDINATOR') {
+  if (actor.role !== 'ADMIN') {
     redirect(`${errorRedirectPath}?error=${encodeURIComponent('작성 계정을 변경할 권한이 없습니다.')}`);
   }
 

@@ -596,7 +596,7 @@ export function PostForm({
             ))}
           </select>
           <p className="text-xs text-[#888]">
-            관리자/코디네이터는 운영 계정으로 작성할 수 있어요.
+            관리자는 운영 계정으로 작성할 수 있어요.
           </p>
         </div>
       ) : null}
