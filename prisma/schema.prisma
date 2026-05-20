@@ -100,6 +100,37 @@ enum LocationChangeType {
   ADMIN_OVERRIDE
 }
 
+enum AdPlacementType {
+  TOP_FIXED
+  FEED_INLINE
+}
+
+enum AdSize {
+  S
+  M
+  L
+}
+
+enum AdLayout {
+  TEXT
+  THUMBNAIL
+  IMAGE
+  FEATURED
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+  CANCELLED
+}
+
+enum AdPricingModel {
+  FIXED
+  CPM
+}
+
 model User {
   id                   String             @id @default(cuid())
   kakaoId              String             @unique
@@ -170,10 +201,11 @@ model Country {
   slug      String   @unique
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
-  users     User[]
-  cities    City[]
-  posts     Post[]
+  users       User[]
+  cities      City[]
+  posts       Post[]
   permissions PostPermission[]
+  adCampaigns AdCampaign[]    @relation("AdCampaignTargetCountry")
 }
 
 model City {
@@ -187,6 +219,7 @@ model City {
   users     User[]
   posts     Post[]
   permissions PostPermission[]
+  adCampaigns AdCampaign[]    @relation("AdCampaignTargetCity")
 }
 
 model Category {
@@ -277,6 +310,7 @@ model Post {
   savedBy         SavedPost[]
   views           PostView[]
   scoreEvents     CommunityScoreEvent[]
+  adCampaigns     AdCampaign[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   publishedAt     DateTime?    @default(now())
@@ -598,4 +632,107 @@ model LocationChangeLog {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([actorId, createdAt(sort: Desc)])
+}
+
+model AdProduct {
+  id            String          @id @default(cuid())
+  code          String          @unique
+  name          String
+  placementType AdPlacementType
+  size          AdSize          @default(M)
+  layout        AdLayout        @default(THUMBNAIL)
+  pricingModel  AdPricingModel  @default(FIXED)
+  basePrice     Decimal         @db.Decimal(10, 2) @default(0)
+  isActive      Boolean         @default(true)
+  sortOrder     Int             @default(0)
+  description   String?
+  campaigns     AdCampaign[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model AdCampaign {
+  id              String           @id @default(cuid())
+  postId          String
+  adProductId     String
+  status          AdCampaignStatus @default(DRAFT)
+  priority        Int              @default(0)
+  startAt         DateTime?
+  endAt           DateTime?
+  maxImpressions  Int?
+  targetCountryId String?
+  targetCityId    String?
+  landingUrl      String?
+  notes           String?
+  post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  adProduct       AdProduct        @relation(fields: [adProductId], references: [id])
+  targetCountry   Country?         @relation("AdCampaignTargetCountry", fields: [targetCountryId], references: [id])
+  targetCity      City?            @relation("AdCampaignTargetCity", fields: [targetCityId], references: [id])
+  impressions     AdImpression[]
+  clicks          AdClick[]
+  dailyStats      AdDailyStat[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([status, startAt, endAt])
+  @@index([adProductId, status])
+  @@index([postId, status])
+  @@index([targetCountryId, status])
+  @@index([targetCityId, status])
+}
+
+model AdPlacementRule {
+  id             String          @id @default(cuid())
+  placementType  AdPlacementType @unique
+  insertAfter    Int             @default(5)
+  repeatInterval Int             @default(10)
+  maxPerPage     Int             @default(2)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model AdImpression {
+  id                String          @id @default(cuid())
+  campaignId        String
+  postId            String
+  placementType     AdPlacementType
+  pageKey           String
+  positionIndex     Int
+  viewerUserId      String?
+  viewerFingerprint String?
+  viewedAt          DateTime        @default(now())
+  campaign          AdCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, viewedAt])
+  @@index([postId, viewedAt])
+  @@index([viewedAt])
+}
+
+model AdClick {
+  id                String     @id @default(cuid())
+  campaignId        String
+  postId            String
+  impressionId      String?
+  viewerUserId      String?
+  viewerFingerprint String?
+  clickedAt         DateTime   @default(now())
+  campaign          AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, clickedAt])
+  @@index([postId, clickedAt])
+  @@index([clickedAt])
+}
+
+model AdDailyStat {
+  id          String     @id @default(cuid())
+  campaignId  String
+  date        DateTime   @db.Date
+  impressions Int        @default(0)
+  clicks      Int        @default(0)
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, date])
+  @@index([campaignId, date(sort: Desc)])
+  @@index([date(sort: Desc)])
 }
