@@ -66,66 +66,75 @@ export async function fetchActiveAdSlots(options: {
   cityId: string | null;
 }): Promise<ActiveAdSlots> {
   const now = new Date();
+  let campaigns: RawCampaign[] = [];
 
-  const campaigns = await prisma.adCampaign.findMany({
-    where: {
-      status: 'ACTIVE',
-      OR: [{ startAt: null }, { startAt: { lte: now } }],
-      AND: [
-        { OR: [{ endAt: null }, { endAt: { gt: now } }] },
-        {
-          OR: [
-            { targetCountryId: null },
-            ...(options.countryId ? [{ targetCountryId: options.countryId }] : []),
-          ],
-        },
-        {
-          OR: [
-            { targetCityId: null },
-            ...(options.cityId ? [{ targetCityId: options.cityId }] : []),
-          ],
-        },
-      ],
-    },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
-    select: {
-      id: true,
-      postId: true,
-      landingUrl: true,
-      priority: true,
-      adProduct: {
-        select: {
-          placementType: true,
-          size: true,
-          layout: true,
-        },
-      },
-      post: {
-        select: {
-          id: true,
-          title: true,
-          body: true,
-          status: true,
-          createdAt: true,
-          images: {
-            select: { url: true },
-            orderBy: { sortOrder: 'asc' },
-            take: 1,
+  try {
+    campaigns = (await prisma.adCampaign.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [{ startAt: null }, { startAt: { lte: now } }],
+        AND: [
+          { OR: [{ endAt: null }, { endAt: { gt: now } }] },
+          {
+            OR: [
+              { targetCountryId: null },
+              ...(options.countryId ? [{ targetCountryId: options.countryId }] : []),
+            ],
           },
-          category: { select: { name: true, type: true, color: true } },
-          city: { select: { name: true } },
-          author: {
-            select: {
-              displayName: true,
-              profileImageUrl: true,
-              accountType: true,
-              neighbourWarmth: true,
+          {
+            OR: [
+              { targetCityId: null },
+              ...(options.cityId ? [{ targetCityId: options.cityId }] : []),
+            ],
+          },
+        ],
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      select: {
+        id: true,
+        postId: true,
+        landingUrl: true,
+        priority: true,
+        adProduct: {
+          select: {
+            placementType: true,
+            size: true,
+            layout: true,
+          },
+        },
+        post: {
+          select: {
+            id: true,
+            title: true,
+            body: true,
+            status: true,
+            createdAt: true,
+            images: {
+              select: { url: true },
+              orderBy: { sortOrder: 'asc' },
+              take: 1,
+            },
+            category: { select: { name: true, type: true, color: true } },
+            city: { select: { name: true } },
+            author: {
+              select: {
+                displayName: true,
+                profileImageUrl: true,
+                accountType: true,
+                neighbourWarmth: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    })) as RawCampaign[];
+  } catch (error) {
+    if (isMissingAdSchemaError(error)) {
+      return { topFixed: null, inline: [] };
+    }
+
+    throw error;
+  }
 
   // Only show ads for published posts
   const activeCampaigns = campaigns.filter(
@@ -157,11 +166,61 @@ const DEFAULT_INLINE_RULE: InlinePlacementRule = {
   maxPerPage: 2,
 };
 
+const AD_SCHEMA_TOKENS = [
+  'AdCampaign',
+  'AdProduct',
+  'AdPlacementRule',
+  'AdImpression',
+  'AdClick',
+  'AdDailyStat',
+];
+
+function isMissingAdSchemaError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const knownError = error as {
+    code?: unknown;
+    meta?: unknown;
+    message?: unknown;
+  };
+  const code = typeof knownError.code === 'string' ? knownError.code : '';
+
+  if (code !== 'P2021' && code !== 'P2022') {
+    return false;
+  }
+
+  const meta =
+    knownError.meta && typeof knownError.meta === 'object'
+      ? (knownError.meta as Record<string, unknown>)
+      : undefined;
+  const tableName = typeof meta?.table === 'string' ? meta.table : '';
+  const columnName = typeof meta?.column === 'string' ? meta.column : '';
+  const message = typeof knownError.message === 'string' ? knownError.message : '';
+  const details = `${tableName} ${columnName} ${message}`;
+
+  return AD_SCHEMA_TOKENS.some((token) => details.includes(token));
+}
+
 export async function getInlinePlacementRule(): Promise<InlinePlacementRule> {
-  const rule = await prisma.adPlacementRule.findUnique({
-    where: { placementType: 'FEED_INLINE' },
-    select: { insertAfter: true, repeatInterval: true, maxPerPage: true, isActive: true },
-  });
+  let rule: {
+    insertAfter: number;
+    repeatInterval: number;
+    maxPerPage: number;
+    isActive: boolean;
+  } | null = null;
+
+  try {
+    rule = await prisma.adPlacementRule.findUnique({
+      where: { placementType: 'FEED_INLINE' },
+      select: { insertAfter: true, repeatInterval: true, maxPerPage: true, isActive: true },
+    });
+  } catch (error) {
+    if (!isMissingAdSchemaError(error)) {
+      throw error;
+    }
+  }
 
   if (!rule || !rule.isActive) {
     return DEFAULT_INLINE_RULE;
