@@ -1,10 +1,13 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import {
   createAdCampaignAction,
   createAdProductAction,
   toggleAdProductActiveAction,
+  updateAdCampaignAction,
   updateAdCampaignStatusAction,
+  updateAdProductAction,
   upsertAdPlacementRuleAction,
 } from '@/app/admin/ads/actions';
 import { adsManagerNavItems, ManagementSectionNav } from '@/components/admin/management-section-nav';
@@ -23,7 +26,12 @@ export const dynamic = 'force-dynamic';
 
 type AdminAdsPageProps = {
   params: Promise<{ section: string }>;
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    success?: string;
+    campaignId?: string;
+    productId?: string;
+  }>;
 };
 
 const AD_MANAGER_SECTIONS = ['campaigns', 'products', 'rules'] as const;
@@ -31,6 +39,20 @@ type AdManagerSection = (typeof AD_MANAGER_SECTIONS)[number];
 
 function isAdManagerSection(value: string): value is AdManagerSection {
   return (AD_MANAGER_SECTIONS as readonly string[]).includes(value);
+}
+
+function formatDateTimeLocal(value: Date | null): string {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export default async function AdsManagerSectionPage({ params, searchParams }: AdminAdsPageProps) {
@@ -104,6 +126,12 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
   ]);
 
   const inlineRule = placementRules.find((r) => r.placementType === 'FEED_INLINE');
+  const selectedCampaign = query.campaignId
+    ? adCampaigns.find((campaign) => campaign.id === query.campaignId)
+    : null;
+  const selectedProduct = query.productId
+    ? adProducts.find((product) => product.id === query.productId)
+    : null;
 
   const inputClass =
     'w-full rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40';
@@ -228,9 +256,12 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                           >
                             {statusLabel}
                           </span>
-                          <span className="text-sm font-medium">
+                          <Link
+                            href={`/ads-manager/campaigns?campaignId=${campaign.id}`}
+                            className="text-sm font-medium text-[#3c1e1e] underline-offset-2 hover:underline"
+                          >
                             {campaign.post.title ?? `(제목 없음) — ${campaign.post.id.slice(0, 8)}`}
-                          </span>
+                          </Link>
                           <span className="text-xs text-[#888]">[{campaign.adProduct.code}] {campaign.adProduct.name}</span>
                         </div>
                         <p className="text-xs text-[#888]">
@@ -269,6 +300,12 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                             </form>
                           )
                         ))}
+                        <Link
+                          href={`/ads-manager/campaigns?campaignId=${campaign.id}`}
+                          className="rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs hover:bg-[#f9f9f9]"
+                        >
+                          상세 보기
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -276,6 +313,100 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
               })
             )}
           </div>
+
+          {selectedCampaign ? (
+            <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">캠페인 상세/수정</h2>
+                <span className="text-xs text-[#888]">ID: {selectedCampaign.id}</span>
+              </div>
+              <form action={updateAdCampaignAction} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={selectedCampaign.id} />
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">우선순위 (높을수록 먼저)</span>
+                  <input
+                    type="number"
+                    name="priority"
+                    defaultValue={selectedCampaign.priority}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">최대 노출수 (빈칸 = 무제한)</span>
+                  <input
+                    type="number"
+                    name="maxImpressions"
+                    defaultValue={selectedCampaign.maxImpressions ?? ''}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">집행 시작일</span>
+                  <input
+                    type="datetime-local"
+                    name="startAt"
+                    defaultValue={formatDateTimeLocal(selectedCampaign.startAt)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">집행 종료일</span>
+                  <input
+                    type="datetime-local"
+                    name="endAt"
+                    defaultValue={formatDateTimeLocal(selectedCampaign.endAt)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">타겟 국가</span>
+                  <select
+                    name="targetCountryId"
+                    defaultValue={selectedCampaign.targetCountryId ?? ''}
+                    className={selectClass}
+                  >
+                    <option value="">전체 (무관)</option>
+                    {countries.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">타겟 도시 ID (선택)</span>
+                  <input
+                    type="text"
+                    name="targetCityId"
+                    defaultValue={selectedCampaign.targetCityId ?? ''}
+                    placeholder="City ID (선택)"
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">랜딩 URL (빈칸 = 게시글 상세)</span>
+                  <input
+                    type="url"
+                    name="landingUrl"
+                    defaultValue={selectedCampaign.landingUrl ?? ''}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">메모</span>
+                  <textarea
+                    name="notes"
+                    rows={2}
+                    defaultValue={selectedCampaign.notes ?? ''}
+                    className={inputClass}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <FormSubmitButton idleLabel="캠페인 수정 저장" pendingLabel="저장 중..." className={submitClass} />
+                </div>
+              </form>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -372,7 +503,13 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                     <tr key={product.id} className="border-b border-[#f9f9f9] last:border-b-0">
                       <td className="px-4 py-2 font-mono text-xs">{product.code}</td>
                       <td className="px-4 py-2">
-                        <p className="font-medium">{product.name}</p>
+                       <p className="font-medium">{product.name}</p>
+                        <Link
+                          href={`/ads-manager/products?productId=${product.id}`}
+                          className="text-xs text-[#666] underline-offset-2 hover:underline"
+                        >
+                          상세 보기
+                        </Link>
                         {product.description && (
                           <p className="text-xs text-[#888]">{product.description}</p>
                         )}
@@ -414,6 +551,103 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
               </tbody>
             </table>
           </div>
+
+          {selectedProduct ? (
+            <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">광고 상품 상세/수정</h2>
+                <span className="text-xs text-[#888]">ID: {selectedProduct.id}</span>
+              </div>
+              <form action={updateAdProductAction} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={selectedProduct.id} />
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">상품명 <span className="text-red-500">*</span></span>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    defaultValue={selectedProduct.name}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">노출 위치 <span className="text-red-500">*</span></span>
+                  <select
+                    name="placementType"
+                    required
+                    defaultValue={selectedProduct.placementType}
+                    className={selectClass}
+                  >
+                    <option value="TOP_FIXED">상단 고정</option>
+                    <option value="FEED_INLINE">피드 중간 삽입</option>
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">크기</span>
+                  <select name="size" defaultValue={selectedProduct.size} className={selectClass}>
+                    {Object.entries(AD_SIZE_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">레이아웃</span>
+                  <select name="layout" defaultValue={selectedProduct.layout} className={selectClass}>
+                    {Object.entries(AD_LAYOUT_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">가격 모델</span>
+                  <select
+                    name="pricingModel"
+                    defaultValue={selectedProduct.pricingModel}
+                    className={selectClass}
+                  >
+                    <option value="FIXED">고정가 (FIXED)</option>
+                    <option value="CPM">노출 보장형 (CPM)</option>
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">기준 단가 (NZD)</span>
+                  <input
+                    type="number"
+                    name="basePrice"
+                    step="0.01"
+                    min="0"
+                    defaultValue={Number(selectedProduct.basePrice)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">정렬 순서</span>
+                  <input
+                    type="number"
+                    name="sortOrder"
+                    defaultValue={selectedProduct.sortOrder}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">설명 (선택)</span>
+                  <textarea
+                    name="description"
+                    rows={2}
+                    defaultValue={selectedProduct.description ?? ''}
+                    className={inputClass}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <FormSubmitButton idleLabel="상품 수정 저장" pendingLabel="저장 중..." className={submitClass} />
+                </div>
+              </form>
+            </div>
+          ) : null}
         </div>
       )}
 
