@@ -27,7 +27,7 @@ export async function HeaderProfileMenu() {
     select: { profileImageUrl: true },
   });
 
-  const menuItems: { href: `/${string}`; label: string }[] = [
+  const menuItems: { href: string; label: string }[] = [
     { href: '/my/profile', label: '내 프로필' },
     ...(canAccessOperatorBoard(currentUser) ? [{ href: '/coordinator/board', label: '운영진 게시판' }] : []),
     ...(canAccessCoordinatorSection(currentUser) ? [{ href: '/coordination', label: '코디네이션' }] : []),
