@@ -866,3 +866,113 @@ export async function upsertAdPlacementRuleAction(formData: FormData) {
   revalidatePath(ADS_MANAGER_SECTION_PATH.rules);
   redirectAdsManager('rules', { success: '노출 규칙이 저장되었습니다.' });
 }
+
+// ─── Pricing Settings ─────────────────────────────────────────────────────────
+
+function parseCheckboxBoolean(value: FormDataEntryValue | null): boolean {
+  const normalized = normalizeText(value).toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes';
+}
+
+export async function upsertAdGeoPricingAction(formData: FormData) {
+  await requireAdsUser();
+
+  const id = normalizeText(formData.get('id'));
+  const countryId = normalizeText(formData.get('countryId')) || null;
+  const cityId = normalizeText(formData.get('cityId')) || null;
+  const multiplierRaw = normalizeText(formData.get('multiplier'));
+  const effectiveFrom = parseNullableDateTime(normalizeText(formData.get('effectiveFrom')) || null);
+  const effectiveTo = parseNullableDateTime(normalizeText(formData.get('effectiveTo')) || null);
+  const isActive = parseCheckboxBoolean(formData.get('isActive'));
+
+  if (!countryId && !cityId) {
+    redirectAdsManager('rules', { error: '국가 또는 도시를 선택해 주세요.' });
+  }
+
+  const multiplier = Number(multiplierRaw);
+  if (!multiplierRaw || Number.isNaN(multiplier) || multiplier <= 0) {
+    redirectAdsManager('rules', { error: '유효한 지역 가중치(multiplier)를 입력해 주세요.' });
+  }
+
+  if (effectiveFrom && effectiveTo && effectiveTo <= effectiveFrom) {
+    redirectAdsManager('rules', { error: '종료 시각은 시작 시각보다 늦어야 합니다.' });
+  }
+
+  if (id) {
+    await prisma.adGeoPricing.update({
+      where: { id },
+      data: {
+        countryId,
+        cityId,
+        multiplier,
+        effectiveFrom,
+        effectiveTo,
+        isActive,
+      },
+    });
+  } else {
+    await prisma.adGeoPricing.create({
+      data: {
+        countryId,
+        cityId,
+        multiplier,
+        effectiveFrom,
+        effectiveTo,
+        isActive,
+      },
+    });
+  }
+
+  revalidatePath(ADS_MANAGER_SECTION_PATH.rules);
+  redirectAdsManager('rules', { success: '지역 가중치 설정이 저장되었습니다.' });
+}
+
+export async function upsertAdPlacementPricingAction(formData: FormData) {
+  await requireAdsUser();
+
+  const id = normalizeText(formData.get('id'));
+  const placementType = normalizeText(formData.get('placementType')) as AdPlacementType;
+  const multiplierRaw = normalizeText(formData.get('multiplier'));
+  const effectiveFrom = parseNullableDateTime(normalizeText(formData.get('effectiveFrom')) || null);
+  const effectiveTo = parseNullableDateTime(normalizeText(formData.get('effectiveTo')) || null);
+  const isActive = parseCheckboxBoolean(formData.get('isActive'));
+
+  if (!placementType) {
+    redirectAdsManager('rules', { error: '노출 위치를 선택해 주세요.' });
+  }
+
+  const multiplier = Number(multiplierRaw);
+  if (!multiplierRaw || Number.isNaN(multiplier) || multiplier <= 0) {
+    redirectAdsManager('rules', { error: '유효한 노출 위치 가중치(multiplier)를 입력해 주세요.' });
+  }
+
+  if (effectiveFrom && effectiveTo && effectiveTo <= effectiveFrom) {
+    redirectAdsManager('rules', { error: '종료 시각은 시작 시각보다 늦어야 합니다.' });
+  }
+
+  if (id) {
+    await prisma.adPlacementPricing.update({
+      where: { id },
+      data: {
+        placementType,
+        multiplier,
+        effectiveFrom,
+        effectiveTo,
+        isActive,
+      },
+    });
+  } else {
+    await prisma.adPlacementPricing.create({
+      data: {
+        placementType,
+        multiplier,
+        effectiveFrom,
+        effectiveTo,
+        isActive,
+      },
+    });
+  }
+
+  revalidatePath(ADS_MANAGER_SECTION_PATH.rules);
+  redirectAdsManager('rules', { success: '노출 위치 가중치 설정이 저장되었습니다.' });
+}
