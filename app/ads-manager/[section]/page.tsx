@@ -12,6 +12,7 @@ import {
   updateAdContentAction,
   updateAdContentStatusAction,
   updateAdProductAction,
+  updateAdProposalContentAction,
   updateAdProposalStatusAction,
   upsertAdGeoPricingAction,
   upsertAdPlacementPricingAction,
@@ -161,6 +162,11 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
         body: true,
         advertiserId: true,
         advertiser: { select: { name: true } },
+        advertisedProductCode: true,
+        requestedStartAt: true,
+        requestedEndAt: true,
+        requestedBudget: true,
+        requestedLandingUrl: true,
         negotiationNotes: true,
         rejectedReason: true,
         createdAt: true,
@@ -586,51 +592,63 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
       {/* ── Proposals tab ──────────────────────────────────────────────────── */}
       {activeSection === 'proposals' && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
-            <h2 className="mb-4 font-semibold">광고 제안 등록</h2>
-            <form action={createAdProposalAction} className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">광고주 <span className="text-red-500">*</span></span>
-                <select name="advertiserId" required className={selectClass}>
-                  <option value="">광고주 선택</option>
-                  {advertisers.map((advertiser) => (
-                    <option key={advertiser.id} value={advertiser.id}>{advertiser.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">상품 코드 (선택)</span>
-                <input type="text" name="advertisedProductCode" className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-[#555]">제안 제목 <span className="text-red-500">*</span></span>
-                <input type="text" name="title" required className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-[#555]">제안 내용 <span className="text-red-500">*</span></span>
-                <textarea name="body" required rows={4} className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">희망 시작일</span>
-                <input type="datetime-local" name="requestedStartAt" className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">희망 종료일</span>
-                <input type="datetime-local" name="requestedEndAt" className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">예산 (NZD)</span>
-                <input type="number" step="0.01" min="0" name="requestedBudget" className={inputClass} />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-[#555]">희망 랜딩 URL</span>
-                <input type="url" name="requestedLandingUrl" className={inputClass} />
-              </label>
-              <div className="sm:col-span-2">
-                <FormSubmitButton idleLabel="제안 등록" pendingLabel="등록 중..." className={submitClass} />
-              </div>
-            </form>
-          </div>
+          <details className="group rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold">
+              <span>광고 제안 등록</span>
+              <span className="text-sm text-[#aaa] transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
+            </summary>
+            <div className="border-t border-[#f0f0f0] px-4 pb-4 pt-3">
+              <form action={createAdProposalAction} className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">광고주 <span className="text-red-500">*</span></span>
+                  <select name="advertiserId" required className={selectClass}>
+                    <option value="">광고주 선택</option>
+                    {advertisers.map((advertiser) => (
+                      <option key={advertiser.id} value={advertiser.id}>{advertiser.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">상품 코드 (선택)</span>
+                  <select name="advertisedProductCode" className={selectClass}>
+                    <option value="">상품 선택 안 함</option>
+                    {adProducts.filter((p) => p.isActive).map((p) => (
+                      <option key={p.id} value={p.code}>
+                        [{p.code}] {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">제안 제목 <span className="text-red-500">*</span></span>
+                  <input type="text" name="title" required className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">제안 내용 <span className="text-red-500">*</span></span>
+                  <textarea name="body" required rows={4} className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 시작일</span>
+                  <input type="datetime-local" name="requestedStartAt" className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 종료일</span>
+                  <input type="datetime-local" name="requestedEndAt" className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">예산 (NZD)</span>
+                  <input type="number" step="0.01" min="0" name="requestedBudget" className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 랜딩 URL</span>
+                  <input type="url" name="requestedLandingUrl" className={inputClass} />
+                </label>
+                <div className="sm:col-span-2">
+                  <FormSubmitButton idleLabel="제안 등록" pendingLabel="등록 중..." className={submitClass} />
+                </div>
+              </form>
+            </div>
+          </details>
 
           <div className="space-y-3">
             {adProposals.length === 0 ? (
@@ -669,9 +687,83 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
           </div>
 
           {selectedProposal ? (
-            <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
-              <h2 className="mb-3 text-base font-semibold">제안 상세/상태 변경</h2>
-              <form action={updateAdProposalStatusAction} className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-4 rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">제안 상세/수정</h2>
+                <span className="text-xs text-[#888]">ID: {selectedProposal.id}</span>
+              </div>
+
+              <form action={updateAdProposalContentAction} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={selectedProposal.id} />
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">광고주</span>
+                  <p className="rounded-lg border border-[#f0f0f0] bg-[#fafafa] px-3 py-2 text-sm text-[#555]">
+                    {selectedProposal.advertiser.name}
+                  </p>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">상품 코드</span>
+                  <select name="advertisedProductCode" defaultValue={selectedProposal.advertisedProductCode ?? ''} className={selectClass}>
+                    <option value="">상품 선택 안 함</option>
+                    {adProducts.filter((p) => p.isActive).map((p) => (
+                      <option key={p.id} value={p.code}>
+                        [{p.code}] {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">제안 제목 <span className="text-red-500">*</span></span>
+                  <input type="text" name="title" required defaultValue={selectedProposal.title} className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[#555]">제안 내용 <span className="text-red-500">*</span></span>
+                  <textarea name="body" required rows={4} defaultValue={selectedProposal.body} className={inputClass} />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 시작일</span>
+                  <input
+                    type="datetime-local"
+                    name="requestedStartAt"
+                    defaultValue={formatDateTimeLocal(selectedProposal.requestedStartAt)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 종료일</span>
+                  <input
+                    type="datetime-local"
+                    name="requestedEndAt"
+                    defaultValue={formatDateTimeLocal(selectedProposal.requestedEndAt)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">예산 (NZD)</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="requestedBudget"
+                    defaultValue={selectedProposal.requestedBudget != null ? Number(selectedProposal.requestedBudget).toString() : ''}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[#555]">희망 랜딩 URL</span>
+                  <input
+                    type="url"
+                    name="requestedLandingUrl"
+                    defaultValue={selectedProposal.requestedLandingUrl ?? ''}
+                    className={inputClass}
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <FormSubmitButton idleLabel="내용 저장" pendingLabel="저장 중..." className={submitClass} />
+                </div>
+              </form>
+
+              <form action={updateAdProposalStatusAction} className="grid gap-3 sm:grid-cols-2 border-t border-[#f0f0f0] pt-4">
                 <input type="hidden" name="id" value={selectedProposal.id} />
                 <label className="space-y-1 text-sm">
                   <span className="text-[#555]">상태</span>
@@ -702,16 +794,21 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
       {/* ── Contents tab ───────────────────────────────────────────────────── */}
       {activeSection === 'contents' && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
-            <h2 className="mb-4 font-semibold">광고 콘텐츠 등록</h2>
-            <AdContentCreateForm
-              advertisers={advertisers}
-              negotiatedProposals={negotiatedProposals}
-              createAction={createAdContentAction}
-              inputClass={inputClass}
-              selectClass={selectClass}
-            />
-          </div>
+          <details className="group rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold">
+              <span>광고 콘텐츠 등록</span>
+              <span className="text-sm text-[#aaa] transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
+            </summary>
+            <div className="border-t border-[#f0f0f0] px-4 pb-4 pt-3">
+              <AdContentCreateForm
+                advertisers={advertisers}
+                negotiatedProposals={negotiatedProposals}
+                createAction={createAdContentAction}
+                inputClass={inputClass}
+                selectClass={selectClass}
+              />
+            </div>
+          </details>
 
           <div className="space-y-3">
             {adContents.length === 0 ? (
