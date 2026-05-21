@@ -287,6 +287,20 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
   const selectedContent = query.contentId
     ? adContents.find((content) => content.id === query.contentId)
     : null;
+  const selectedContentLogs = selectedContent
+    ? await prisma.adAuditLog.findMany({
+        where: { adContentId: selectedContent.id },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          actionType: true,
+          message: true,
+          metadata: true,
+          createdAt: true,
+          actor: { select: { displayName: true } },
+        },
+      })
+    : [];
   const selectedGeoPricing = query.geoPricingId
     ? adGeoPricings.find((pricing) => pricing.id === query.geoPricingId)
     : null;
@@ -309,6 +323,7 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
     'w-full rounded-lg border border-[#e8e8e8] bg-white px-3 py-2 text-sm focus:border-[#fee500] focus:outline-none focus:ring-2 focus:ring-[#fee500]/40';
   const submitClass =
     'rounded-xl bg-[#fee500] px-4 py-2 text-sm font-bold text-[#3c1e1e] hover:bg-[#f5db00] disabled:cursor-not-allowed disabled:opacity-60';
+  const contentStatuses = ['DRAFT', 'REVIEW', 'REQUEST_CHANGES', 'APPROVED', 'REJECTED'] as const;
 
   return (
     <section className="space-y-6">
@@ -894,7 +909,7 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {(['DRAFT', 'REVIEW', 'APPROVED', 'REJECTED'] as const).map((status) => (
+                    {contentStatuses.map((status) => (
                       content.status !== status ? (
                         <form key={status} action={updateAdContentStatusAction}>
                           <input type="hidden" name="id" value={content.id} />
@@ -905,6 +920,16 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                         </form>
                       ) : null
                     ))}
+                  </div>
+                  <div className="mt-2">
+                    <Link
+                      href={`/ads/preview/${content.id}`}
+                      className="text-xs underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      실제 노출 미리보기
+                    </Link>
                   </div>
                 </div>
               ))
@@ -969,15 +994,24 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
               <form action={updateAdContentStatusAction} className="mt-3 flex flex-wrap gap-2">
                 <input type="hidden" name="id" value={selectedContent.id} />
                 <select name="status" defaultValue={selectedContent.status} className={selectClass}>
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="REVIEW">REVIEW</option>
-                  <option value="APPROVED">APPROVED</option>
-                  <option value="REJECTED">REJECTED</option>
+                  {contentStatuses.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
                 <button type="submit" className="rounded-lg border border-[#e8e8e8] px-3 py-2 text-sm hover:bg-[#f9f9f9]">
                   상태 변경
                 </button>
               </form>
+              <div className="mt-2">
+                <Link
+                  href={`/ads/preview/${selectedContent.id}`}
+                  className="text-xs underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  실제 노출 미리보기
+                </Link>
+              </div>
               <div className="mt-3">
                 <AdContentFeedPreview
                   title={selectedContent.title}
@@ -988,6 +1022,27 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                   cityName={selectedContent.cityName}
                   thumbnailUrl={selectedContent.thumbnailUrl}
                 />
+              </div>
+              <div className="mt-4 border-t border-[#f0f0f0] pt-4">
+                <h3 className="mb-2 text-sm font-semibold">콘텐츠 로그 (광고 매니저 전용)</h3>
+                {selectedContentLogs.length === 0 ? (
+                  <p className="text-xs text-[#888]">기록된 로그가 없습니다.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {selectedContentLogs.map((log) => (
+                      <li key={log.id} className="rounded-lg border border-[#f0f0f0] px-3 py-2 text-xs">
+                        <p className="font-medium text-[#444]">
+                          {log.actionType}
+                          {log.message ? ` · ${log.message}` : ''}
+                        </p>
+                        <p className="mt-0.5 text-[#888]">
+                          {new Date(log.createdAt).toLocaleString('ko-KR')}
+                          {log.actor?.displayName ? ` · ${log.actor.displayName}` : ''}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           ) : null}
