@@ -104,7 +104,7 @@ function toAdFeedItem(campaign: RawCampaign): AdFeedItem {
 }
 
 export type ActiveAdSlots = {
-  topFixed: AdFeedItem | null;
+  topFixed: AdFeedItem[];
   inline: AdFeedItem[];
 };
 
@@ -195,7 +195,7 @@ export async function fetchActiveAdSlots(options: {
     })) as RawCampaign[];
   } catch (error) {
     if (isMissingAdSchemaError(error)) {
-      return { topFixed: null, inline: [] };
+      return { topFixed: [], inline: [] };
     }
 
     throw error;
@@ -208,17 +208,49 @@ export async function fetchActiveAdSlots(options: {
       (c.post && c.post.status === 'PUBLISHED'),
   ) as RawCampaign[];
 
-  const topFixedCampaigns = activeCampaigns.filter(
+  const campaignsByPriority = sortByPriorityWithRandomTies(activeCampaigns);
+
+  const topFixedCampaigns = campaignsByPriority.filter(
     (c) => c.adProduct.placementType === 'TOP_FIXED',
   );
-  const inlineCampaigns = activeCampaigns.filter(
+  const inlineCampaigns = campaignsByPriority.filter(
     (c) => c.adProduct.placementType === 'FEED_INLINE',
   );
 
   return {
-    topFixed: topFixedCampaigns[0] ? toAdFeedItem(topFixedCampaigns[0]) : null,
+    topFixed: topFixedCampaigns.slice(0, 3).map(toAdFeedItem),
     inline: inlineCampaigns.map(toAdFeedItem),
   };
+}
+
+function sortByPriorityWithRandomTies(campaigns: RawCampaign[]): RawCampaign[] {
+  const groupedByPriority = new Map<number, RawCampaign[]>();
+
+  for (const campaign of campaigns) {
+    const samePriority = groupedByPriority.get(campaign.priority) ?? [];
+    samePriority.push(campaign);
+    groupedByPriority.set(campaign.priority, samePriority);
+  }
+
+  const priorities = [...groupedByPriority.keys()].sort((a, b) => b - a);
+  const sorted: RawCampaign[] = [];
+
+  for (const priority of priorities) {
+    const bucket = groupedByPriority.get(priority);
+    if (!bucket) continue;
+
+    shuffleInPlace(bucket);
+    sorted.push(...bucket);
+  }
+
+  return sorted;
+}
+
+function shuffleInPlace<T>(items: T[]): void {
+  for (let index = items.length - 1; index > 0; index--) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
+  }
 }
 
 export type InlinePlacementRule = {
@@ -321,8 +353,8 @@ export function insertAdsIntoFeed<T>(
 ): (T | AdFeedItem)[] {
   const result: (T | AdFeedItem)[] = [];
 
-  if (isFirstPage && ads.topFixed) {
-    result.push(ads.topFixed);
+  if (isFirstPage && ads.topFixed.length > 0) {
+    result.push(...ads.topFixed);
   }
 
   if (ads.inline.length === 0) {
