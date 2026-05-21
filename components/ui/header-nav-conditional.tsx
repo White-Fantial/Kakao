@@ -33,7 +33,7 @@ export async function HeaderNavConditional() {
         <HeaderNavLink href="/partner-manager">파트너 매니저</HeaderNavLink>
       ) : null}
       {canAccessAdvertiserMember ? (
-        <HeaderNavLink href="/advertiser-member/proposals">광고주 멤버</HeaderNavLink>
+        <HeaderNavLink href="/advertiser-member/campaigns">광고주 멤버</HeaderNavLink>
       ) : null}
       {currentUser && canMakeFinalUserDecision(currentUser) ? (
         <HeaderNavLink href="/admin">관리자</HeaderNavLink>

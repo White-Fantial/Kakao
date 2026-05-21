@@ -46,6 +46,7 @@ export const partnerManagerNavItems = [
 ] as const satisfies readonly ManagementNavItem[];
 
 export const advertiserMemberNavItems = [
+  { href: '/advertiser-member/campaigns', label: '캠페인 조회' },
   { href: '/advertiser-member/proposals', label: '광고 제안' },
   { href: '/advertiser-member/contents', label: '광고 콘텐츠' },
 ] as const satisfies readonly ManagementNavItem[];

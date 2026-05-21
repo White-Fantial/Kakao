@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function AdvertiserMemberPage() {
-  redirect('/advertiser-member/proposals');
+  redirect('/advertiser-member/campaigns');
 }
