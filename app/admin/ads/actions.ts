@@ -463,6 +463,7 @@ export async function createAdContentAction(formData: FormData) {
   });
 
   revalidatePath(ADS_MANAGER_SECTION_PATH.contents);
+  revalidatePath('/advertiser-member/contents');
   redirectAdsManager('contents', { success: '광고 콘텐츠가 생성되었습니다.' });
 }
 
@@ -523,6 +524,7 @@ export async function updateAdContentAction(formData: FormData) {
   });
 
   revalidatePath(ADS_MANAGER_SECTION_PATH.contents);
+  revalidatePath('/advertiser-member/contents');
   redirectAdsManager('contents', { success: '광고 콘텐츠를 수정했습니다.' });
 }
 
@@ -541,7 +543,7 @@ export async function updateAdContentStatusAction(formData: FormData) {
     redirectAdsManager('contents', { error: '콘텐츠 ID와 상태는 필수입니다.' });
   }
 
-  const validStatuses: AdContentStatus[] = ['DRAFT', 'REVIEW', 'APPROVED', 'REJECTED'];
+  const validStatuses: AdContentStatus[] = ['DRAFT', 'REVIEW', 'REQUEST_CHANGES', 'APPROVED', 'REJECTED'];
   if (!validStatuses.includes(status)) {
     redirectAdsManager('contents', { error: '유효하지 않은 콘텐츠 상태입니다.' });
   }
@@ -561,7 +563,10 @@ export async function updateAdContentStatusAction(formData: FormData) {
       data: {
         status,
         reviewNotes,
-        reviewedByUserId: status === 'APPROVED' || status === 'REJECTED' ? currentUser.id : null,
+        reviewedByUserId:
+          status === 'APPROVED' || status === 'REJECTED' || status === 'REQUEST_CHANGES'
+            ? currentUser.id
+            : null,
         approvedAt: status === 'APPROVED' ? new Date() : null,
         rejectedAt: status === 'REJECTED' ? new Date() : null,
       },
@@ -578,6 +583,7 @@ export async function updateAdContentStatusAction(formData: FormData) {
   });
 
   revalidatePath(ADS_MANAGER_SECTION_PATH.contents);
+  revalidatePath('/advertiser-member/contents');
   redirectAdsManager('contents', { success: '콘텐츠 상태가 변경되었습니다.' });
 }
 
