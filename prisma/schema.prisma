@@ -240,6 +240,7 @@ model Country {
   posts       Post[]
   permissions PostPermission[]
   adCampaigns AdCampaign[]    @relation("AdCampaignTargetCountry")
+  advertisers Advertiser[]
   staffAssignments StaffAssignment[]
 }
 
@@ -255,6 +256,7 @@ model City {
   posts     Post[]
   permissions PostPermission[]
   adCampaigns AdCampaign[]    @relation("AdCampaignTargetCity")
+  advertisers Advertiser[]
   staffAssignments StaffAssignment[]
 }
 
@@ -807,11 +809,15 @@ model Advertiser {
   id             String             @id @default(cuid())
   name           String
   slug           String             @unique
+  countryId      String?
+  cityId         String?
   contactEmail   String?
   contactPhone   String?
   websiteUrl     String?
   isActive       Boolean            @default(true)
   notes          String?
+  country        Country?           @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  city           City?              @relation(fields: [cityId], references: [id], onDelete: SetNull)
   members        AdvertiserMember[]
   proposals      AdProposal[]
   adContents     AdContent[]
@@ -819,6 +825,8 @@ model Advertiser {
   auditLogs      AdAuditLog[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+
+  @@index([countryId, cityId])
 }
 
 model AdvertiserMember {

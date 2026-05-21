@@ -41,6 +41,10 @@ export const adsManagerNavItems = [
   { href: '/ads-manager/rules', label: '노출 규칙' },
 ] as const satisfies readonly ManagementNavItem[];
 
+export const partnerManagerNavItems = [
+  { href: '/partner-manager', label: '광고주 관리' },
+] as const satisfies readonly ManagementNavItem[];
+
 type ManagementSectionNavProps = {
   items: readonly ManagementNavItem[];
 };
