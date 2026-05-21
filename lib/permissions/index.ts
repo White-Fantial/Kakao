@@ -584,6 +584,50 @@ export function canAccessAdsManagerSection(user: PermissionUser | null | undefin
   return hasAdManagerAssignment(user?.staffAssignments ?? []);
 }
 
+export function canAccessPartnerManagerSection(user: PermissionUser | null | undefined) {
+  return hasPartnerManagerAssignment(user?.staffAssignments ?? []);
+}
+
+export function canManagePartnerManagerScope(
+  user: PermissionUser | null | undefined,
+  targetCountryId: string | null,
+  targetCityId: string | null,
+) {
+  if (!user || user.status === 'SUSPENDED' || user.status === 'DELETED') {
+    return false;
+  }
+
+  if (!isPostScopeValid(targetCountryId, targetCityId)) {
+    return false;
+  }
+
+  const assignments = user.staffAssignments ?? [];
+  if (hasAdminAssignment(assignments)) {
+    return true;
+  }
+
+  return assignments.some(
+    (assignment) =>
+      assignment.role === 'PARTNER_MANAGER' &&
+      assignmentCoversLocation(assignment, targetCountryId, targetCityId),
+  );
+}
+
+export async function canAccessAdvertiserMemberSection(
+  user: PermissionUser | null | undefined,
+) {
+  if (!user || user.status === 'SUSPENDED' || user.status === 'DELETED') {
+    return false;
+  }
+
+  const membership = await prisma.advertiserMember.findFirst({
+    where: { userId: user.id, isActive: true },
+    select: { id: true },
+  });
+
+  return Boolean(membership);
+}
+
 type PermissionAdProposal = {
   id: string;
   advertiserId: string;
@@ -597,13 +641,25 @@ export async function canCreateAdProposal(
   user: PermissionUser | null | undefined,
   advertiserId: string,
 ) {
-  if (!user || !advertiserId) {
+  if (!user || !advertiserId || user.status === 'SUSPENDED' || user.status === 'DELETED') {
     return false;
   }
 
   const assignments = user.staffAssignments ?? [];
-  if (hasAdManagerAssignment(assignments) || hasPartnerManagerAssignment(assignments)) {
+  if (hasAdManagerAssignment(assignments)) {
     return true;
+  }
+
+  if (hasPartnerManagerAssignment(assignments)) {
+    const advertiser = await prisma.advertiser.findUnique({
+      where: { id: advertiserId },
+      select: { countryId: true, cityId: true },
+    });
+    if (!advertiser) {
+      return false;
+    }
+
+    return canManagePartnerManagerScope(user, advertiser.countryId, advertiser.cityId);
   }
 
   const membership = await prisma.advertiserMember.findFirst({
@@ -627,8 +683,20 @@ export async function canEditAdProposal(
   }
 
   const assignments = user.staffAssignments ?? [];
-  if (hasAdManagerAssignment(assignments) || hasPartnerManagerAssignment(assignments)) {
+  if (hasAdManagerAssignment(assignments)) {
     return true;
+  }
+
+  if (hasPartnerManagerAssignment(assignments)) {
+    const advertiser = await prisma.advertiser.findUnique({
+      where: { id: proposal.advertiserId },
+      select: { countryId: true, cityId: true },
+    });
+    if (!advertiser) {
+      return false;
+    }
+
+    return canManagePartnerManagerScope(user, advertiser.countryId, advertiser.cityId);
   }
 
   const membership = await prisma.advertiserMember.findFirst({
@@ -636,7 +704,7 @@ export async function canEditAdProposal(
     select: { id: true },
   });
 
-  return Boolean(membership) && proposal.submittedByUserId === user.id;
+  return Boolean(membership);
 }
 
 export function canManageAdContent(user: PermissionUser | null | undefined) {

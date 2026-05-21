@@ -1,7 +1,9 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import {
   canAccessAdsManagerSection,
+  canAccessAdvertiserMemberSection,
   canAccessCoordinatorSection,
+  canAccessPartnerManagerSection,
   canAccessOperatorBoard,
   canMakeFinalUserDecision,
   canModerate,
@@ -10,6 +12,8 @@ import { HeaderNavLink } from '@/components/ui/header-nav-link';
 
 export async function HeaderNavConditional() {
   const currentUser = await getCurrentUser();
+  const canAccessAdvertiserMember =
+    currentUser ? await canAccessAdvertiserMemberSection(currentUser) : false;
 
   return (
     <>
@@ -24,6 +28,12 @@ export async function HeaderNavConditional() {
       ) : null}
       {currentUser && canAccessAdsManagerSection(currentUser) ? (
         <HeaderNavLink href="/ads-manager/campaigns">광고 매니저</HeaderNavLink>
+      ) : null}
+      {currentUser && canAccessPartnerManagerSection(currentUser) ? (
+        <HeaderNavLink href="/partner-manager">파트너 매니저</HeaderNavLink>
+      ) : null}
+      {canAccessAdvertiserMember ? (
+        <HeaderNavLink href="/advertiser-member/proposals">광고주 멤버</HeaderNavLink>
       ) : null}
       {currentUser && canMakeFinalUserDecision(currentUser) ? (
         <HeaderNavLink href="/admin">관리자</HeaderNavLink>
