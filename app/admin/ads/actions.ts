@@ -756,6 +756,7 @@ export async function updateAdCampaignStatusAction(formData: FormData) {
   const validStatuses: AdCampaignStatus[] = [
     'DRAFT',
     'REVIEW',
+    'APPROVED',
     'REQUEST_CHANGES',
     'ACTIVE',
     'PAUSED',

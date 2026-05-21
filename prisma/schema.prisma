@@ -129,6 +129,7 @@ enum AdLayout {
 enum AdCampaignStatus {
   DRAFT
   REVIEW
+  APPROVED
   REQUEST_CHANGES
   ACTIVE
   PAUSED

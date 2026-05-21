@@ -4,6 +4,7 @@ export type AdPlacementType = 'TOP_FIXED' | 'FEED_INLINE';
 export type AdCampaignStatus =
   | 'DRAFT'
   | 'REVIEW'
+  | 'APPROVED'
   | 'REQUEST_CHANGES'
   | 'ACTIVE'
   | 'PAUSED'
@@ -33,6 +34,7 @@ export const AD_PLACEMENT_TYPE_LABELS: Record<AdPlacementType, string> = {
 export const AD_CAMPAIGN_STATUS_LABELS: Record<AdCampaignStatus, string> = {
   DRAFT: '초안',
   REVIEW: '리뷰 대기',
+  APPROVED: '승인됨',
   REQUEST_CHANGES: '수정 요청',
   ACTIVE: '집행 중',
   PAUSED: '일시정지',
