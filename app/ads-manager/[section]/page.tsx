@@ -31,6 +31,7 @@ import {
   AD_PLACEMENT_TYPE_LABELS,
   AD_SIZE_LABELS,
 } from '@/lib/ads/types';
+import type { AdLayout, AdSize } from '@/lib/ads/types';
 import { AdContentCreateForm } from '@/components/ads/ad-content-form';
 import { AdContentFeedPreview } from '@/components/ads/ad-content-feed-preview';
 
@@ -125,7 +126,7 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
         post: { select: { id: true, title: true, status: true } },
         adContent: { select: { id: true, title: true, status: true } },
         advertiser: { select: { name: true } },
-        adProduct: { select: { id: true, name: true, code: true, placementType: true } },
+        adProduct: { select: { id: true, name: true, code: true, placementType: true, size: true, layout: true } },
         targetCountry: { select: { name: true } },
         targetCity: { select: { name: true } },
         _count: { select: { impressions: true, clicks: true } },
@@ -232,6 +233,13 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
   const selectedContent = query.contentId
     ? adContents.find((content) => content.id === query.contentId)
     : null;
+  // Find the first campaign linked to this content to derive layout/size for the preview.
+  const selectedContentCampaign = selectedContent
+    ? adCampaigns.find((c) => c.adContentId === selectedContent.id)
+    : null;
+  const selectedContentPreviewLayout = (selectedContentCampaign?.adProduct?.layout ?? 'THUMBNAIL') as AdLayout;
+  const selectedContentPreviewSize = (selectedContentCampaign?.adProduct?.size ?? 'M') as AdSize;
+
   const selectedContentLogs = selectedContent
     ? await prisma.adAuditLog.findMany({
         where: { adContentId: selectedContent.id },
@@ -950,6 +958,8 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                   categoryName={selectedContent.categoryName}
                   cityName={selectedContent.cityName}
                   thumbnailUrl={selectedContent.thumbnailUrl}
+                  layout={selectedContentPreviewLayout}
+                  size={selectedContentPreviewSize}
                 />
               </div>
               <div className="mt-4 border-t border-[#f0f0f0] pt-4">
