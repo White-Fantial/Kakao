@@ -42,7 +42,10 @@ export default async function AdvertiserMemberCampaignsPage({
   const advertiserIds = memberships.map((membership) => membership.advertiserId);
   const adCampaigns = advertiserIds.length
     ? await prisma.adCampaign.findMany({
-        where: { advertiserId: { in: advertiserIds } },
+        where: {
+          advertiserId: { in: advertiserIds },
+          status: { not: 'DRAFT' },
+        },
         orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         select: {
           id: true,
@@ -331,4 +334,3 @@ export default async function AdvertiserMemberCampaignsPage({
     </section>
   );
 }
-
