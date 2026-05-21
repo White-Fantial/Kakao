@@ -13,6 +13,8 @@ import {
   updateAdContentStatusAction,
   updateAdProductAction,
   updateAdProposalStatusAction,
+  upsertAdGeoPricingAction,
+  upsertAdPlacementPricingAction,
   upsertAdPlacementRuleAction,
 } from '@/app/admin/ads/actions';
 import { adsManagerNavItems, ManagementSectionNav } from '@/components/admin/management-section-nav';
@@ -40,6 +42,8 @@ type AdminAdsPageProps = {
     productId?: string;
     proposalId?: string;
     contentId?: string;
+    geoPricingId?: string;
+    placementPricingId?: string;
   }>;
 };
 
@@ -78,7 +82,7 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
 
   const activeSection = routeParams.section;
 
-  const [adProducts, adCampaigns, placementRules, countries, advertisers, adProposals, adContents] = await Promise.all([
+  const [adProducts, adCampaigns, placementRules, countries, advertisers, adProposals, adContents, adGeoPricings, adPlacementPricings] = await Promise.all([
     prisma.adProduct.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: {
@@ -179,6 +183,33 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
         updatedAt: true,
       },
     }),
+    prisma.adGeoPricing.findMany({
+      orderBy: [{ updatedAt: 'desc' }],
+      select: {
+        id: true,
+        countryId: true,
+        cityId: true,
+        multiplier: true,
+        isActive: true,
+        effectiveFrom: true,
+        effectiveTo: true,
+        updatedAt: true,
+        country: { select: { name: true } },
+        city: { select: { name: true } },
+      },
+    }),
+    prisma.adPlacementPricing.findMany({
+      orderBy: [{ updatedAt: 'desc' }],
+      select: {
+        id: true,
+        placementType: true,
+        multiplier: true,
+        isActive: true,
+        effectiveFrom: true,
+        effectiveTo: true,
+        updatedAt: true,
+      },
+    }),
   ]);
 
   const inlineRule = placementRules.find((r) => r.placementType === 'FEED_INLINE');
@@ -193,6 +224,12 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
     : null;
   const selectedContent = query.contentId
     ? adContents.find((content) => content.id === query.contentId)
+    : null;
+  const selectedGeoPricing = query.geoPricingId
+    ? adGeoPricings.find((pricing) => pricing.id === query.geoPricingId)
+    : null;
+  const selectedPlacementPricing = query.placementPricingId
+    ? adPlacementPricings.find((pricing) => pricing.id === query.placementPricingId)
     : null;
 
   const inputClass =
@@ -227,8 +264,17 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
             <div className="border-t border-[#f0f0f0] px-4 pb-4 pt-3">
               <form action={createAdCampaignAction} className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-sm">
-                  <span className="text-[#555]">광고 콘텐츠 ID <span className="text-red-500">*</span></span>
-                  <input type="text" name="adContentId" required placeholder="AdContent ID" className={inputClass} />
+                  <span className="text-[#555]">광고 콘텐츠 (legacy 게시글 ID와 둘 중 하나 필수)</span>
+                  <select name="adContentId" className={selectClass}>
+                    <option value="">콘텐츠 선택 안 함 (legacy post 사용 시)</option>
+                    {adContents
+                      .filter((content) => content.status === 'APPROVED')
+                      .map((content) => (
+                        <option key={content.id} value={content.id}>
+                          {content.title ?? '(제목 없음)'} · {content.advertiser.name} · {content.id.slice(0, 8)}
+                        </option>
+                      ))}
+                  </select>
                 </label>
                 <label className="space-y-1 text-sm">
                   <span className="text-[#555]">legacy 게시글 ID (선택)</span>
@@ -271,8 +317,19 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                   </select>
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span className="text-[#555]">타겟 도시 ID (선택)</span>
-                  <input type="text" name="targetCityId" placeholder="City ID (선택)" className={inputClass} />
+                  <span className="text-[#555]">타겟 도시 (선택)</span>
+                  <select name="targetCityId" className={selectClass}>
+                    <option value="">전체 (무관)</option>
+                    {countries.map((country) => (
+                      <optgroup key={country.id} label={country.name}>
+                        {country.cities.map((city) => (
+                          <option key={city.id} value={city.id}>
+                            {city.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
                   <span className="text-[#555]">랜딩 URL (빈칸 = 게시글 상세)</span>
@@ -457,14 +514,23 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
                   </select>
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span className="text-[#555]">타겟 도시 ID (선택)</span>
-                  <input
-                    type="text"
+                  <span className="text-[#555]">타겟 도시 (선택)</span>
+                  <select
                     name="targetCityId"
                     defaultValue={selectedCampaign.targetCityId ?? ''}
-                    placeholder="City ID (선택)"
-                    className={inputClass}
-                  />
+                    className={selectClass}
+                  >
+                    <option value="">전체 (무관)</option>
+                    {countries.map((country) => (
+                      <optgroup key={country.id} label={country.name}>
+                        {country.cities.map((city) => (
+                          <option key={city.id} value={city.id}>
+                            {city.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
                   <span className="text-[#555]">과금 요약</span>
@@ -1022,7 +1088,7 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
       {activeSection === 'rules' && (
         <div className="space-y-6">
           <p className="text-sm text-[#666]">
-            피드 중간 삽입 광고의 위치를 설정합니다. 상단 고정 광고는 항상 피드 최상단에 1개 표시됩니다.
+            노출 규칙과 가격 가중치(지역/위치)를 관리합니다.
           </p>
 
           <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
@@ -1064,6 +1130,273 @@ export default async function AdsManagerSectionPage({ params, searchParams }: Ad
               </div>
             </form>
           </div>
+
+          <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold">지역 가중치 설정 (AdGeoPricing)</h2>
+              {selectedGeoPricing ? (
+                <Link href="/ads-manager/rules" className="text-xs text-[#666] underline-offset-2 hover:underline">
+                  새 항목 등록으로 전환
+                </Link>
+              ) : null}
+            </div>
+            <form action={upsertAdGeoPricingAction} className="grid gap-3 sm:grid-cols-2">
+              {selectedGeoPricing ? <input type="hidden" name="id" value={selectedGeoPricing.id} /> : null}
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">국가 (선택)</span>
+                <select
+                  name="countryId"
+                  defaultValue={selectedGeoPricing?.countryId ?? ''}
+                  className={selectClass}
+                >
+                  <option value="">선택 안 함</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">도시 (선택)</span>
+                <select
+                  name="cityId"
+                  defaultValue={selectedGeoPricing?.cityId ?? ''}
+                  className={selectClass}
+                >
+                  <option value="">선택 안 함</option>
+                  {countries.map((country) => (
+                    <optgroup key={country.id} label={country.name}>
+                      {country.cities.map((city) => (
+                        <option key={city.id} value={city.id}>
+                          {city.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">가중치(multiplier) <span className="text-red-500">*</span></span>
+                <input
+                  type="number"
+                  name="multiplier"
+                  step="0.0001"
+                  min="0.0001"
+                  required
+                  defaultValue={selectedGeoPricing ? Number(selectedGeoPricing.multiplier) : 1}
+                  className={inputClass}
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">활성 여부</span>
+                <div className="flex h-[38px] items-center">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    defaultChecked={selectedGeoPricing ? selectedGeoPricing.isActive : true}
+                    className="h-4 w-4 rounded border-[#d0d0d0]"
+                  />
+                </div>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">적용 시작</span>
+                <input
+                  type="datetime-local"
+                  name="effectiveFrom"
+                  defaultValue={formatDateTimeLocal(selectedGeoPricing?.effectiveFrom ?? null)}
+                  className={inputClass}
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">적용 종료</span>
+                <input
+                  type="datetime-local"
+                  name="effectiveTo"
+                  defaultValue={formatDateTimeLocal(selectedGeoPricing?.effectiveTo ?? null)}
+                  className={inputClass}
+                />
+              </label>
+              <div className="sm:col-span-2">
+                <FormSubmitButton
+                  idleLabel={selectedGeoPricing ? '지역 가중치 수정 저장' : '지역 가중치 등록'}
+                  pendingLabel="저장 중..."
+                  className={submitClass}
+                />
+              </div>
+            </form>
+          </div>
+
+          {adGeoPricings.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#f0f0f0] text-left text-[#888]">
+                    <th className="px-4 py-3">대상</th>
+                    <th className="px-4 py-3">가중치</th>
+                    <th className="px-4 py-3">적용 기간</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adGeoPricings.map((pricing) => (
+                    <tr key={pricing.id} className="border-b border-[#f9f9f9] last:border-b-0">
+                      <td className="px-4 py-2">
+                        {pricing.city
+                          ? `도시: ${pricing.city.name}`
+                          : pricing.country
+                            ? `국가: ${pricing.country.name}`
+                            : '-'}
+                      </td>
+                      <td className="px-4 py-2">{Number(pricing.multiplier).toFixed(4)}</td>
+                      <td className="px-4 py-2 text-xs text-[#666]">
+                        {pricing.effectiveFrom ? new Date(pricing.effectiveFrom).toLocaleString('ko-KR') : '즉시'} ~{' '}
+                        {pricing.effectiveTo ? new Date(pricing.effectiveTo).toLocaleString('ko-KR') : '무기한'}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            pricing.isActive ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500'
+                          }`}
+                        >
+                          {pricing.isActive ? '활성' : '비활성'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <Link
+                          href={`/ads-manager/rules?geoPricingId=${pricing.id}`}
+                          className="rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs hover:bg-[#f9f9f9]"
+                        >
+                          상세/수정
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+
+          <div className="rounded-xl border border-[#e8e8e8] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold">노출 위치 가중치 설정 (AdPlacementPricing)</h2>
+              {selectedPlacementPricing ? (
+                <Link href="/ads-manager/rules" className="text-xs text-[#666] underline-offset-2 hover:underline">
+                  새 항목 등록으로 전환
+                </Link>
+              ) : null}
+            </div>
+            <form action={upsertAdPlacementPricingAction} className="grid gap-3 sm:grid-cols-2">
+              {selectedPlacementPricing ? (
+                <input type="hidden" name="id" value={selectedPlacementPricing.id} />
+              ) : null}
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">노출 위치 <span className="text-red-500">*</span></span>
+                <select
+                  name="placementType"
+                  defaultValue={selectedPlacementPricing?.placementType ?? 'FEED_INLINE'}
+                  className={selectClass}
+                >
+                  <option value="TOP_FIXED">상단 고정</option>
+                  <option value="FEED_INLINE">피드 중간 삽입</option>
+                </select>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">가중치(multiplier) <span className="text-red-500">*</span></span>
+                <input
+                  type="number"
+                  name="multiplier"
+                  step="0.0001"
+                  min="0.0001"
+                  required
+                  defaultValue={selectedPlacementPricing ? Number(selectedPlacementPricing.multiplier) : 1}
+                  className={inputClass}
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">활성 여부</span>
+                <div className="flex h-[38px] items-center">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    defaultChecked={selectedPlacementPricing ? selectedPlacementPricing.isActive : true}
+                    className="h-4 w-4 rounded border-[#d0d0d0]"
+                  />
+                </div>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">적용 시작</span>
+                <input
+                  type="datetime-local"
+                  name="effectiveFrom"
+                  defaultValue={formatDateTimeLocal(selectedPlacementPricing?.effectiveFrom ?? null)}
+                  className={inputClass}
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[#555]">적용 종료</span>
+                <input
+                  type="datetime-local"
+                  name="effectiveTo"
+                  defaultValue={formatDateTimeLocal(selectedPlacementPricing?.effectiveTo ?? null)}
+                  className={inputClass}
+                />
+              </label>
+              <div className="sm:col-span-2">
+                <FormSubmitButton
+                  idleLabel={selectedPlacementPricing ? '위치 가중치 수정 저장' : '위치 가중치 등록'}
+                  pendingLabel="저장 중..."
+                  className={submitClass}
+                />
+              </div>
+            </form>
+          </div>
+
+          {adPlacementPricings.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#f0f0f0] text-left text-[#888]">
+                    <th className="px-4 py-3">노출 위치</th>
+                    <th className="px-4 py-3">가중치</th>
+                    <th className="px-4 py-3">적용 기간</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adPlacementPricings.map((pricing) => (
+                    <tr key={pricing.id} className="border-b border-[#f9f9f9] last:border-b-0">
+                      <td className="px-4 py-2">{AD_PLACEMENT_TYPE_LABELS[pricing.placementType]}</td>
+                      <td className="px-4 py-2">{Number(pricing.multiplier).toFixed(4)}</td>
+                      <td className="px-4 py-2 text-xs text-[#666]">
+                        {pricing.effectiveFrom ? new Date(pricing.effectiveFrom).toLocaleString('ko-KR') : '즉시'} ~{' '}
+                        {pricing.effectiveTo ? new Date(pricing.effectiveTo).toLocaleString('ko-KR') : '무기한'}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            pricing.isActive ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500'
+                          }`}
+                        >
+                          {pricing.isActive ? '활성' : '비활성'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <Link
+                          href={`/ads-manager/rules?placementPricingId=${pricing.id}`}
+                          className="rounded-lg border border-[#e8e8e8] px-2 py-1 text-xs hover:bg-[#f9f9f9]"
+                        >
+                          상세/수정
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
 
           {placementRules.length > 0 && (
             <div className="overflow-x-auto rounded-xl border border-[#e8e8e8] bg-white shadow-sm">
