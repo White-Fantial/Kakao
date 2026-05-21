@@ -346,6 +346,64 @@ export async function updateAdProposalStatusAction(formData: FormData) {
   redirectAdsManager('proposals', { success: '제안 상태가 변경되었습니다.' });
 }
 
+export async function updateAdProposalContentAction(formData: FormData) {
+  const currentUser = await requireAdsUser();
+
+  const id = normalizeText(formData.get('id'));
+  const title = normalizeText(formData.get('title'));
+  const body = normalizeText(formData.get('body'));
+  const requestedStartAt = parseNullableDateTime(normalizeText(formData.get('requestedStartAt')) || null);
+  const requestedEndAt = parseNullableDateTime(normalizeText(formData.get('requestedEndAt')) || null);
+  const requestedBudgetRaw = normalizeText(formData.get('requestedBudget'));
+  const requestedLandingUrl = normalizeText(formData.get('requestedLandingUrl')) || null;
+  const advertisedProductCode = normalizeText(formData.get('advertisedProductCode')) || null;
+
+  if (!id || !title || !body) {
+    redirectAdsManager('proposals', { error: '제안 ID, 제목, 내용은 필수입니다.' });
+  }
+
+  if (!canManageAdContent(currentUser)) {
+    redirectAdsManager('proposals', { error: '제안 내용을 수정할 권한이 없습니다.' });
+  }
+
+  const proposal = await prisma.adProposal.findUnique({
+    where: { id },
+    select: { id: true, advertiserId: true },
+  });
+
+  if (!proposal) {
+    redirectAdsManager('proposals', { error: '광고 제안을 찾을 수 없습니다.' });
+  }
+
+  const requestedBudget = requestedBudgetRaw ? Number(requestedBudgetRaw) : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.adProposal.update({
+      where: { id },
+      data: {
+        title,
+        body,
+        requestedStartAt,
+        requestedEndAt,
+        requestedBudget,
+        requestedLandingUrl,
+        advertisedProductCode,
+      },
+    });
+
+    await logAdAudit(tx, {
+      actorId: currentUser.id,
+      advertiserId: proposal.advertiserId,
+      proposalId: proposal.id,
+      actionType: 'PROPOSAL_CONTENT_UPDATED',
+      message: '광고 제안 내용이 수정되었습니다.',
+    });
+  });
+
+  revalidatePath(ADS_MANAGER_SECTION_PATH.proposals);
+  redirectAdsManager('proposals', { success: '제안 내용이 수정되었습니다.', proposalId: id });
+}
+
 // ─── AdContent ─────────────────────────────────────────────────────────────────
 
 export async function createAdContentAction(formData: FormData) {
