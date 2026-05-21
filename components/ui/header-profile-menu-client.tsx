@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { logoutAction } from '@/app/login/actions';
@@ -14,13 +13,8 @@ type HeaderProfileMenuClientProps = {
 };
 
 export function HeaderProfileMenuClient({ displayName, profileImageUrl, menuItems }: HeaderProfileMenuClientProps) {
-  const pathname = usePathname();
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!isOpen) {
