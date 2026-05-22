@@ -193,8 +193,7 @@ export default async function GlobalHotPage({ searchParams }: GlobalHotPageProps
   return (
     <section className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-xl font-bold">글로벌핫</h1>
-        <p className="text-sm text-[#666]">커뮤니티 점수 {globalHot.minScore}점 이상 글을 전 세계에서 모아 보여줘요.</p>
+        <p className="text-sm text-[#666]">핫한 글들이 표시돼요.</p>
       </div>
 
       {!globalHot.enabled && isAdmin ? (
